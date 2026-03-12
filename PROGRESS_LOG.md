@@ -4,6 +4,26 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## Session 4 — 2026-03-12
+
+### [patch] — v2.1.2-pre — Show last injected filename per component (2026-03-12)
+**Commit:** `cc31765` (fix) / `0070548` (initial, failed build) | **Tag:** v2.1.2-pre ✅
+#### What changed
+- After a successful inject, the component list row shows `"ComponentName [-> filename.wcp]"`
+- Label persists across app restarts via SharedPreferences (`"bh_injected"` prefs file, keyed by component folder name)
+- Updates each time a new file is injected into that component
+#### Implementation
+- New `getFileName(Uri)String` method on activity — queries `_display_name` via `ContentResolver` using `invoke-virtual/range` for the 6-register query call
+- `$1.run()` calls `this$0.getFileName(val$uri)` on extract success, then saves `componentDir.getName() → filename` to SharedPreferences before posting the success runnable
+- `showComponents()` reads SharedPreferences before the name loop; builds `"name [-> filename]"` string with StringBuilder if key is present, plain name otherwise. `.locals 9` → `.locals 11`
+#### Build notes
+- First attempt (`0070548`) failed: `invoke-direct {v1, p0, p1, v0, v2, v4}` — 6 registers exceeds invoke-direct max of 5. Fixed by keeping $1 constructor at 4 args and calling `getFileName()` from inside `$1.run()` instead.
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1.smali`
+
+---
+
 ## Session 3 — 2026-03-12
 
 ### [revert] — Reverted to v2.1.1; removed v2.1.2 release and tag
