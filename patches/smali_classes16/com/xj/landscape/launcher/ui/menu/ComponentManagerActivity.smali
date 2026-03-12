@@ -288,39 +288,21 @@
     iget v1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->selectedIndex:I
     aget-object v0, v0, v1
 
-    # v1 = ContentResolver
-    invoke-virtual {p0}, Landroid/app/Activity;->getContentResolver()Landroid/content/ContentResolver;
+    # v1 = Handler(mainLooper)
+    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
     move-result-object v1
+    new-instance v2, Landroid/os/Handler;
+    invoke-direct {v2, v1}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
 
-    :try_inject_start
-    invoke-static {v1, p1, v0}, Lcom/xj/landscape/launcher/ui/menu/WcpExtractor;->extract(Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/io/File;)V
-    :try_inject_end
-    .catch Ljava/lang/Exception; {:try_inject_start .. :try_inject_end} :inject_catch
+    # v1 = background worker runnable
+    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;
+    invoke-direct {v1, p0, p1, v0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;Landroid/net/Uri;Ljava/io/File;Landroid/os/Handler;)V
 
-    const-string v2, "Injected successfully"
-    const/4 v3, 0x1
-    invoke-static {p0, v2, v3}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
-    move-result-object v2
-    invoke-virtual {v2}, Landroid/widget/Toast;->show()V
-    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->showComponents()V
-    return-void
+    # Start background thread
+    new-instance v3, Ljava/lang/Thread;
+    invoke-direct {v3, v1}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
+    invoke-virtual {v3}, Ljava/lang/Thread;->start()V
 
-    :inject_catch
-    move-exception v2
-    invoke-virtual {v2}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
-    move-result-object v2
-    new-instance v3, Ljava/lang/StringBuilder;
-    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v0, "Inject failed: "
-    invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v2
-    const/4 v3, 0x1
-    invoke-static {p0, v2, v3}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
-    move-result-object v2
-    invoke-virtual {v2}, Landroid/widget/Toast;->show()V
-    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->showComponents()V
     return-void
 .end method
 
