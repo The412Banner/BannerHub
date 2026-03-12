@@ -37,48 +37,77 @@ jobs:
         run: |
           APK=$(ls base/*.apk | head -1)
           echo "Decompiling: $APK"
-          java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out -f
+          java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out_base -f
 
       - name: Remove uncompilable apktool artifacts
         run: |
           # raws.xml contains Firebase boolean entries that aapt2 rejects (expects file refs)
-          rm -f apktool_out/res/values/raws.xml
+          rm -f apktool_out_base/res/values/raws.xml
           # Remove the matching public.xml declarations or aapt2 errors on missing symbols
-          sed -i '/firebase_common_keep\|firebase_crashlytics_keep/d' apktool_out/res/values/public.xml
+          sed -i '/firebase_common_keep\|firebase_crashlytics_keep/d' apktool_out_base/res/values/public.xml
 
       - name: Apply patches
         run: |
           if [ -d "patches" ] && [ "$(ls -A patches)" ]; then
             echo "Applying patches..."
-            cp -r patches/. apktool_out/
+            cp -r patches/. apktool_out_base/
             echo "Patches applied."
           else
             echo "No patches to apply."
           fi
 
-      - name: Rebuild APK
+      - name: Rebuild and Sign Multiple APKs
         run: |
-          java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
-          echo "Rebuilt APK size: $(du -sh rebuilt-unsigned.apk | cut -f1)"
+          # Define targets: "output_filename:package_name"
+          TARGETS=(
+            "Bannerhub-5.3.5-Revanced-Normal.apk:gamehub.lite"
+            "Bannerhub-5.3.5-Revanced-PuBG.apk:com.tencent.ig"
+            "Bannerhub-5.3.5-Revanced-AnTuTu.apk:com.antutu.ABenchMark"
+            "Bannerhub-5.3.5-Revanced-Ludashi.apk:com.ludashi.aibench"
+            "Bannerhub-5.3.5-Revanced-Genshin.apk:com.mihoyo.genshinimpact"
+          )
 
-      - name: Align and sign APK
-        run: |
-          # Zipalign
-          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign \
-            -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
-
-          # Sign with AOSP testkey (v1, v2, v3)
-          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/apksigner \
-            sign \
-            --key testkey.pk8 \
-            --cert testkey.x509.pem \
-            --v1-signing-enabled true \
-            --v2-signing-enabled true \
-            --v3-signing-enabled true \
-            --out Gamehub-rebuilt.apk \
-            rebuilt-aligned.apk
-
-          echo "Signed APK size: $(du -sh Gamehub-rebuilt.apk | cut -f1)"
+          for target in "${TARGETS[@]}"; do
+            out_apk="${target%%:*}"
+            pkg_name="${target##*:}"
+            
+            echo "========================================"
+            echo "Building $out_apk with package $pkg_name"
+            echo "========================================"
+            
+            # Create a fresh copy of the patched decompiled source
+            rm -rf apktool_out
+            cp -r apktool_out_base apktool_out
+            
+            # Update package name if not default
+            if [ "$pkg_name" != "gamehub.lite" ]; then
+              echo "Patching AndroidManifest.xml for package: $pkg_name"
+              sed -i "s/package=\"gamehub.lite\"/package=\"$pkg_name\"/g" apktool_out/AndroidManifest.xml
+              # Update provider authorities to prevent install conflicts with multiple versions
+              sed -i "s/android:authorities=\"gamehub.lite/android:authorities=\"$pkg_name/g" apktool_out/AndroidManifest.xml
+            fi
+            
+            # Rebuild
+            echo "Building APK with apktool..."
+            java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
+            
+            # Align
+            echo "Zipaligning..."
+            ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
+            
+            # Sign
+            echo "Signing with AOSP testkey..."
+            ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/apksigner sign \
+              --key testkey.pk8 \
+              --cert testkey.x509.pem \
+              --v1-signing-enabled true \
+              --v2-signing-enabled true \
+              --v3-signing-enabled true \
+              --out "$out_apk" \
+              rebuilt-aligned.apk
+              
+            echo "Completed: $out_apk ($(du -sh "$out_apk" | cut -f1))"
+          done
 
       - name: Get tag name
         id: tag
@@ -93,6 +122,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
-          name: Gamehub ${{ steps.tag.outputs.name }}
+          name: Bannerhub ${{ steps.tag.outputs.name }}
           prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
-          files: Gamehub-rebuilt.apk
+          files: Bannerhub-*.apk
