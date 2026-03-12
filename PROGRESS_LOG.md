@@ -4,6 +4,26 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## Session 5 — 2026-03-12
+
+### [stable] — v2.2.0 — Stable release: Multi-APK Builds & AOSP Testkeys (2026-03-12)
+**Tag:** `v2.2.0`
+#### What changed
+- Promoted v2.1.2-pre fixes to stable.
+- Build workflow updated to sign all APKs using standard AOSP `testkey` (v1, v2, and v3 signatures enabled) instead of the local debug keystore.
+- Build workflow now automatically builds 5 separate APKs per run, each with a unique package name injected into its `AndroidManifest.xml` and `android:authorities` to prevent conflicts.
+- Available APKs/Packages:
+  - `Bannerhub-5.3.5-Revanced-Normal.apk` (`gamehub.lite`)
+  - `Bannerhub-5.3.5-Revanced-PuBG.apk` (`com.tencent.ig`)
+  - `Bannerhub-5.3.5-Revanced-AnTuTu.apk` (`com.antutu.ABenchMark`)
+  - `Bannerhub-5.3.5-Revanced-Ludashi.apk` (`com.ludashi.aibench`)
+  - `Bannerhub-5.3.5-Revanced-Genshin.apk` (`com.mihoyo.genshinimpact`)
+#### Files touched
+- `.github/workflows/build.yml`
+- `testkey.pk8`, `testkey.x509.pem` (added)
+
+---
+
 ## Session 4 — 2026-03-12
 
 ### [patch] — v2.1.2-pre — Show last injected filename per component (2026-03-12)
