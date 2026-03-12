@@ -26,16 +26,18 @@ jobs:
       - name: Install apktool
         run: |
           APKTOOL_VER=2.9.3
-          wget -q "https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VER}/apktool_${APKTOOL_VER}.jar" -O /usr/local/lib/apktool.jar
-          wget -q "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool" -O /usr/local/bin/apktool
-          chmod +x /usr/local/bin/apktool
-          apktool --version
+          mkdir -p $HOME/bin
+          wget -q "https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VER}/apktool_${APKTOOL_VER}.jar" -O $HOME/bin/apktool.jar
+          wget -q "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool" -O $HOME/bin/apktool
+          chmod +x $HOME/bin/apktool
+          echo "$HOME/bin" >> $GITHUB_PATH
+          java -jar $HOME/bin/apktool.jar --version
 
       - name: Decompile APK
         run: |
           APK=$(ls base/*.apk | head -1)
           echo "Decompiling: $APK"
-          apktool d "$APK" -o apktool_out -f
+          java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out -f
 
       - name: Apply patches
         run: |
@@ -49,7 +51,7 @@ jobs:
 
       - name: Rebuild APK
         run: |
-          apktool b apktool_out -o rebuilt-unsigned.apk
+          java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
           echo "Rebuilt APK size: $(du -sh rebuilt-unsigned.apk | cut -f1)"
 
       - name: Align and sign APK
