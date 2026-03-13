@@ -1,0 +1,39 @@
+## New since v2.1.1 (last stable)
+• Injected filename display — After a successful inject, the component list row shows `"ComponentName [-> filename.wcp]"`.
+• Label persists across app restarts via SharedPreferences.
+• AOSP testkey signing — APKs are now signed with the standard AOSP testkey (v1, v2, v3) instead of a custom debug keystore.
+• Multi-APK packaging — The build workflow now produces 5 distinct APKs, each modified with a unique Android package name to allow parallel installations and avoid conflicts:
+  • Bannerhub-Normal (gamehub.lite)
+  • Bannerhub-PuBG (com.tencent.ig)
+  • Bannerhub-AnTuTu (com.antutu.ABenchMark)
+  • Bannerhub-Ludashi (com.ludashi.aibench)
+  • Bannerhub-Genshin (com.mihoyo.genshinimpact)
+
+## Full Feature Set
+
+### Component Manager (accessed via GameHub left menu → "Components")
+• Lists all installed components from `files/usr/home/components/`
+• Inject WCP/ZIP — pick a `.wcp` or `.zip` file via Android file picker (SAF). Supports:
+  • ZIP (`50 4B` magic) — flat extraction to component root, basename only (Turnip / adrenotools drivers)
+  • zstd tar (`28 B5 2F FD` magic) — FEXCore → flat to component root; DXVK / VKD3D / Box64 → preserve `system32/` + `syswow64/` structure
+  • XZ tar (`FD 37 7A 58` magic) — same tar logic as zstd path
+• Shows last injected filename per component
+• Backup component — copies entire component folder to `Downloads/BannerHub/{name}/`
+• Component folder is cleared before every injection (no stale files)
+• Background thread for extraction with Handler-posted UI result (no ANR)
+• Catches `Throwable` — surfaces `NoClassDefFoundError`, `OutOfMemoryError`, and all other JVM errors
+
+### BCI Launcher Button
+• Tap the banner icon in GameHub's top-right toolbar to open BannersComponentInjector (`com.banner.inject`)
+• Shows a toast if BannersComponentInjector is not installed
+
+### UI Tweaks
+• "My" tab renamed to "My Games"
+• "Banners Component Injector" title header added to all Component Manager menus
+
+## Installation
+1. Download the desired APK variant(s) below.
+2. Uninstall any existing GameHub installation that shares the exact same package name.
+3. Install the downloaded APK(s).
+
+Note: You can install multiple variants side-by-side (e.g. Normal alongside PuBG) because they have different package names.
