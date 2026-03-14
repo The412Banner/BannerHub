@@ -8919,4 +8919,5 @@
         <item name="colorAccent">#ff3b82f6</item>
         <item name="android:colorControlActivated">#ff3b82f6</item>
     </style>
+    <style name="CloudProgressStyle" />
 </resources>
