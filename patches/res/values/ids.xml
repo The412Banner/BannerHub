@@ -2376,6 +2376,18 @@
     <item type="id" name="rvTabs" />
     <item type="id" name="rvTips" />
     <item type="id" name="rvUserMenu" />
+    <item type="id" name="rts_controls_container" />
+    <item type="id" name="btn_rts_gesture_settings" />
+    <item type="id" name="rts_gesture_tap_checkbox" />
+    <item type="id" name="rts_gesture_long_press_checkbox" />
+    <item type="id" name="rts_gesture_double_tap_checkbox" />
+    <item type="id" name="rts_gesture_drag_checkbox" />
+    <item type="id" name="rts_gesture_pinch_checkbox" />
+    <item type="id" name="rts_gesture_pinch_spinner" />
+    <item type="id" name="rts_gesture_two_finger_checkbox" />
+    <item type="id" name="rts_gesture_two_finger_spinner" />
+    <item type="id" name="btnClose" />
+    <item type="id" name="tvClose" />
     <item type="id" name="rv_account_list" />
     <item type="id" name="rv_all_icons" />
     <item type="id" name="rv_area_code" />
@@ -2666,6 +2678,7 @@
     <item type="id" name="switch_iv" />
     <item type="id" name="switch_keep_new" />
     <item type="id" name="switch_key_map" />
+    <item type="id" name="switch_rts_touch_controls" />
     <item type="id" name="switch_layout" />
     <item type="id" name="switch_screen_brightness" />
     <item type="id" name="switch_touch_screen_mouse_control" />
@@ -3448,4 +3461,17 @@
     <item type="id" name="tv_local_game_id" />
     <item type="id" name="tv_steam_app_id" />
     <item type="id" name="iv_bci_launcher" />
+    <item type="id" name="tv_dashboard_label" />
+    <item type="id" name="iv_emuready_logo" />
+    <item type="id" name="ll_local_game_id_container" />
+    <item type="id" name="btn_copy_local_game_id" />
+    <item type="id" name="rts_action_option_0" />
+    <item type="id" name="rts_action_option_0_text" />
+    <item type="id" name="rts_action_option_0_check" />
+    <item type="id" name="rts_action_option_1" />
+    <item type="id" name="rts_action_option_1_text" />
+    <item type="id" name="rts_action_option_1_check" />
+    <item type="id" name="rts_action_option_2" />
+    <item type="id" name="rts_action_option_2_text" />
+    <item type="id" name="rts_action_option_2_check" />
 </resources>

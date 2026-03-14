@@ -16260,6 +16260,26 @@
     <public type="id" name="tv_local_game_id" id="0x7f0a0ef7" />
     <public type="id" name="tv_steam_app_id" id="0x7f0a0ef8" />
     <public type="id" name="iv_bci_launcher" id="0x7f0a0ef9" />
+    <public type="id" name="switch_rts_touch_controls" id="0x7f0a0efa" />
+    <public type="id" name="rts_controls_container" id="0x7f0a0efb" />
+    <public type="id" name="btn_rts_gesture_settings" id="0x7f0a0efc" />
+    <public type="id" name="rts_gesture_tap_checkbox" id="0x7f0a0efd" />
+    <public type="id" name="rts_gesture_long_press_checkbox" id="0x7f0a0efe" />
+    <public type="id" name="rts_gesture_double_tap_checkbox" id="0x7f0a0eff" />
+    <public type="id" name="rts_gesture_drag_checkbox" id="0x7f0a0f00" />
+    <public type="id" name="rts_gesture_pinch_checkbox" id="0x7f0a0f01" />
+    <public type="id" name="rts_gesture_pinch_spinner" id="0x7f0a0f02" />
+    <public type="id" name="rts_gesture_two_finger_checkbox" id="0x7f0a0f03" />
+    <public type="id" name="rts_gesture_two_finger_spinner" id="0x7f0a0f04" />
+    <public type="id" name="rts_action_option_0" id="0x7f0a0f05" />
+    <public type="id" name="rts_action_option_0_text" id="0x7f0a0f06" />
+    <public type="id" name="rts_action_option_0_check" id="0x7f0a0f07" />
+    <public type="id" name="rts_action_option_1" id="0x7f0a0f08" />
+    <public type="id" name="rts_action_option_1_text" id="0x7f0a0f09" />
+    <public type="id" name="rts_action_option_1_check" id="0x7f0a0f0a" />
+    <public type="id" name="rts_action_option_2" id="0x7f0a0f0b" />
+    <public type="id" name="rts_action_option_2_text" id="0x7f0a0f0c" />
+    <public type="id" name="rts_action_option_2_check" id="0x7f0a0f0d" />
     <public type="integer" name="abc_config_activityDefaultDur" id="0x7f0b0000" />
     <public type="integer" name="abc_config_activityShortDur" id="0x7f0b0001" />
     <public type="integer" name="app_bar_elevation_anim_duration" id="0x7f0b0002" />
@@ -17399,6 +17419,9 @@
     <public type="layout" name="xja_window_adb_activation" id="0x7f0d0409" />
     <public type="layout" name="xja_window_hint" id="0x7f0d040a" />
     <public type="layout" name="zxl_camera_scan" id="0x7f0d040b" />
+    <public type="layout" name="rts_gesture_config_dialog" id="0x7f0d040c" />
+    <public type="layout" name="rts_action_picker_dialog" id="0x7f0d040d" />
+    <public type="layout" name="rts_action_picker_item" id="0x7f0d040e" />
     <public type="layout" name="material_clock_period_toggle_land" id="0x7f0d029e" />
     <public type="menu" name="display_host" id="0x7f0f0000" />
     <public type="menu" name="main" id="0x7f0f0001" />
@@ -17461,7 +17484,6 @@
     <public type="raw" name="emoji_category_people_gender_inclusive" id="0x7f12000a" />
     <public type="raw" name="emoji_category_symbols" id="0x7f12000b" />
     <public type="raw" name="emoji_category_travel_places" id="0x7f12000c" />
-
     <public type="raw" name="ineffective" id="0x7f12000f" />
     <public type="raw" name="joinparty" id="0x7f120010" />
     <public type="raw" name="launcher_en" id="0x7f120011" />

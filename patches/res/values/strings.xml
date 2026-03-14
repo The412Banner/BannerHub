@@ -138,7 +138,7 @@ Login PIN:"</string>
     <string name="android.credentials.TYPE_PASSWORD_CREDENTIAL">Password</string>
     <string name="androidx.credentials.TYPE_PUBLIC_KEY_CREDENTIAL">Passkey</string>
     <string name="androidx_startup">androidx.startup</string>
-    <string name="app_name">GameHub</string>
+    <string name="app_name">GameHub Lite</string>
     <string name="app_update_background_downloading">Downloading new version in the background…</string>
     <string name="app_update_click_hint">Click to install</string>
     <string name="app_update_close">Close</string>
@@ -820,7 +820,7 @@ Make sure you don't have any DRM-protected content open on your host PC. You can
     <string name="fetching_info">Fetching info</string>
     <string name="firmware_no_support_gtouch_hint">Current firmware does not support G-Touch. Update firmware before playing</string>
     <string name="first_save_config_tips">Please save your config first</string>
-    <string name="follow_system">Follow system</string>
+    <string name="follow_system">Default</string>
     <string name="force_audio_track">Force audio track</string>
     <string name="force_enable">Force Enable</string>
     <string name="fps_120">120 FPS</string>
@@ -1354,7 +1354,7 @@ Joystick"</string>
     <string name="llauncher_home_mobile_game_tips">Import mobile games, easy management</string>
     <string name="llauncher_home_pc_add_device">Connect to your computer</string>
     <string name="llauncher_home_pc_emulator_add_game">Import PC games</string>
-    <string name="llauncher_home_pc_emulator_join_us_tips">Join GameHub official community! All the latest player info awaits >>></string>
+    <string name="llauncher_home_pc_emulator_join_us_tips">Read the report on telemetry removed &amp; behind-the-scenes >>></string>
     <string name="llauncher_home_pc_emulator_tips">Import PC games, play AAA titles on mobile</string>
     <string name="llauncher_home_pc_link_tips">Stream PC games to your phone, play anywhere</string>
     <string name="llauncher_home_pc_link_title">PC Link Remote Play</string>
@@ -1406,7 +1406,7 @@ Please go to the system Bluetooth settings to clean up infrequently used devices
     <string name="llauncher_main_page_menu_dialog_hide">Hide game</string>
     <string name="llauncher_main_page_menu_dialog_title">Please select an action for the games in the list？</string>
     <string name="llauncher_main_page_menu_dialog_view_detail">View game details</string>
-    <string name="llauncher_main_page_title_explore">Discover</string>
+    <string name="llauncher_main_page_title_explore">Free Games</string>
     <string name="llauncher_main_page_title_my">My Games</string>
     <string name="llauncher_main_page_title_platform">Find games</string>
     <string name="llauncher_main_page_top_button_goto_game">Continue Game</string>
@@ -1594,7 +1594,7 @@ Please go to the system Bluetooth settings to clean up infrequently used devices
     <string name="llauncher_setting_notification_title4">Other Notifications</string>
     <string name="llauncher_setting_notification_title5">Friend Notifications</string>
     <string name="llauncher_setting_notification_title6">Highlight Notifications</string>
-    <string name="llauncher_setting_personal_information">Personal Information</string>
+    <string name="llauncher_setting_personal_information">Credits</string>
     <string name="llauncher_setting_record_bitrat_default">Automatic (Recommended)</string>
     <string name="llauncher_setting_record_clear_cache">Clear Cache</string>
     <string name="llauncher_setting_record_desc">By default, a one-minute video is approximately…</string>
@@ -1606,12 +1606,12 @@ Please go to the system Bluetooth settings to clean up infrequently used devices
 · Size 75MB, Resolution 1080p, Frame Rate 30FPS
 · Size 50MB, Resolution 720p, Frame Rate 30FPS
 "</string>
-    <string name="llauncher_setting_record_go_active">Active</string>
+    <string name="llauncher_setting_record_go_active" />
     <string name="llauncher_setting_record_rate1">Resolution 1080p, Frame Rate 60FPS</string>
     <string name="llauncher_setting_record_rate2">Resolution 1080p, Frame Rate 30FPS</string>
     <string name="llauncher_setting_record_rate3">Resolution 720p, Frame Rate 30FPS</string>
     <string name="llauncher_setting_record_reset">Reset</string>
-    <string name="llauncher_setting_record_reset_mapping">Reset Mapping Active</string>
+    <string name="llauncher_setting_record_reset_mapping" />
     <string name="llauncher_setting_record_title1">Record Video</string>
     <string name="llauncher_setting_record_title2">Format</string>
     <string name="llauncher_setting_record_title3">Bitrate</string>
@@ -2404,8 +2404,8 @@ This may take a few seconds…"</string>
     <string name="pc_scan_error">Scan Error</string>
     <string name="pc_select_file">Select File</string>
     <string name="pc_select_game_folder">Select Game Folder</string>
-    <string name="pc_setting_item_61">Steam Network Acceleration</string>
-    <string name="pc_setting_item_61_desc">Provide mitigation for network-restricted regions</string>
+    <string name="pc_setting_item_61" />
+    <string name="pc_setting_item_61_desc" />
     <string name="pc_setting_item_62">Launch in Windowed Mode</string>
     <string name="pc_setting_item_62_desc">Run programs in windowed mode, some programs require this option to work properly</string>
     <string name="pc_setting_page_title">Game Settings</string>
@@ -3491,7 +3491,7 @@ It may be that your monitor does not support a necessary display configuration. 
     <string name="winemu_game_library">Game Library</string>
     <string name="winemu_game_manage">Game Management</string>
     <string name="winemu_game_num">Games</string>
-    <string name="winemu_game_price">Game Price(￥)</string>
+    <string name="winemu_game_price">Game Price ($)</string>
     <string name="winemu_get_config_detail_failure">Failed to obtain the configuration scheme</string>
     <string name="winemu_gpu_driver">GPU Driver</string>
     <string name="winemu_guide_login_tips">Sync Steam play data, click to log in to your Steam account</string>
@@ -3686,6 +3686,27 @@ Supports browsers on PC, mobile, and other devices."</string>
     <string name="winemu_sidebar_key_map_alpha">Touch Control Opacity</string>
     <string name="winemu_sidebar_key_mapping">Input Mapping</string>
     <string name="winemu_sidebar_key_mouse_speed">Mouse Speed</string>
+    <string name="winemu_sidebar_rts_touch_controls">RTS Touch Controls</string>
+    <string name="rts_gesture_settings">RTS Gesture Settings</string>
+    <string name="rts_gesture_settings_title">RTS Gesture Settings</string>
+    <string name="rts_gesture_settings_close">Close</string>
+    <string name="rts_gesture_settings_reset">Reset to Defaults</string>
+    <string name="rts_gesture_tap">Tap</string>
+    <string name="rts_gesture_long_press">Long Press (300ms)</string>
+    <string name="rts_gesture_double_tap">Double-Tap</string>
+    <string name="rts_gesture_drag">Drag Finger</string>
+    <string name="rts_gesture_pinch">Pinch In/Out</string>
+    <string name="rts_gesture_two_finger_drag">Two-Finger Drag</string>
+    <string name="rts_action_left_click">Left Click</string>
+    <string name="rts_action_right_click">Right Click</string>
+    <string name="rts_action_double_left_click">Double Left Click</string>
+    <string name="rts_action_drag_left_click">Drag Left Click</string>
+    <string name="rts_action_scroll_wheel">Mouse Wheel Scroll</string>
+    <string name="rts_action_plus_minus">+/- Keys</string>
+    <string name="rts_action_page_up_down">Page Up/Down</string>
+    <string name="rts_action_middle_mouse">Middle Mouse Button</string>
+    <string name="rts_action_wasd_keys">WASD Keys</string>
+    <string name="rts_action_arrow_keys">Arrow Keys</string>
     <string name="winemu_sidebar_performance">Performance</string>
     <string name="winemu_sidebar_screen_brightness">Screen Brightness</string>
     <string name="winemu_sidebar_switch_input_mapping">Switch Touch Control Layout</string>

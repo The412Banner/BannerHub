@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#cc000000">
+    
+    <!-- Container with background -->
+    <LinearLayout
+        android:id="@id/layout_dialog"
+        android:orientation="vertical"
+        android:layout_width="@dimen/mw_460dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:paddingBottom="@dimen/mw_16dp"
+        android:background="@drawable/rts_dialog_background">
+        
+        <!-- Title -->
+        <TextView
+            android:textSize="@dimen/mw_16sp"
+            android:textColor="@color/white"
+            android:gravity="center"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/mw_14dp"
+            android:text="@string/rts_gesture_settings_title" />
+        
+        <!-- Scrollable content -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/mw_16dp"
+            android:layout_marginHorizontal="@dimen/mw_24dp">
+            
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+        
+                <!-- Tap Gesture Row -->
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/dp_48"
+                    android:gravity="center_vertical">
+                    <androidx.appcompat.widget.AppCompatCheckBox
+                        android:id="@id/rts_gesture_tap_checkbox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:buttonTint="@color/rts_checkbox_tint"
+                        android:checked="true" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/rts_gesture_tap"
+                        android:textSize="@dimen/mw_14sp"
+                        android:textColor="@color/white"
+                        android:paddingStart="@dimen/dp_8" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rts_action_left_click"
+                        android:textSize="@dimen/mw_12sp"
+                        android:textColor="#ff888e99" />
+                </LinearLayout>
+        
+                <!-- Long Press Gesture Row -->
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/dp_48"
+                    android:gravity="center_vertical">
+                    <androidx.appcompat.widget.AppCompatCheckBox
+                        android:id="@id/rts_gesture_long_press_checkbox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:buttonTint="@color/rts_checkbox_tint"
+                        android:checked="true" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/rts_gesture_long_press"
+                        android:textSize="@dimen/mw_14sp"
+                        android:textColor="@color/white"
+                        android:paddingStart="@dimen/dp_8" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rts_action_right_click"
+                        android:textSize="@dimen/mw_12sp"
+                        android:textColor="#ff888e99" />
+                </LinearLayout>
+        
+                <!-- Double-Tap Gesture Row -->
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/dp_48"
+                    android:gravity="center_vertical">
+                    <androidx.appcompat.widget.AppCompatCheckBox
+                        android:id="@id/rts_gesture_double_tap_checkbox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:buttonTint="@color/rts_checkbox_tint"
+                        android:checked="true" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/rts_gesture_double_tap"
+                        android:textSize="@dimen/mw_14sp"
+                        android:textColor="@color/white"
+                        android:paddingStart="@dimen/dp_8" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rts_action_double_left_click"
+                        android:textSize="@dimen/mw_12sp"
+                        android:textColor="#ff888e99" />
+                </LinearLayout>
+        
+                <!-- Drag Gesture Row -->
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/dp_48"
+                    android:gravity="center_vertical">
+                    <androidx.appcompat.widget.AppCompatCheckBox
+                        android:id="@id/rts_gesture_drag_checkbox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:buttonTint="@color/rts_checkbox_tint"
+                        android:checked="true" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/rts_gesture_drag"
+                        android:textSize="@dimen/mw_14sp"
+                        android:textColor="@color/white"
+                        android:paddingStart="@dimen/dp_8" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rts_action_drag_left_click"
+                        android:textSize="@dimen/mw_12sp"
+                        android:textColor="#ff888e99" />
+                </LinearLayout>
+        
+                <!-- Pinch Gesture Row -->
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/dp_48"
+                    android:gravity="center_vertical">
+                    <androidx.appcompat.widget.AppCompatCheckBox
+                        android:id="@id/rts_gesture_pinch_checkbox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:buttonTint="@color/rts_checkbox_tint"
+                        android:checked="true" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/rts_gesture_pinch"
+                        android:textSize="@dimen/mw_14sp"
+                        android:textColor="@color/white"
+                        android:paddingStart="@dimen/dp_8" />
+                    <com.hjq.shape.view.ShapeTextView
+                        android:id="@id/rts_gesture_pinch_spinner"
+                        android:layout_width="wrap_content"
+                        android:layout_height="@dimen/mw_32dp"
+                        android:minWidth="@dimen/dp_120"
+                        android:paddingHorizontal="@dimen/dp_12"
+                        android:gravity="center"
+                        android:textSize="@dimen/mw_12sp"
+                        android:textColor="#ff888e99"
+                        android:clickable="true"
+                        app:shape_radius="@dimen/mw_4dp"
+                        app:shape_solidColor="#0affffff" />
+                </LinearLayout>
+        
+                <!-- Two-Finger Drag Gesture Row -->
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/dp_48"
+                    android:gravity="center_vertical">
+                    <androidx.appcompat.widget.AppCompatCheckBox
+                        android:id="@id/rts_gesture_two_finger_checkbox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:buttonTint="@color/rts_checkbox_tint"
+                        android:checked="true" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/rts_gesture_two_finger_drag"
+                        android:textSize="@dimen/mw_14sp"
+                        android:textColor="@color/white"
+                        android:paddingStart="@dimen/dp_8" />
+                    <com.hjq.shape.view.ShapeTextView
+                        android:id="@id/rts_gesture_two_finger_spinner"
+                        android:layout_width="wrap_content"
+                        android:layout_height="@dimen/mw_32dp"
+                        android:minWidth="@dimen/dp_120"
+                        android:paddingHorizontal="@dimen/dp_12"
+                        android:gravity="center"
+                        android:textSize="@dimen/mw_12sp"
+                        android:textColor="#ff888e99"
+                        android:clickable="true"
+                        app:shape_radius="@dimen/mw_4dp"
+                        app:shape_solidColor="#0affffff" />
+                </LinearLayout>
+        
+            </LinearLayout>
+        </ScrollView>
+        
+        <!-- Close Button -->
+        <com.xj.common.view.focus.focus.view.FocusableFrameLayout
+            android:id="@id/btnClose"
+            android:padding="@dimen/mw_2dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/mw_16dp"
+            android:layout_marginHorizontal="@dimen/mw_60dp">
+            <com.hjq.shape.view.ShapeTextView
+                android:textSize="@dimen/mw_14sp"
+                android:textColor="@color/comm_white_f0f0f0"
+                android:gravity="center"
+                android:id="@id/tvClose"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/mw_44dp"
+                android:text="@string/comm_close"
+                app:shape_radius="@dimen/mw_4dp"
+                app:shape_solidColor="#ff3b82f6" />
+        </com.xj.common.view.focus.focus.view.FocusableFrameLayout>
+        
+    </LinearLayout>
+</FrameLayout>

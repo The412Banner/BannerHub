@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000">
+    
+    <LinearLayout
+        android:id="@id/layout_dialog"
+        android:orientation="vertical"
+        android:layout_width="@dimen/mw_300dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/rts_dialog_background"
+        android:paddingVertical="@dimen/mw_8dp">
+        
+        <!-- Option 1 -->
+        <com.hjq.shape.layout.ShapeFrameLayout 
+            android:id="@id/rts_action_option_0"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/mw_48dp"
+            android:focusable="true"
+            android:clickable="true"
+            app:shape_radius="@dimen/mw_4dp">
+            
+            <com.hjq.shape.view.ShapeTextView
+                android:id="@id/rts_action_option_0_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="@dimen/mw_16dp"
+                android:textSize="@dimen/mw_14sp"
+                android:textColor="@color/comm_white" />
+            
+            <ImageView
+                android:id="@id/rts_action_option_0_check"
+                android:layout_width="@dimen/mw_24dp"
+                android:layout_height="@dimen/mw_24dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="@dimen/mw_16dp"
+                android:src="@drawable/ic_checked_checkbox"
+                android:visibility="gone" />
+        </com.hjq.shape.layout.ShapeFrameLayout>
+        
+        <!-- Option 2 -->
+        <com.hjq.shape.layout.ShapeFrameLayout 
+            android:id="@id/rts_action_option_1"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/mw_48dp"
+            android:focusable="true"
+            android:clickable="true"
+            app:shape_radius="@dimen/mw_4dp">
+            
+            <com.hjq.shape.view.ShapeTextView
+                android:id="@id/rts_action_option_1_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="@dimen/mw_16dp"
+                android:textSize="@dimen/mw_14sp"
+                android:textColor="@color/comm_white" />
+            
+            <ImageView
+                android:id="@id/rts_action_option_1_check"
+                android:layout_width="@dimen/mw_24dp"
+                android:layout_height="@dimen/mw_24dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="@dimen/mw_16dp"
+                android:src="@drawable/ic_checked_checkbox"
+                android:visibility="gone" />
+        </com.hjq.shape.layout.ShapeFrameLayout>
+        
+        <!-- Option 3 -->
+        <com.hjq.shape.layout.ShapeFrameLayout 
+            android:id="@id/rts_action_option_2"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/mw_48dp"
+            android:focusable="true"
+            android:clickable="true"
+            app:shape_radius="@dimen/mw_4dp">
+            
+            <com.hjq.shape.view.ShapeTextView
+                android:id="@id/rts_action_option_2_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="@dimen/mw_16dp"
+                android:textSize="@dimen/mw_14sp"
+                android:textColor="@color/comm_white" />
+            
+            <ImageView
+                android:id="@id/rts_action_option_2_check"
+                android:layout_width="@dimen/mw_24dp"
+                android:layout_height="@dimen/mw_24dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="@dimen/mw_16dp"
+                android:src="@drawable/ic_checked_checkbox"
+                android:visibility="gone" />
+        </com.hjq.shape.layout.ShapeFrameLayout>
+        
+    </LinearLayout>
+</FrameLayout>
