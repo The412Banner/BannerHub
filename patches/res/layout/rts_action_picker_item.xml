@@ -7,7 +7,7 @@
     android:layout_height="@dimen/mw_48dp"
     android:focusable="true"
     android:clickable="true"
-    app:shape_radius="@dimen/mw_4dp">
+    app:xj_shape_radius="@dimen/mw_4dp">
     
     <com.hjq.shape.view.ShapeTextView
         android:id="@id/tvTitle"

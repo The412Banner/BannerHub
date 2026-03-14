@@ -180,8 +180,8 @@
                         android:textSize="@dimen/mw_12sp"
                         android:textColor="#ff888e99"
                         android:clickable="true"
-                        app:shape_radius="@dimen/mw_4dp"
-                        app:shape_solidColor="#0affffff" />
+                        app:xj_shape_radius="@dimen/mw_4dp"
+                        app:xj_shape_solidColor="#0affffff" />
                 </LinearLayout>
         
                 <!-- Two-Finger Drag Gesture Row -->
@@ -214,8 +214,8 @@
                         android:textSize="@dimen/mw_12sp"
                         android:textColor="#ff888e99"
                         android:clickable="true"
-                        app:shape_radius="@dimen/mw_4dp"
-                        app:shape_solidColor="#0affffff" />
+                        app:xj_shape_radius="@dimen/mw_4dp"
+                        app:xj_shape_solidColor="#0affffff" />
                 </LinearLayout>
         
             </LinearLayout>
@@ -239,8 +239,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/mw_44dp"
                 android:text="@string/comm_close"
-                app:shape_radius="@dimen/mw_4dp"
-                app:shape_solidColor="#ff3b82f6" />
+                app:xj_shape_radius="@dimen/mw_4dp"
+                app:xj_shape_solidColor="#ff3b82f6" />
         </com.xj.common.view.focus.focus.view.FocusableFrameLayout>
         
     </LinearLayout>
