@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## v2.2.2 — feat: per-variant display labels (2026-03-14)
+**Commit:** `8f435ce` | **Tag:** `v2.2.2`
+
+### What changed
+- Each APK variant now sets its own `android:label` in AndroidManifest before rebuild
+- Normal → "GameHub Revanced", PuBG → "GameHub Revanced PuBG", etc.
+
+### Files touched
+- `.github/workflows/build.yml`
+
+---
+
 ## v2.2.1 — feat: RTS touch controls (2026-03-14)
 **Commit:** `b1a0945` | **Tag:** `v2.2.1`
 
