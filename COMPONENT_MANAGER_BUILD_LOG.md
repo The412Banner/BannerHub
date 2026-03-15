@@ -1127,13 +1127,13 @@ gh release edit v2.2.6-pre --notes "..."
 - **`setClipToPadding(false)`** on ListView: list scrolls behind the padding area so no items are permanently hidden
 
 ### Root cause
-ListView was set as the raw content view with no inset handling. On devices with on-screen navigation buttons, the last few list items were obscured and untappable. Status bar caused similar issue at the top.
+ListView was set as the raw content view with no inset handling. GameHub's theme hides the ActionBar entirely, so `setTitle()` had no visible effect. On devices with on-screen navigation buttons, the last few list items were obscured and untappable.
 
 ### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
 
 ### CI result
-✅ Passed
+✅ Passed (d6d9965)
 
 ---
 
