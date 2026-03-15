@@ -67,6 +67,7 @@ jobs:
             "Bannerhub-5.3.5-Revanced-AnTuTu.apk:com.antutu.ABenchMark:GameHub Revanced AnTuTu"
             "Bannerhub-5.3.5-Revanced-Ludashi.apk:com.ludashi.aibench:GameHub Revanced Ludashi"
             "Bannerhub-5.3.5-Revanced-Genshin.apk:com.mihoyo.genshinimpact:GameHub Revanced Genshin"
+            "Bannerhub-5.3.5-Revanced-alt-AnTuTu.apk:com.antutu.benchmark.full:GameHub Revanced AnTuTu"
           )
 
           for target in "${TARGETS[@]}"; do
