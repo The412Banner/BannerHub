@@ -495,10 +495,10 @@
 #  contentType ints: DXVK=12 VKD3D=13 Box64=94 FEXCore=95 GPU=10
 # ─────────────────────────────────────────────────────
 .method public static injectComponent(Landroid/content/Context;Landroid/net/Uri;I)V
-    .locals 9
+    .locals 10
     # p0=ctx  p1=uri  p2=contentType
     # v0=firstByte  v1=jsonStr  v2=JSONObject
-    # v3=name  v4=version  v5=desc  v6=targetDir  v7=flatten(Z)  v8=tmp
+    # v3=name  v4=version  v5=desc  v6=targetDir  v7=flatten(Z)/tmp  v8=tmp  v9=File(rename)
 
     :try_start
     invoke-static {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->getFirstByte(Landroid/content/Context;Landroid/net/Uri;)I
@@ -521,7 +521,8 @@
     move-result-object v1       # meta.json string (or "")
 
     # defaults before parsing meta.json
-    move-object v4, v3          # version = filename
+    # v3 (ZIP filename) is the component name AND directory name — never overwritten
+    move-object v4, v3          # version = filename (fallback)
     const-string v5, ""         # desc = empty
 
     invoke-virtual {v1}, Ljava/lang/String;->isEmpty()Z
@@ -532,19 +533,38 @@
     new-instance v2, Lorg/json/JSONObject;
     invoke-direct {v2, v1}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
 
-    const-string v8, "name"
+    # Fix 1: use driverVersion as version string (not meta.json name)
+    const-string v8, "driverVersion"
     invoke-virtual {v2, v8}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
     move-result-object v8
     invoke-virtual {v8}, Ljava/lang/String;->isEmpty()Z
     move-result v7
     if-nez v7, :zip_check_desc
-    move-object v3, v8          # name from meta.json
-    move-object v4, v8          # version = name
+    move-object v4, v8          # version = driverVersion
 
     :zip_check_desc
     const-string v8, "description"
     invoke-virtual {v2, v8}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
     move-result-object v5       # desc from meta.json
+
+    # Fix 2: if libraryName != "libvulkan_freedreno.so", rename the file
+    const-string v8, "libraryName"
+    invoke-virtual {v2, v8}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v7       # v7 = libraryName
+    invoke-virtual {v7}, Ljava/lang/String;->isEmpty()Z
+    move-result v8
+    if-nez v8, :zip_register    # no libraryName → skip
+    const-string v8, "libvulkan_freedreno.so"
+    invoke-virtual {v7, v8}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    move-result v8
+    if-nez v8, :zip_register    # already correct name → skip
+    # rename File(dir, libraryName) → File(dir, "libvulkan_freedreno.so")
+    new-instance v8, Ljava/io/File;
+    invoke-direct {v8, v6, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    new-instance v9, Ljava/io/File;
+    const-string v7, "libvulkan_freedreno.so"
+    invoke-direct {v9, v6, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-virtual {v8, v9}, Ljava/io/File;->renameTo(Ljava/io/File;)Z
 
     :zip_register
     invoke-static {p0, v3, v4, v5, p2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->registerComponent(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
