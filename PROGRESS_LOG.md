@@ -4,8 +4,25 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [ci] — post-v2.3.0 — CI fixes + CrossFire variant + pre/beta isolation (2026-03-15)
+**Commits:** `78c6aae` (manifest fix), `ce0dcda` (CrossFire + workflow), `f12ea94` (pre/beta package)
+
+### What changed
+- **Manifest package conflict fix** — replaced two targeted seds with a single global `sed -i "s/gamehub\.lite/$PKG/g"` on AndroidManifest.xml for all non-Normal variants in `build.yml`. Fixes install conflicts with GameHub Lite 5.1.4 caused by `gamehub.lite.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` custom permission declaration colliding with differently-signed installs
+- **8th APK variant added** — `Bannerhub-5.3.5-Revanced-PuBG-CrossFire.apk` (`com.tencent.tmgp.cf`, label "GameHub Revanced PuBG CrossFire") added to `build.yml` matrix; enables frame generation on Vivo phones running OriginOS 6 China ROM
+- **`build-crossfire.yml`** — new standalone `workflow_dispatch` workflow that builds only the CrossFire APK and uploads it directly to the v2.3.0 release
+- **Pre/beta package isolation** — `build-quick.yml` now patches package name to `banner.hub` for all pre-release and beta builds, preventing accidental overwrites of stable installs
+- **v2.3.0 APKs rebuilt** — all 7 (now 8) APKs re-uploaded to v2.3.0 release with the manifest fix applied; release description updated with CrossFire entry and Vivo OriginOS 6 framegen note
+
+### Files touched
+- `.github/workflows/build.yml` — global manifest sed + CrossFire matrix entry
+- `.github/workflows/build-crossfire.yml` (new)
+- `.github/workflows/build-quick.yml` — banner.hub package for pre/beta
+
+---
+
 ## [beta] — v2.3.1-beta1 — In-app component downloader (2026-03-15)
-**Commit:** (pending)  |  **Tag:** v2.3.1-beta1  |  **CI run:** (pending — Normal APK only)
+**Commit:** `1cdc468`  |  **Tag:** v2.3.1-beta1  |  **CI run:** `23120730562` (Normal APK only)
 
 ### What changed
 - "↓ Download from Nightlies" entry added to Component Manager type-selection menu (Add New Component flow)
