@@ -54,9 +54,13 @@ jobs:
             echo "No patches to apply."
           fi
 
+      - name: Patch package name for pre/beta (isolate from stable installs)
+        run: |
+          sed -i "s/gamehub\.lite/banner.hub/g" apktool_out/AndroidManifest.xml
+
       - name: Rebuild and Sign (Normal variant only)
         run: |
-          echo "Building Normal variant (gamehub.lite)..."
+          echo "Building Normal variant (banner.hub — pre/beta isolated package)..."
 
           # Rebuild
           java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
