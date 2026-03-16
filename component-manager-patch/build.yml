@@ -1,0 +1,172 @@
+name: Build APK — Component Manager patch
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+# Push a tag like  v1.0.0  or  v1.0.0-pre  to trigger a release build.
+# Use workflow_dispatch for a one-off manual build (no release created).
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create GitHub releases
+
+    steps:
+
+      # ── 1. Checkout this repo (provides patches/ + signing keys) ─────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Download the original GameHub 5.3.5 ReVanced APK ─────────────
+      #
+      # The APK is stored as a release asset on the bannerhub repo tagged
+      # "base-apk".  You must either:
+      #   a) Host your own "base-apk" release in THIS repo and remove "-R …", or
+      #   b) Keep the "-R The412Banner/bannerhub" line (public repo, no auth needed).
+      #
+      - name: Download original APK
+        run: |
+          gh release download base-apk --pattern "*.apk" -D base/ -R The412Banner/bannerhub
+          ls base/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 3. Install apktool ───────────────────────────────────────────────
+      - name: Install apktool
+        run: |
+          APKTOOL_VER=2.9.3
+          mkdir -p $HOME/bin
+          wget -q "https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VER}/apktool_${APKTOOL_VER}.jar" \
+               -O $HOME/bin/apktool.jar
+          wget -q "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool" \
+               -O $HOME/bin/apktool
+          chmod +x $HOME/bin/apktool
+          echo "$HOME/bin" >> $GITHUB_PATH
+          java -jar $HOME/bin/apktool.jar --version
+
+      # ── 4. Decompile ─────────────────────────────────────────────────────
+      - name: Decompile APK
+        run: |
+          APK=$(ls base/*.apk | head -1)
+          echo "Decompiling: $APK"
+          java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out -f
+
+      # ── 5. Remove uncompilable apktool artifacts ──────────────────────────
+      #
+      # raws.xml contains raw resource references that aapt2 cannot process.
+      # The two firebase_*_keep entries in public.xml cause "already defined"
+      # aapt2 link errors — always strip them.
+      #
+      - name: Remove uncompilable apktool artifacts
+        run: |
+          rm -f apktool_out/res/values/raws.xml
+          sed -i '/firebase_common_keep\|firebase_crashlytics_keep/d' \
+              apktool_out/res/values/public.xml
+
+      # ── 6. Apply Component Manager patches ───────────────────────────────
+      #
+      # Copies every file from patches/ over the decompiled tree.
+      # Three categories of files:
+      #
+      #   NEW (pure additions — no original GameHub code):
+      #     smali_classes16/.../ComponentManagerActivity[,$1,$2].smali
+      #     smali_classes16/.../ComponentInjectorHelper.smali
+      #     smali_classes16/.../WcpExtractor.smali
+      #     smali_classes16/.../ComponentDownloadActivity[,$1–$9].smali
+      #
+      #   MODIFIED (original GameHub files with injection added):
+      #     smali_classes5/.../HomeLeftMenuDialog.smali
+      #       → adds "Components" (ID=9) to the side-navigation menu
+      #     smali_classes3/.../GameSettingViewModel$fetchList$1.smali
+      #       → calls ComponentInjectorHelper.appendLocalComponents() so
+      #         locally injected components appear in GameHub's selection menus
+      #
+      - name: Apply Component Manager patches
+        run: |
+          echo "Applying patches..."
+          cp -r patches/. apktool_out/
+          echo "Patches applied."
+
+      # ── 7. Inject activity declarations into AndroidManifest ─────────────
+      #
+      # ComponentManagerActivity and ComponentDownloadActivity must be
+      # registered in the manifest or Android will refuse to start them.
+      # We inject before </application> using sed (avoids needing a full
+      # manifest override, which would conflict on every APK version bump).
+      #
+      - name: Inject activity declarations into AndroidManifest
+        run: |
+          python3 - <<'PYEOF'
+          import re, sys
+          path = "apktool_out/AndroidManifest.xml"
+          with open(path, "r", encoding="utf-8") as f:
+              content = f.read()
+          injection = (
+              '        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"'
+              ' android:name="com.xj.landscape.launcher.ui.menu.ComponentManagerActivity"'
+              ' android:screenOrientation="sensorLandscape"/>\n'
+              '        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"'
+              ' android:name="com.xj.landscape.launcher.ui.menu.ComponentDownloadActivity"'
+              ' android:screenOrientation="sensorLandscape"/>\n'
+          )
+          if "ComponentManagerActivity" in content:
+              print("Activities already declared — skipping injection.")
+          else:
+              content = content.replace("</application>", injection + "    </application>")
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(content)
+              print("Injected ComponentManagerActivity + ComponentDownloadActivity into manifest.")
+          PYEOF
+
+      # ── 8. Rebuild and sign ───────────────────────────────────────────────
+      #
+      # Signing uses the AOSP debug test key (testkey.pk8 / testkey.x509.pem)
+      # committed to this repo.  These are public domain keys — fine for
+      # sideloading but NOT for Play Store distribution.
+      # v1/v2/v3 all enabled for maximum device compatibility.
+      #
+      - name: Rebuild and sign
+        run: |
+          OUTPUT_APK="GameHub-ComponentManager.apk"
+
+          # Rebuild
+          java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
+
+          # Align
+          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign \
+              -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
+
+          # Sign
+          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/apksigner sign \
+              --key testkey.pk8 \
+              --cert testkey.x509.pem \
+              --v1-signing-enabled true \
+              --v2-signing-enabled true \
+              --v3-signing-enabled true \
+              --out "$OUTPUT_APK" \
+              rebuilt-aligned.apk
+
+          echo "Built: $OUTPUT_APK ($(du -sh $OUTPUT_APK | cut -f1))"
+
+      # ── 9. Get tag name (fallback for manual runs) ────────────────────────
+      - name: Get tag name
+        id: tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "name=manual-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+          fi
+
+      # ── 10. Upload release ────────────────────────────────────────────────
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: GameHub Component Manager ${{ steps.tag.outputs.name }}
+          prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
+          files: GameHub-ComponentManager.apk
