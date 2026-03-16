@@ -1091,6 +1091,15 @@ gh release edit v2.2.6-pre --notes "..."
 
 ---
 
+## Entry 019 — [not recorded]
+## Entry 020 — [not recorded]
+> **Gap note:** Entries 019 and 020 were never written. There were no feature commits between
+> v2.2.6-pre (`00a324a`) and v2.2.7-pre (`d6d9965` / `fd5e176`) aside from a docs update
+> (`441a132` — update PROGRESS_LOG for v2.2.6-pre). The session that produced these entries
+> did not assign these numbers to any work unit. Numbering continues at Entry 021.
+
+---
+
 ---
 
 # Appendix A — EmuComponents API
@@ -1121,7 +1130,7 @@ gh release edit v2.2.6-pre --notes "..."
 ---
 
 ## Entry 021 — Title + system bar padding (v2.2.7-pre)
-**Date:** 2026-03-15  |  **Commit:** `5808a2a`  |  **Tag:** v2.2.7-pre
+**Date:** 2026-03-15  |  **Commit:** `d6d9965`  |  **Tag:** v2.2.7-pre
 
 ### Changes
 - **Title:** `"Component Manager"` → `"Banners Component Manager"`
@@ -1135,7 +1144,7 @@ ListView was set as the raw content view with no inset handling. GameHub's theme
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
 
 ### CI result
-✅ Passed (d6d9965)
+✅ Passed — run ID not recorded (shared CI run with Entry 022 under v2.2.7-pre tag at `fd5e176`)
 
 ---
 
@@ -1155,31 +1164,6 @@ Root cause: Some ZIPs (e.g. StevenMX `Turnip_v26.1.0_R4.zip`) contain `vulkan.ad
 
 ### CI result
 ✅ Passed
-
----
-
-## Entry 024 — Shrink RTS gesture settings dialog ~20% (v2.2.9-pre)
-**Date:** 2026-03-15  |  **Commit:** `bb3d420`  |  **Tag:** v2.2.9-pre
-
-### Changes
-Navigation bar and status bar were overlapping the RTS gesture settings dialog, blocking users from tapping buttons (especially Close).
-
-- All 6 gesture row heights: `@dimen/dp_48` → `38dp` inline (21% reduction per row)
-- Close button height: `@dimen/mw_44dp` → `35dp` (20% reduction)
-- Dialog `paddingBottom`: `@dimen/mw_16dp` → `12dp`
-- Title `marginTop`: `@dimen/mw_14dp` → `11dp`
-- ScrollView `marginTop`: `@dimen/mw_16dp` → `12dp`
-- Close button `marginTop`: `@dimen/mw_16dp` → `12dp`
-
-Uses inline dp values — no patches/dimens.xml exists, so new dimen references would require adding one.
-
-Total height reduction: 6×(48−38) + (44−35) + margin savings ≈ 75dp+ freed.
-
-### Files touched
-- `[MOD]` `patches/res/layout/rts_gesture_config_dialog.xml`
-
-### CI result
-✅ Passed — run `23114552262` (3m41s)
 
 ---
 
@@ -1208,6 +1192,31 @@ Added "Remove" as a third option in the per-component options menu (Inject/Repla
 
 ### CI result
 ✅ Passed — run `23114139058` (3m41s)
+
+---
+
+## Entry 024 — Shrink RTS gesture settings dialog ~20% (v2.2.9-pre)
+**Date:** 2026-03-15  |  **Commit:** `bb3d420`  |  **Tag:** v2.2.9-pre
+
+### Changes
+Navigation bar and status bar were overlapping the RTS gesture settings dialog, blocking users from tapping buttons (especially Close).
+
+- All 6 gesture row heights: `@dimen/dp_48` → `38dp` inline (21% reduction per row)
+- Close button height: `@dimen/mw_44dp` → `35dp` (20% reduction)
+- Dialog `paddingBottom`: `@dimen/mw_16dp` → `12dp`
+- Title `marginTop`: `@dimen/mw_14dp` → `11dp`
+- ScrollView `marginTop`: `@dimen/mw_16dp` → `12dp`
+- Close button `marginTop`: `@dimen/mw_16dp` → `12dp`
+
+Uses inline dp values — no patches/dimens.xml exists, so new dimen references would require adding one.
+
+Total height reduction: 6×(48−38) + (44−35) + margin savings ≈ 75dp+ freed.
+
+### Files touched
+- `[MOD]` `patches/res/layout/rts_gesture_config_dialog.xml`
+
+### CI result
+✅ Passed — run `23114552262` (3m41s)
 
 ---
 
