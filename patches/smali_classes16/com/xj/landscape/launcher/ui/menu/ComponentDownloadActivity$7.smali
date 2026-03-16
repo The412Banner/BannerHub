@@ -18,14 +18,13 @@
 .end method
 
 .method public run()V
-    .locals 20
-    # v0=outer  v1,v2=temp strings  v3=HttpURLConnection
-    # v4=reader/stream temp  v5=StringBuilder→responseStr
-    # v6=releases JSONArray  v7=release count  v8=release index
-    # v9=release JSONObject  v10=tag_name
-    # v11=assets JSONArray  v12=asset count  v13=asset index
-    # v14=asset JSONObject  v15=asset name  v16=asset url
-    # v17=mAllNames  v18=mAllUrls  v19=label StringBuilder
+    .locals 16
+    # Register plan (16 max: v0-v15)
+    # Setup phase:  v1=url/temp  v2=URL→HttpURLConnection  v3=stream/reader  v4=reader/temp  v5=StringBuilder→responseStr
+    # Parse phase:  v6=releases JSONArray  v7=release count  v8=release index
+    # Outer loop:   v9=tag_name (kept alive across inner loop)  v10=assets array  v11=asset count  v12=asset index
+    # Inner loop:   v13=asset JSONObject → reused as label StringBuilder  v14=asset name  v15=asset url
+    # label build:  v2 free (HttpURLConnection done), v1 free → reuse for iget mAllNames/mAllUrls
 
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$7;->this$0:Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;
 
@@ -36,50 +35,48 @@
     new-instance v2, Ljava/net/URL;
     invoke-direct {v2, v1}, Ljava/net/URL;-><init>(Ljava/lang/String;)V
     invoke-virtual {v2}, Ljava/net/URL;->openConnection()Ljava/net/URLConnection;
-    move-result-object v3
-    check-cast v3, Ljava/net/HttpURLConnection;
+    move-result-object v2
+    check-cast v2, Ljava/net/HttpURLConnection;
 
     const-string v1, "GET"
-    invoke-virtual {v3, v1}, Ljava/net/HttpURLConnection;->setRequestMethod(Ljava/lang/String;)V
+    invoke-virtual {v2, v1}, Ljava/net/HttpURLConnection;->setRequestMethod(Ljava/lang/String;)V
     const v1, 0x3a98
-    invoke-virtual {v3, v1}, Ljava/net/HttpURLConnection;->setConnectTimeout(I)V
-    invoke-virtual {v3, v1}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
+    invoke-virtual {v2, v1}, Ljava/net/HttpURLConnection;->setConnectTimeout(I)V
+    invoke-virtual {v2, v1}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
     const-string v1, "User-Agent"
-    const-string v2, "BannerHub/1.0"
-    invoke-virtual {v3, v1, v2}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
+    const-string v3, "BannerHub/1.0"
+    invoke-virtual {v2, v1, v3}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
 
     # read response into StringBuilder
-    invoke-virtual {v3}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
-    move-result-object v4
-    new-instance v5, Ljava/io/InputStreamReader;
-    invoke-direct {v5, v4}, Ljava/io/InputStreamReader;-><init>(Ljava/io/InputStream;)V
-    new-instance v4, Ljava/io/BufferedReader;
-    invoke-direct {v4, v5}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
+    move-result-object v3
+    new-instance v4, Ljava/io/InputStreamReader;
+    invoke-direct {v4, v3}, Ljava/io/InputStreamReader;-><init>(Ljava/io/InputStream;)V
+    new-instance v3, Ljava/io/BufferedReader;
+    invoke-direct {v3, v4}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
     new-instance v5, Ljava/lang/StringBuilder;
     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
 
     :read_loop
-    invoke-virtual {v4}, Ljava/io/BufferedReader;->readLine()Ljava/lang/String;
+    invoke-virtual {v3}, Ljava/io/BufferedReader;->readLine()Ljava/lang/String;
     move-result-object v1
     if-eqz v1, :read_done
     invoke-virtual {v5, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     goto :read_loop
     :read_done
-    invoke-virtual {v4}, Ljava/io/BufferedReader;->close()V
+    invoke-virtual {v3}, Ljava/io/BufferedReader;->close()V
 
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5
 
-    # parse releases JSONArray
+    # parse releases JSONArray — v3,v4,v5 now free except v5 holds responseStr briefly
     new-instance v6, Lorg/json/JSONArray;
     invoke-direct {v6, v5}, Lorg/json/JSONArray;-><init>(Ljava/lang/String;)V
+    # v5 free from here
 
     invoke-virtual {v6}, Lorg/json/JSONArray;->length()I
     move-result v7
     const/4 v8, 0x0
-
-    iget-object v17, v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllNames:Ljava/util/ArrayList;
-    iget-object v18, v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllUrls:Ljava/util/ArrayList;
 
     # outer loop: iterate all releases
     :release_loop
@@ -88,67 +85,70 @@
     invoke-virtual {v6, v8}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
     move-result-object v9
 
-    # v10 = tag_name
-    const-string v1, "tag_name"
-    invoke-virtual {v9, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v10
-
-    # v11 = assets array
+    # v9 = tag_name (overwrite release JSONObject — extract fields first)
     const-string v1, "assets"
     invoke-virtual {v9, v1}, Lorg/json/JSONObject;->getJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
-    move-result-object v11
+    move-result-object v10
 
-    invoke-virtual {v11}, Lorg/json/JSONArray;->length()I
-    move-result v12
-    const/4 v13, 0x0
+    const-string v1, "tag_name"
+    invoke-virtual {v9, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v9
+    # v9 = tag_name String (kept alive for all inner iterations)
+
+    invoke-virtual {v10}, Lorg/json/JSONArray;->length()I
+    move-result v11
+    const/4 v12, 0x0
 
     # inner loop: iterate assets for this release
     :asset_loop
-    if-ge v13, v12, :asset_done
+    if-ge v12, v11, :asset_done
 
-    invoke-virtual {v11, v13}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
-    move-result-object v14
+    invoke-virtual {v10, v12}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
+    move-result-object v13
 
-    # v15 = asset name
+    # v14 = asset name
     const-string v1, "name"
-    invoke-virtual {v14, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v15
+    invoke-virtual {v13, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v14
 
     # accept .wcp, .zip, .xz only
     const-string v1, ".wcp"
-    invoke-virtual {v15, v1}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+    invoke-virtual {v14, v1}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
     move-result v1
     if-nez v1, :accept_asset
     const-string v1, ".zip"
-    invoke-virtual {v15, v1}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+    invoke-virtual {v14, v1}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
     move-result v1
     if-nez v1, :accept_asset
     const-string v1, ".xz"
-    invoke-virtual {v15, v1}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+    invoke-virtual {v14, v1}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
     move-result v1
     if-eqz v1, :skip_asset
 
     :accept_asset
-    # v16 = browser_download_url
+    # v15 = browser_download_url
     const-string v1, "browser_download_url"
-    invoke-virtual {v14, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v16
+    invoke-virtual {v13, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v15
 
-    # build label: "tagName / assetName"
-    new-instance v19, Ljava/lang/StringBuilder;
-    invoke-direct {v19}, Ljava/lang/StringBuilder;-><init>()V
-    invoke-virtual {v19, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    # v13 now free — reuse as label StringBuilder: "tagName / assetName"
+    new-instance v13, Ljava/lang/StringBuilder;
+    invoke-direct {v13}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v13, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     const-string v1, " / "
-    invoke-virtual {v19, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v19, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v19}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    invoke-virtual {v13, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v13, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v13}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v2
 
-    invoke-virtual {v17, v2}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
-    invoke-virtual {v18, v16}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
+    # add to mAllNames (label) and mAllUrls (url) — use v1 as temp for iget
+    iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllNames:Ljava/util/ArrayList;
+    invoke-virtual {v1, v2}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
+    iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllUrls:Ljava/util/ArrayList;
+    invoke-virtual {v1, v15}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
 
     :skip_asset
-    add-int/lit8 v13, v13, 0x1
+    add-int/lit8 v12, v12, 0x1
     goto :asset_loop
 
     :asset_done
