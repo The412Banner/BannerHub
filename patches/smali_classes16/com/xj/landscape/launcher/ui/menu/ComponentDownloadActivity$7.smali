@@ -1,6 +1,6 @@
 # KimchiDriversRunnable — background: GET Nightlies kimchi/drivers.json,
 #                         parse releases[] array, collect all .wcp/.zip/.xz assets,
-#                         name format: "tag / assetName", url = mirror_url,
+#                         name format: "tag / assetName", url = original_url,
 #                         populate mAllNames/mAllUrls, post $2 (showCategories on UI thread)
 .class final Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$7;
 .super Ljava/lang/Object;
@@ -129,8 +129,8 @@
     if-eqz v1, :skip_asset
 
     :accept_asset
-    # v5 = mirror_url
-    const-string v1, "mirror_url"
+    # v5 = original_url (mirror_url filenames don't match actual uploaded asset names)
+    const-string v1, "original_url"
     invoke-virtual {v13, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
     move-result-object v5
 
