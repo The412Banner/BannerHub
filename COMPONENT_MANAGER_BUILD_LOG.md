@@ -1209,6 +1209,79 @@ Added "Remove" as a third option in the per-component options menu (Inject/Repla
 
 ---
 
+## Entry 025 — In-app Component Downloader (v2.3.2-pre)
+**Date:** 2026-03-16  |  **Commit:** `9849bd9`  |  **Tag:** v2.3.2-pre
+
+### Changes
+
+**New feature — "↓ Download from Online Repos" in component type-selection menu**
+
+New `ComponentDownloadActivity` (3-mode ListView): repo list → category → asset list → download + inject.
+
+**Architecture:**
+- `mode` field (0=repos, 1=categories, 2=assets) drives all ListView state
+- `mAllNames`/`mAllUrls` — full list from fetch; `mCurrentNames`/`mCurrentUrls` — filtered by category
+- `mDownloadFilename` / `mDownloadUrl` — set on asset tap, consumed by `$3` DownloadRunnable
+- `detectType(String)I` — toLowerCase, checks: box64→94, fex→95, vkd3d→13, turnip/adreno/driver/qualcomm→10, default DXVK→12
+- `onBackPressed()`: mode2→showCategories(), mode1→showRepos(), mode0→super (finish)
+
+**Inner classes:**
+- `$1` — FetchRunnable: GitHub Releases API, finds first `nightly-*` tag, collects .wcp/.zip/.xz assets
+- `$2` — ShowCategoriesRunnable: posts `showCategories()` to UI thread after fetch
+- `$3` — DownloadRunnable: streams file from URL to `cacheDir/mDownloadFilename`, posts `$5`
+- `$4` — CompleteRunnable: shows Toast + `finish()`
+- `$5` — InjectRunnable: calls `ComponentInjectorHelper.injectComponent()` on UI thread (Looper fix — Toast inside injectComponent requires main thread)
+- `$6` — PackJsonFetchRunnable: GET flat JSON array (type/verName/remoteUrl), skips Wine/Proton, uses verName as display name; used by Arihany WCPHub
+- `$7` — KimchiDriversRunnable: GET JSONObject root → releases[] → assets[], reads `tag`+`original_url`; `.locals 15` max (p0=v15, 4-bit register limit)
+- `$8` — SingleReleaseRunnable: GET GitHub Releases tags endpoint → single JSONObject → assets[]; strips `tmp[random]_` prefix from asset names
+- `$9` — GpuDriversFetchRunnable: GET flat JSON array (type/verName/remoteUrl), skips Wine/Proton, uses verName as display name; used by all GPU driver repos
+
+**Repos (5 GPU + 1 WCP):**
+- Arihany WCPHub — `pack.json` flat array via `$6`/`startFetchPackJson()`
+- Kimchi GPU Drivers — `kimchi_drivers.json` flat array via `$9`/`startFetchGpuDrivers()`
+- StevenMXZ GPU Drivers — `stevenmxz_drivers.json` flat array via `$9`
+- MTR GPU Drivers — `mtr_drivers.json` flat array via `$9`
+- Whitebelyash GPU Drivers — `white_drivers.json` flat array via `$9`
+
+**Key smali constraints encountered:**
+- `.locals 16` makes p0=v16, out of 4-bit register range for iget-object/invoke-virtual → max `.locals 15`
+- Register reuse: v5 (StringBuilder/responseStr) freed after JSON parse, reused as asset URL in inner loop
+- `mAllNames.clear()` / `mAllUrls.clear()` required before each new repo fetch to prevent list mixing on back+reselect
+
+### Root cause / design note
+`ComponentInjectorHelper.injectComponent()` calls `Toast.makeText()` internally, which requires the main (Looper) thread. A naive background thread call crashes with "Can't create handler inside thread that has not called Looper.prepare()". Fix: `$5` InjectRunnable posts the inject call via `runOnUiThread()`.
+
+### Files touched
+- `[NEW]` `patches/smali_classes16/.../ComponentDownloadActivity.smali`
+- `[NEW]` `patches/smali_classes16/.../ComponentDownloadActivity$1.smali` through `$9.smali` (9 inner classes)
+
+### CI result
+✅ Passed — run `23145292442` (3m45s, v2.3.2-pre)
+
+---
+
+## Entry 026 — Fix blank component name after ZIP inject (v2.3.2-pre)
+**Date:** 2026-03-16  |  **Commit:** `a893204`  |  **Tag:** (included in v2.3.2-pre roll-up)
+
+### Changes
+
+**Bug fix — downloaded ZIP components injected with blank name**
+
+### Root cause
+`ComponentInjectorHelper.injectComponent()` ZIP branch calls `getDisplayName(ctx, uri)` which queries ContentResolver for `_display_name`. For `file://` URIs created by `Uri.fromFile(cacheFile)` (the download cache path used by `$3` DownloadRunnable), ContentResolver returns a null cursor → `v7 = ""` → `stripExt("") = ""` → component registered with blank `displayName`/`name` → appears blank in GameHub's GPU driver selection list and in the inject success toast.
+
+### Fix
+In `getDisplayName()`: after the try block, at `:ret`, check if `v7.isEmpty()` and if so call `uri.getLastPathSegment()` as fallback. For `file://` URIs this returns the filename (e.g. `"v840 — Qualcomm_840_adpkg.zip"`). `stripExt()` then gives a proper component name. Same fallback applied in the `:dn_err` exception-handler path for robustness.
+
+### Files touched
+- `[MOD]` `patches/smali_classes16/.../ComponentInjectorHelper.smali`
+  - `getDisplayName()` — added isEmpty check + `Uri.getLastPathSegment()` fallback at `:ret` and `:dn_err`
+
+### CI result
+✅ Passed — included in v2.3.2-pre build (run `23145292442`)
+
+---
+
 # Appendix C — Known constraints
 
 | Constraint | Detail |
