@@ -1370,6 +1370,26 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 040 — Remove callback invocation to fix j3 NPE crash; 80% height; smaller text (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `401e43b`  |  **Tag:** v2.4.2-beta4  |  **CI:** ✅ build-quick.yml run 23204360488 — 3m51s
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali` [MOD]
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$3.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper.show()`** — Labels now built with `Html.fromHtml("<small>Core N (Type)</small>", 0)` for smaller text. $2 constructor call: `invoke-direct {v6, v2, v3, v4}` (4 args — no range). $3: `invoke-direct {v7, v3, v4}` (3 args). Height: `heightPixels * 4/5` (80%).
+**`CpuMultiSelectHelper$2.onClick()`** — Removed `callback.invoke(anchorView)` block. Now only folds bitmask and calls `SPUtils.m(key, mask)`.
+**`CpuMultiSelectHelper$3.onClick()`** — Removed `callback.invoke(anchorView)` block. Now only calls `SPUtils.m(key, 0)`.
+**`CpuMultiSelectHelper$2.<init>`** — Signature simplified to `([ZLcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;)V`. Removed `Function1 d` and `View e` fields.
+**`CpuMultiSelectHelper$3.<init>`** — Signature simplified to `(Lcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;)V`. Removed `Function1 c` and `View d` fields.
+
+### Root cause / rationale
+NPE crash: `j3, parameter it is null`. Traced call chain: our `$2/$3.onClick()` called `callback.invoke(anchorView)` → `u0.invoke(view)` → `PcGameSettingsKt.Q(...)` → `j3(null)`. Root cause: `u0` is a lambda that expects to receive a `DialogSettingListItemEntity` (as in the original `e()` code at line 127 of SelectAndSingleInputDialog$Companion.smali). When we passed a View instead, some intermediate step in Q() produced null and passed it to j3, which checks `checkNotNullParameter(it, "it")` → NPE. Fix: don't call the callback at all. The value is saved by SPUtils regardless; the row label refreshes on next page navigation.
+
+---
+
 ## Entry 039 — Fix invoke-direct/range for CpuMultiSelectHelper$2 6-arg constructor (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `48aac66`  |  **Tag:** v2.4.2-beta3  |  **CI:** pending
 

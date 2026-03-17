@@ -4,6 +4,13 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.4.2-beta4 — Remove callback invocation to fix j3 NPE crash; 80% height; smaller text (2026-03-17)
+**Commit:** `401e43b`  |  **Tag:** v2.4.2-beta4
+**What changed:** Root cause of NPE: `u0` lambda (UI refresh callback) expects `DialogSettingListItemEntity`, not `View` — passing View caused `j3.checkNotNullParameter` on a null intermediate. Fix: removed `callback.invoke()` from $2 and $3 entirely; value is still saved via `SPUtils.m()`. Also: height raised to 80% (`heightPixels * 4/5`); labels wrapped in `Html.fromHtml("<small>...</small>")` for smaller text. $2/$3 constructors simplified (no View/Function1 fields, no invoke-direct/range).
+**Files touched:** `patches/smali_classes16/.../CpuMultiSelectHelper{,$2,$3}.smali` [MOD]
+
+---
+
 ## [beta] — v2.4.2-beta3 — Fix invoke-direct/range for $2 6-arg constructor (2026-03-17)
 **Commit:** `48aac66`  |  **Tag:** v2.4.2-beta3
 **What changed:** Fixed CI failure from beta2 — Dalvik non-range `invoke-direct` max 5 registers; `CpuMultiSelectHelper$2.<init>` takes 6. Rewrote register layout: move args into contiguous v7..v11, new-instance at v6, call `invoke-direct/range {v6 .. v11}`. `$3` (5 regs) kept as regular invoke-direct.
