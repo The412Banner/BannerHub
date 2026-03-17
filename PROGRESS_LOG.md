@@ -1084,6 +1084,15 @@ GameHub's APK already contains `commons-compress`, `zstd-jni` (`libzstd-jni-1.5.
 
 ---
 
+### [feat] — CPU core dialog: warn if no cores selected on Apply — v2.4.2-beta8c (2026-03-17)
+**Commit:** `23e8470`  |  **Tag:** v2.4.2-beta8c  |  **CI:** ✅
+#### What changed
+- **`CpuMultiSelectHelper$2.smali`**: If all checkboxes are unchecked when Apply is tapped, shows Toast "Select at least one core" and returns without saving. Uses `move-object/from16 v4, p1` to get the dialog's Context (p1=v34 with `.locals 33`, out of 4-bit range for regular `move-object`).
+#### Files touched
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali`
+
+---
+
 ### [fix] — CPU core dialog: half-width, 90% height, all-cores = No Limit — v2.4.2-beta7 (2026-03-17)
 **Commit:** `3fab423`  |  **Tag:** v2.4.2-beta7  |  **CI:** pending
 #### What changed

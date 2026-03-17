@@ -1370,6 +1370,23 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 044 — CPU core dialog: warn if no cores selected on Apply (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `23e8470`  |  **Tag:** v2.4.2-beta8c  |  **CI:** ✅ build-quick.yml — success
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper$2.onClick()`** — After bitmask fold (before all-cores check): `if-nez v1, :cond_hasmask` — if mask=0 (no cores checked), calls `Toast.makeText(ctx, "Select at least one core", LENGTH_SHORT).show()` and returns without saving. Context obtained via `move-object/from16 v4, p1` + `check-cast v4, Dialog` + `getContext()`. `move-object/from16` required because p1=v34 with `.locals 33` (exceeds 4-bit range of regular `move-object`).
+
+### Root cause / rationale
+Without this guard, unchecking all cores and hitting Apply silently saves mask=0 (No Limit) — same as the "No Limit" button — which could confuse a user who thought they were cancelling. The Toast makes the no-selection state explicit.
+
+### CI notes
+beta8 failed: used `move-object v4, p1` — p1=v34 exceeds 4-bit src limit of `move-object` (format 12x). beta8b failed: same — fix used `check-cast v4` but smali reported error at check-cast line. beta8c: corrected to `move-object/from16 v4, p1` — passes.
+
+---
+
 ## Entry 043 — CPU core dialog: half-width, 90% height, all-cores = No Limit (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `3fab423`  |  **Tag:** v2.4.2-beta7  |  **CI:** pending
 
