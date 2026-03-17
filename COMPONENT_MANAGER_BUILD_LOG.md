@@ -1366,7 +1366,32 @@ None — CI workflow change only.
 Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity via a full CI build without pushing a placeholder pre-release tag. Added `workflow_dispatch` so the quick build (Normal APK only) can be triggered manually at any time.
 
 ### CI result
-⏳ In progress — `build-quick.yml` (manual dispatch) — run `23188227052`
+❌ Failed — `build-quick.yml` run `23188227052` — classes12 dex index limit (65546 > 65535)
+
+---
+
+## Entry 031 — classes12 dex bypass + patches/ restore (2026-03-17 session)
+**Date:** 2026-03-17  |  **Commits:** `9b4f0f5` `5875eb8` `f66a6a4` `b42c452` `3ca4a9c`  |  **Tag:** none  |  **CI:** `23190604565` ✅ (build.yml, 8 APKs)
+
+### Files created / moved / deleted
+- `.github/workflows/build-quick.yml` [MOD] — classes12 bypass + pin ubuntu-22.04
+- `.github/workflows/build.yml` [MOD] — classes12 bypass
+- `.github/workflows/build-crossfire.yml` [MOD] — classes12 bypass
+- `patches/smali_classes4/GameSettingViewModel$fetchList$1.smali` [DEL] — dup from bad revert
+- `patches/smali_classes7/HomeLeftMenuDialog.smali` [DEL] — dup from bad revert
+- `patches/smali_classes11/.../SteamGameByPcEmuLaunchStrategy$execute$3.smali` [DEL] — dup
+- `patches/smali_classes12/InputControlsManager.smali` [DEL] — dup from bad revert
+- `patches/smali_classes14/X11Controller.smali` [DEL] — dup from bad revert
+
+### Root cause / rationale
+GitHub Actions environment changed overnight (2026-03-16 → 2026-03-17) causing smali to be stricter about dex index limits. `classes12` in the original base APK is at 65535+11 references — previously assembled fine, now fails. Fix: extract original `classes12.dex` from base APK zip, delete `smali_classes12/` from decompiled output so apktool skips it, inject original dex back after rebuild via `zip`. Applied to all 3 workflows.
+
+Also discovered patches/ had 5 duplicate smali files in wrong dex locations — remnant of bad revert of `bbf4d43` (new base APK experiment). Removed all duplicates; patches/ now matches v2.3.5 exactly.
+
+Additionally saved `apktool_out_base` artifact from v2.3.5 CI run as permanent release `apktool-out-base-v2.3.5` (219MB) before it expired.
+
+### CI result
+✅ Passed — `build.yml` (manual dispatch) — run `23190604565` — 8 APKs built. App tested and confirmed working.
 
 ---
 
@@ -1375,6 +1400,7 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 | Constraint | Detail |
 |------------|--------|
 | smali_classes11 full | At/near 65535 dex index limit — all new classes go to smali_classes16 |
+| smali_classes12 bypassed | Over dex index limit (65546) — original classes12.dex injected directly, smali reassembly skipped in all 3 workflows |
 | No external dex inject | GameHub class loader finds its own copies first; injected dex loses |
 | TarArchiveInputStream obfuscated | `getNextTarEntry()` = `s()`, `isDirectory()` missing → use `getName().endsWith("/")` |
 | XZInputStream constructor | `<init>(InputStream, int)V` only; second arg = -1 for unlimited |
