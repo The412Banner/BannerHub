@@ -208,13 +208,13 @@
     new-instance v5, Lcom/xj/winemu/settings/CpuMultiSelectHelper$1;
     invoke-direct {v5, v2}, Lcom/xj/winemu/settings/CpuMultiSelectHelper$1;-><init>([Z)V
 
-    # --- $2: PositiveButton(checked[], SPUtils, key) — 4 regs, no /range needed ---
+    # --- $2: PositiveButton(checked[], SPUtils, key, callback) — 5 regs, no /range needed ---
     new-instance v6, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;
-    invoke-direct {v6, v2, v3, v4}, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;-><init>([ZLcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;)V
+    invoke-direct {v6, v2, v3, v4, p3}, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;-><init>([ZLcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 
-    # --- $3: NegativeButton(SPUtils, key) — 3 regs, no /range needed ---
+    # --- $3: NegativeButton(SPUtils, key, callback) — 4 regs, no /range needed ---
     new-instance v7, Lcom/xj/winemu/settings/CpuMultiSelectHelper$3;
-    invoke-direct {v7, v3, v4}, Lcom/xj/winemu/settings/CpuMultiSelectHelper$3;-><init>(Lcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;)V
+    invoke-direct {v7, v3, v4, p3}, Lcom/xj/winemu/settings/CpuMultiSelectHelper$3;-><init>(Lcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
     # v3 and v4 now free
 
     # --- AlertDialog.Builder ---

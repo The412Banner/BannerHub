@@ -11,24 +11,27 @@
     name = null
 .end annotation
 
-# Positive button ("Apply") — computes bitmask from checked[], saves via SPUtils.
-# Callback NOT invoked (avoids j3 NPE — u0 lambda expects DialogSettingListItemEntity, not View).
+# Positive button ("Apply") — computes bitmask, saves via SPUtils, fires callback with
+# a freshly constructed DialogSettingListItemEntity(id=newMask, isSelected=true).
+# Using the entity type matches what the original e() code passes to u0.invoke().
 .field final synthetic a:[Z
 .field final synthetic b:Lcom/blankj/utilcode/util/SPUtils;
 .field final synthetic c:Ljava/lang/String;
+.field final synthetic d:Lkotlin/jvm/functions/Function1;
 
-.method constructor <init>([ZLcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;)V
+.method constructor <init>([ZLcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
     .locals 0
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
     iput-object p1, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->a:[Z
     iput-object p2, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->b:Lcom/blankj/utilcode/util/SPUtils;
     iput-object p3, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->c:Ljava/lang/String;
+    iput-object p4, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->d:Lkotlin/jvm/functions/Function1;
     return-void
 .end method
 
 # onClick(DialogInterface dialog, int which)
 .method public onClick(Landroid/content/DialogInterface;I)V
-    .locals 3
+    .locals 4
 
     iget-object v0, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->a:[Z
     const/4 v1, 0x0    # newMask = 0
@@ -101,6 +104,17 @@
     iget-object v0, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->b:Lcom/blankj/utilcode/util/SPUtils;
     iget-object v2, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->c:Ljava/lang/String;
     invoke-virtual {v0, v2, v1}, Lcom/blankj/utilcode/util/SPUtils;->m(Ljava/lang/String;I)V
+
+    # Fire UI refresh: callback.invoke(new DialogSettingListItemEntity{id=newMask, isSelected=true})
+    iget-object v0, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->d:Lkotlin/jvm/functions/Function1;
+    if-eqz v0, :cond_nocb
+    new-instance v2, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
+    invoke-direct {v2}, Lcom/xj/winemu/bean/DialogSettingListItemEntity;-><init>()V
+    iput v1, v2, Lcom/xj/winemu/bean/DialogSettingListItemEntity;->id:I
+    const/4 v3, 0x1
+    iput-boolean v3, v2, Lcom/xj/winemu/bean/DialogSettingListItemEntity;->isSelected:Z
+    invoke-interface {v0, v2}, Lkotlin/jvm/functions/Function1;->invoke(Ljava/lang/Object;)Ljava/lang/Object;
+    :cond_nocb
 
     return-void
 .end method
