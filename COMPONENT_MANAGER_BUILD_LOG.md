@@ -1370,6 +1370,44 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 039 — Fix invoke-direct/range for CpuMultiSelectHelper$2 6-arg constructor (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `48aac66`  |  **Tag:** v2.4.2-beta3  |  **CI:** pending
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper.show(View, String, int, Function1)V`** — Rewrote `$2` construction to use `invoke-direct/range {v6..v11}`. Dalvik non-range `invoke-direct` supports max 5 registers; `$2.<init>` takes 6 args (this + [Z + SPUtils + String + Function1 + View). Fix: move all args into contiguous block v7..v11 via `move-object`, place new-instance target at v6, call `invoke-direct/range {v6 .. v11}`. `$3` needs only 5 regs — kept as regular `invoke-direct {v7, v8, v9, v10, v11}`.
+
+### Root cause / rationale
+v2.4.2-beta2 CI failed: `CpuMultiSelectHelper.smali[183,19] A list of registers can only have a maximum of 5 registers. Use the <op>/range alternate opcode instead.` The original `invoke-direct {v6, v2, v3, v4, p3, p0}` had 6 regs. Register layout rewritten to move all $2 args into contiguous v7-v11 before the range call.
+
+### CI result
+Pending — v2.4.2-beta3 tag triggers build-quick.yml (Normal APK only)
+
+---
+
+## Entry 038 — Fix NPE crash + dialog height limit (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `249c1c1`  |  **Tag:** v2.4.2-beta2  |  **CI:** ❌ (smali register error)
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali` [MOD]
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$3.smali` [MOD]
+- `patches/smali_classes2/com/xj/winemu/settings/SelectAndSingleInputDialog$Companion.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper.show()`** — Signature changed from `(Context, ...)` to `(View, ...)`. Anchor View `p1` from `SelectAndSingleInputDialog$Companion.d()` passed directly into `$2` (field `e`) and `$3` (field `d`). After `builder.show()`, gets `AlertDialog.getWindow()`, null-checks, then calls `Window.setLayout(WRAP_CONTENT=-2, heightPixels * 7 / 10)` using `mul-int/lit16` / `div-int/lit16`. Also added `if-eqz` null guards before `callback.invoke()`.
+
+**`SelectAndSingleInputDialog$Companion.d()`** — Changed intercept: passes `p1` (View) directly to `CpuMultiSelectHelper.show()`; removed the `getContext()` call that was in beta1.
+
+### Root cause / rationale
+1. **NPE crash**: `j3.invoke()` in `smali_classes11` does `check-cast p1, android.view.View` — the callback expects a non-null View anchor, not null. Our beta1 code passed `null`; fix passes the anchor View from the intercepted `d()` method.
+2. **Dialog too tall**: Added `Window.setLayout(WRAP_CONTENT, heightPixels * 70%)` so dialog fits between notification bar and navigation buttons.
+CI failed: `invoke-direct` 6-register limit hit (fixed in entry 039).
+
+---
+
 ## Entry 037 — Multi-select CPU core dialog (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `fe2e2a1`  |  **Tag:** v2.4.2-beta1  |  **CI:** ✅ build-quick.yml run 23201415726 — 3m50s
 

@@ -4,6 +4,20 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.4.2-beta3 — Fix invoke-direct/range for $2 6-arg constructor (2026-03-17)
+**Commit:** `48aac66`  |  **Tag:** v2.4.2-beta3
+**What changed:** Fixed CI failure from beta2 — Dalvik non-range `invoke-direct` max 5 registers; `CpuMultiSelectHelper$2.<init>` takes 6. Rewrote register layout: move args into contiguous v7..v11, new-instance at v6, call `invoke-direct/range {v6 .. v11}`. `$3` (5 regs) kept as regular invoke-direct.
+**Files touched:** `patches/smali_classes16/.../CpuMultiSelectHelper.smali` [MOD]
+
+---
+
+## [beta] — v2.4.2-beta2 — Fix NPE crash + dialog height limit (2026-03-17)
+**Commit:** `249c1c1`  |  **Tag:** v2.4.2-beta2  |  **CI:** ❌ (smali 5-reg limit)
+**What changed:** (1) NPE fix: `j3` callback expects non-null `android.view.View`; changed `show()` signature to `(View, ...)` and pass anchor View from `SelectAndSingleInputDialog$Companion.d()` through $2/$3 as callback argument. (2) Height limit: after `builder.show()` get `AlertDialog.getWindow()`, call `setLayout(WRAP_CONTENT, heightPixels * 70%)` via `mul-int/lit16`/`div-int/lit16`. CI failed due to invoke-direct 6-register limit (fixed in beta3).
+**Files touched:** `patches/smali_classes16/.../CpuMultiSelectHelper{,$2,$3}.smali` [MOD], `patches/smali_classes2/.../SelectAndSingleInputDialog$Companion.smali` [MOD]
+
+---
+
 ## [beta] — v2.4.2-beta1 — Multi-select CPU core dialog (2026-03-17)
 **Commit:** `fe2e2a1`  |  **Tag:** v2.4.2-beta1
 **What changed:** Replaced single-select CPU core preset list with a multi-select checkbox dialog (`AlertDialog.setMultiChoiceItems()`). Intercept added to `SelectAndSingleInputDialog$Companion.d()` for `CONTENT_TYPE_CORE_LIMIT` — calls `CpuMultiSelectHelper.show()` instead of OptionsPopup. Helper reads current mask, pre-checks boxes accordingly, shows 8 individual core checkboxes (Core 0-7). "Apply" saves OR-combined bitmask; "No Limit" saves 0. `D(I)` updated to dynamically build label (e.g. "Core 4 + Core 7 (Prime)") for custom combinations.
