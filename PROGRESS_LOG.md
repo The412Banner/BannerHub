@@ -4,6 +4,13 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — v2.3.9-pre — Fix VerifyError crash from invalid if-ne in VRAM l0() (2026-03-17)
+**Commit:** `c83dcb0`  |  **Tag:** v2.3.9-pre
+**What changed:** v2.3.8-pre caused a VerifyError that crashed PC game settings and uninstall. The new VRAM entries used `if-ne v0, vN` where v0 was a DialogSettingListItemEntity ref (clobbered) vs integer — invalid in Dalvik. Fixed by removing the selected-state check for new entries (always false/not selected). No functional impact on the VRAM options themselves.
+**Files touched:** `patches/smali_classes4/com/xj/winemu/settings/PcGameSettingOperations.smali`
+
+---
+
 ## [feat] — v2.3.8-pre — Unlock higher VRAM limits in PC game settings (2026-03-17)
 **Commit:** `cb56d1b`  |  **Tag:** v2.3.8-pre
 **What changed:** VRam Limit dropdown was capped at 4 GB. Added 6 GB, 8 GB, 12 GB, and 16 GB options by appending new `DialogSettingListItemEntity` entries to `PcGameSettingOperations.l0()` in a new patch file.

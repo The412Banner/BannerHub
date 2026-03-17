@@ -1370,6 +1370,23 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 034 — Fix VerifyError from invalid if-ne in VRAM l0() (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `c83dcb0`  |  **Tag:** v2.3.9-pre  |  **CI:** pending
+
+### Files created / moved / deleted
+- `patches/smali_classes4/com/xj/winemu/settings/PcGameSettingOperations.smali` [MOD]
+
+### Methods added / changed
+**`PcGameSettingOperations.l0()`** — removed 4 invalid selected-state checks (`:cond_6`-`:cond_9`, `:goto_6`-`:goto_9`, `if-ne` blocks) from the 4 new VRAM entries added in Entry 033. Replaced with direct `move/from16 v33, v2` (always not-selected). No other changes.
+
+### Root cause / rationale
+Logcat (logcat_2026-03-17_08-50-54.txt): `VerifyError` at bytecode offset `0x191` in `l0()` — `args to if-eq/if-ne (Reference: DialogSettingListItemEntity, PositiveShortConstant) must both be references or integral`. After the 4 GB entry's `move-object/from16 v0, v30`, v0 holds a reference type. Comparing it with a short integer constant via `if-ne` is illegal. Both PC game settings open and uninstall were broken because PcGameSettingOperations class was rejected entirely by ART.
+
+### CI result
+Pending — v2.3.9-pre tag triggers build-quick.yml
+
+---
+
 ## Entry 033 — Unlock higher VRAM limits in PC game settings (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `cb56d1b`  |  **Tag:** v2.3.8-pre  |  **CI:** pending
 
