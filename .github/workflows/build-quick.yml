@@ -45,6 +45,11 @@ jobs:
           rm -f apktool_out/res/values/raws.xml
           sed -i '/firebase_common_keep\|firebase_crashlytics_keep/d' apktool_out/res/values/public.xml
 
+          # Extract original classes12.dex and skip smali reassembly (dex index limit workaround)
+          APK=$(ls base/*.apk | head -1)
+          unzip -p "$APK" classes12.dex > classes12.dex
+          rm -rf apktool_out/smali_classes12
+
       - name: Apply patches
         run: |
           if [ -d "patches" ] && [ "$(ls -A patches)" ]; then
@@ -65,6 +70,9 @@ jobs:
 
           # Rebuild
           java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
+
+          # Inject original classes12.dex (skipped smali reassembly due to dex index limit)
+          zip rebuilt-unsigned.apk classes12.dex
 
           # Align
           ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
