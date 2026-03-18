@@ -5648,7 +5648,7 @@
 .method public static toggleSustainedPerf(Z)V
     .locals 4
 
-    # Save pref if WineActivity instance available
+    # Save pref + try setSustainedPerformanceMode (no-root, works if OEM supports it)
     sget-object v0, Lcom/xj/winemu/WineActivity;->t1:Lcom/xj/winemu/WineActivity;
     if-eqz v0, :cond_spm_exec
 
@@ -5662,8 +5662,12 @@
     invoke-interface {v1, v2, p0}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
     invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
 
+    invoke-virtual {v0}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
+    move-result-object v1
+    invoke-virtual {v1, p0}, Landroid/view/Window;->setSustainedPerformanceMode(Z)V
+
     :cond_spm_exec
-    # Set CPU governor to performance/schedutil via su -c
+    # Also try CPU governor via su -c (root users get guaranteed effect)
     const/4 v0, 0x3
     new-array v0, v0, [Ljava/lang/String;
     const/4 v1, 0x0
@@ -6127,7 +6131,7 @@
     invoke-virtual {v3, v4, v5}, Landroid/os/PerformanceHintManager$Session;->reportActualWorkDuration(J)V
 
     :cond_perf_1
-    # --- BannerHub: Sustained Performance Mode (CPU governor) ---
+    # --- BannerHub: Sustained Performance Mode (no-root API + root governor) ---
     const-string v2, "bh_prefs"
     const/4 v3, 0x0
     invoke-virtual {v1, v2, v3}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
@@ -6137,6 +6141,10 @@
     invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
     move-result v2
     if-eqz v2, :cond_bh_spm_skip
+    invoke-virtual {v1}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
+    move-result-object v2
+    const/4 v3, 0x1
+    invoke-virtual {v2, v3}, Landroid/view/Window;->setSustainedPerformanceMode(Z)V
     const/4 v2, 0x3
     new-array v2, v2, [Ljava/lang/String;
     const/4 v3, 0x0

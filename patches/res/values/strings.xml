@@ -3687,7 +3687,7 @@ Supports browsers on PC, mobile, and other devices."</string>
     <string name="winemu_sidebar_key_mapping">Input Mapping</string>
     <string name="winemu_sidebar_key_mouse_speed">Mouse Speed</string>
     <string name="winemu_sidebar_rts_touch_controls">RTS Touch Controls</string>
-    <string name="winemu_sidebar_sustained_perf">Sustained Performance</string>
+    <string name="winemu_sidebar_sustained_perf">Sustained Perf (Root+)</string>
     <string name="winemu_sidebar_max_adreno_clocks">Max Adreno Clocks (Root)</string>
     <string name="rts_gesture_settings">RTS Gesture Settings</string>
     <string name="rts_gesture_settings_title">RTS Gesture Settings</string>
