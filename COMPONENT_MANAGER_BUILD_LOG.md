@@ -1924,3 +1924,5 @@ apksigner sign --key testkey.pk8 --cert testkey.x509.pem \
     --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
     --out signed.apk unsigned.apk
 ```
+## Entry 048 — CPU core dialog: no divider, centered title, right-aligned right col, buttons L/C/R (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `6150954`  |  **Tag:** v2.4.2-beta11  |  **CI:** ✅
