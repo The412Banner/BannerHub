@@ -4513,6 +4513,40 @@
     invoke-virtual {v1, v3}, Landroid/view/View;->setVisibility(I)V
 
     :cond_skip_rts
+
+    # --- BannerHub: Sustained Performance sidebar toggle ---
+    invoke-virtual {p0}, Landroidx/fragment/app/Fragment;->getView()Landroid/view/View;
+    move-result-object v0
+    if-eqz v0, :cond_skip_spm
+
+    const v1, 0x7f0a0f0e
+    invoke-virtual {v0, v1}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    move-result-object v0
+    check-cast v0, Lcom/xj/winemu/view/SidebarSwitchItemView;
+    if-eqz v0, :cond_skip_spm
+
+    # Read current sustained_perf pref
+    invoke-virtual {p0}, Landroidx/fragment/app/Fragment;->getContext()Landroid/content/Context;
+    move-result-object v1
+    if-eqz v1, :cond_skip_spm
+    const-string v2, "bh_prefs"
+    const/4 v3, 0x0
+    invoke-virtual {v1, v2, v3}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v1
+    const-string v2, "sustained_perf"
+    const/4 v3, 0x0
+    invoke-interface {v1, v2, v3}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v1
+
+    invoke-virtual {v0, v1}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setSwitch(Z)V
+
+    new-instance v1, Lcom/xj/winemu/sidebar/SustainedPerfSwitchClickListener;
+    invoke-direct {v1, v0}, Lcom/xj/winemu/sidebar/SustainedPerfSwitchClickListener;-><init>(Lcom/xj/winemu/view/SidebarSwitchItemView;)V
+    invoke-virtual {v0, v1}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setClickListener(Lkotlin/jvm/functions/Function0;)V
+
+    :cond_skip_spm
+    # --- end BannerHub sustained perf sidebar toggle ---
+
     return-void
 .end method
 

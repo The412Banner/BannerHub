@@ -5644,6 +5644,34 @@
     return-void
 .end method
 
+# --- BannerHub: toggle Sustained Performance Mode at runtime ---
+.method public static toggleSustainedPerf(Z)V
+    .locals 3
+
+    sget-object v0, Lcom/xj/winemu/WineActivity;->t1:Lcom/xj/winemu/WineActivity;
+    if-eqz v0, :cond_spm_end
+
+    # Save pref
+    const-string v1, "bh_prefs"
+    const/4 v2, 0x0
+    invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v1
+    invoke-interface {v1}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v1
+    const-string v2, "sustained_perf"
+    invoke-interface {v1, v2, p0}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+    invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # Apply to window immediately
+    invoke-virtual {v0}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
+    move-result-object v1
+    invoke-virtual {v1, p0}, Landroid/view/Window;->setSustainedPerformanceMode(Z)V
+
+    :cond_spm_end
+    return-void
+.end method
+# --- end BannerHub toggleSustainedPerf ---
+
 .method public final l2(Ljava/lang/String;)V
     .locals 1
 

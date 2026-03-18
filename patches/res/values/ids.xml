@@ -2679,6 +2679,7 @@
     <item type="id" name="switch_keep_new" />
     <item type="id" name="switch_key_map" />
     <item type="id" name="switch_rts_touch_controls" />
+    <item type="id" name="switch_sustained_perf" />
     <item type="id" name="switch_layout" />
     <item type="id" name="switch_screen_brightness" />
     <item type="id" name="switch_touch_screen_mouse_control" />

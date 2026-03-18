@@ -17,6 +17,7 @@
                 <com.xj.winemu.view.SidebarSwitchItemView android:id="@id/switch_rts_touch_controls" android:layout_width="0dp" android:layout_height="@dimen/dp_56" android:layout_weight="1" app:switch_title="@string/winemu_sidebar_rts_touch_controls" />
                 <ImageButton android:id="@id/btn_rts_gesture_settings" android:layout_width="@dimen/dp_40" android:layout_height="@dimen/dp_40" android:layout_marginEnd="@dimen/dp_8" android:background="?android:attr/selectableItemBackgroundBorderless" android:src="@drawable/winemu_ic_setting_focus_white" android:contentDescription="@string/rts_gesture_settings" android:visibility="gone" />
             </LinearLayout>
+            <com.xj.winemu.view.SidebarSwitchItemView android:id="@id/switch_sustained_perf" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56" app:switch_title="@string/winemu_sidebar_sustained_perf" />
             <com.xj.winemu.view.SidebarProgressItemView android:id="@id/gamepad_sensitivity" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" app:side_max="100" app:side_min="0" app:side_progress="50" app:side_title="@string/winemu_sidebar_gamepad_sensitivity" />
         </com.xj.common.view.focus.focus.view.FocusableLinearLayout>
     </com.xj.common.view.focus.focus.view.FocusableNestedScrollView>
