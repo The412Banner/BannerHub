@@ -1924,5 +1924,12 @@ apksigner sign --key testkey.pk8 --cert testkey.x509.pem \
     --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
     --out signed.apk unsigned.apk
 ```
+## Entry 049 — CPU core dialog: revert to beta8c style (setMultiChoiceItems) (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `991d0ef`  |  **Tag:** v2.4.2-beta12  |  **CI:** ✅
+
+Restored Html.fromHtml `<small>` labels, $1 OnMultiChoiceClickListener, setMultiChoiceItems, half-width, 90% height. $4 class left as unused dead code.
+
+---
+
 ## Entry 048 — CPU core dialog: no divider, centered title, right-aligned right col, buttons L/C/R (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `6150954`  |  **Tag:** v2.4.2-beta11  |  **CI:** ✅
