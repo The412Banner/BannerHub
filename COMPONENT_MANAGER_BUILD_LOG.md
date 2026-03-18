@@ -1370,6 +1370,20 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 047 — CPU core dialog: inline labels, column divider, WRAP_CONTENT height (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `f96f8df`  |  **Tag:** v2.4.2-beta10  |  **CI:** ✅
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper.show()`** — (1) All CheckBox labels changed from `"Core N\n(Type)"` to `"Core N (Type)"` — single line. (2) After each left CheckBox `addView`, adds a `View` with `setBackgroundColor(0xFF808080)` and `addView(row, view, 2, -1)` (2px wide, MATCH_PARENT height) as a column divider. (3) `Window.setLayout()` now uses `WRAP_CONTENT (-2)` for height instead of `heightPixels * 9/10` — dialog snaps to content with no empty space.
+
+### Root cause / rationale
+UX cleanup: two-line labels wasted vertical space; no visual separation between columns made the grid hard to read; WRAP_CONTENT height removes the large gap below the 4 rows that the 90% calculation produced.
+
+---
+
 ## Entry 046 — CPU core dialog: fix grid to 4×2 vertical (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `b6cfda4`  |  **Tag:** v2.4.2-beta9b  |  **CI:** ✅
 
