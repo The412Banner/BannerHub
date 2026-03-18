@@ -5646,12 +5646,12 @@
 
 # --- BannerHub: toggle Sustained Performance Mode at runtime ---
 .method public static toggleSustainedPerf(Z)V
-    .locals 3
+    .locals 4
 
+    # Save pref if WineActivity instance available
     sget-object v0, Lcom/xj/winemu/WineActivity;->t1:Lcom/xj/winemu/WineActivity;
-    if-eqz v0, :cond_spm_end
+    if-eqz v0, :cond_spm_exec
 
-    # Save pref
     const-string v1, "bh_prefs"
     const/4 v2, 0x0
     invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
@@ -5662,10 +5662,27 @@
     invoke-interface {v1, v2, p0}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
     invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
 
-    # Apply to window immediately
-    invoke-virtual {v0}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
+    :cond_spm_exec
+    # Set CPU governor to performance/schedutil via su -c
+    const/4 v0, 0x3
+    new-array v0, v0, [Ljava/lang/String;
+    const/4 v1, 0x0
+    const-string v2, "su"
+    aput-object v2, v0, v1
+    const/4 v1, 0x1
+    const-string v2, "-c"
+    aput-object v2, v0, v1
+    const/4 v1, 0x2
+    if-eqz p0, :cond_spm_gov_off
+    const-string v2, "for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo performance > $f; done"
+    goto :cond_spm_gov_set
+    :cond_spm_gov_off
+    const-string v2, "for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo schedutil > $f; done"
+    :cond_spm_gov_set
+    aput-object v2, v0, v1
+    invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
     move-result-object v1
-    invoke-virtual {v1, p0}, Landroid/view/Window;->setSustainedPerformanceMode(Z)V
+    invoke-virtual {v1, v0}, Ljava/lang/Runtime;->exec([Ljava/lang/String;)Ljava/lang/Process;
 
     :cond_spm_end
     return-void
@@ -5676,10 +5693,10 @@
 .method public static toggleMaxAdreno(Z)V
     .locals 4
 
+    # Save pref if WineActivity instance available
     sget-object v0, Lcom/xj/winemu/WineActivity;->t1:Lcom/xj/winemu/WineActivity;
-    if-eqz v0, :cond_adreno_end
+    if-eqz v0, :cond_adreno_exec
 
-    # Save pref
     const-string v1, "bh_prefs"
     const/4 v2, 0x0
     invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
@@ -5690,36 +5707,29 @@
     invoke-interface {v1, v2, p0}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
     invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
 
-    # Execute root command
-    if-eqz p0, :cond_adreno_disable
-
-    # Enable: set min_freq = max_freq (lock to max clock)
+    :cond_adreno_exec
+    # Execute root command via su -c
+    const/4 v0, 0x3
+    new-array v0, v0, [Ljava/lang/String;
+    const/4 v1, 0x0
+    const-string v2, "su"
+    aput-object v2, v0, v1
+    const/4 v1, 0x1
+    const-string v2, "-c"
+    aput-object v2, v0, v1
     const/4 v1, 0x2
-    new-array v1, v1, [Ljava/lang/String;
-    const/4 v2, 0x0
-    const-string v3, "su"
-    aput-object v3, v1, v2
-    const/4 v2, 0x1
-    const-string v3, "MAX=$(cat /sys/class/kgsl/kgsl-3d0/devfreq/max_freq); echo $MAX > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq"
-    aput-object v3, v1, v2
-    invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
-    move-result-object v2
-    invoke-virtual {v2, v1}, Ljava/lang/Runtime;->exec([Ljava/lang/String;)Ljava/lang/Process;
-    goto :cond_adreno_end
-
+    if-eqz p0, :cond_adreno_disable
+    # Enable: lock GPU min_freq = max_freq
+    const-string v2, "cat /sys/class/kgsl/kgsl-3d0/devfreq/max_freq > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq"
+    goto :cond_adreno_cmd_set
     :cond_adreno_disable
     # Disable: reset min_freq to 0
-    const/4 v1, 0x2
-    new-array v1, v1, [Ljava/lang/String;
-    const/4 v2, 0x0
-    const-string v3, "su"
-    aput-object v3, v1, v2
-    const/4 v2, 0x1
-    const-string v3, "echo 0 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq"
-    aput-object v3, v1, v2
+    const-string v2, "echo 0 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq"
+    :cond_adreno_cmd_set
+    aput-object v2, v0, v1
     invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
-    move-result-object v2
-    invoke-virtual {v2, v1}, Ljava/lang/Runtime;->exec([Ljava/lang/String;)Ljava/lang/Process;
+    move-result-object v1
+    invoke-virtual {v1, v0}, Ljava/lang/Runtime;->exec([Ljava/lang/String;)Ljava/lang/Process;
 
     :cond_adreno_end
     return-void
@@ -6117,10 +6127,7 @@
     invoke-virtual {v3, v4, v5}, Landroid/os/PerformanceHintManager$Session;->reportActualWorkDuration(J)V
 
     :cond_perf_1
-    # --- BannerHub: Sustained Performance Mode ---
-    sget v2, Landroid/os/Build$VERSION;->SDK_INT:I
-    const/16 v3, 0x18
-    if-lt v2, v3, :cond_bh_spm_skip
+    # --- BannerHub: Sustained Performance Mode (CPU governor) ---
     const-string v2, "bh_prefs"
     const/4 v3, 0x0
     invoke-virtual {v1, v2, v3}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
@@ -6130,10 +6137,20 @@
     invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
     move-result v2
     if-eqz v2, :cond_bh_spm_skip
-    invoke-virtual {v1}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
-    move-result-object v2
+    const/4 v2, 0x3
+    new-array v2, v2, [Ljava/lang/String;
+    const/4 v3, 0x0
+    const-string v4, "su"
+    aput-object v4, v2, v3
     const/4 v3, 0x1
-    invoke-virtual {v2, v3}, Landroid/view/Window;->setSustainedPerformanceMode(Z)V
+    const-string v4, "-c"
+    aput-object v4, v2, v3
+    const/4 v3, 0x2
+    const-string v4, "for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo performance > $f; done"
+    aput-object v4, v2, v3
+    invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
+    move-result-object v3
+    invoke-virtual {v3, v2}, Ljava/lang/Runtime;->exec([Ljava/lang/String;)Ljava/lang/Process;
     :cond_bh_spm_skip
     # --- end BannerHub Sustained Performance Mode ---
 
@@ -6147,13 +6164,16 @@
     invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
     move-result v2
     if-eqz v2, :cond_bh_adreno_skip
-    const/4 v2, 0x2
+    const/4 v2, 0x3
     new-array v2, v2, [Ljava/lang/String;
     const/4 v3, 0x0
     const-string v4, "su"
     aput-object v4, v2, v3
     const/4 v3, 0x1
-    const-string v4, "MAX=$(cat /sys/class/kgsl/kgsl-3d0/devfreq/max_freq); echo $MAX > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq"
+    const-string v4, "-c"
+    aput-object v4, v2, v3
+    const/4 v3, 0x2
+    const-string v4, "cat /sys/class/kgsl/kgsl-3d0/devfreq/max_freq > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq"
     aput-object v4, v2, v3
     invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
     move-result-object v3
