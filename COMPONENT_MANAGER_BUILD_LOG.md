@@ -2181,7 +2181,7 @@ Click listeners always have a `SidebarSwitchItemView` reference (`field a`) whic
 
 ## Entry 60 — v2.6.1 stable — Promote perf toggle fix to stable (2026-03-20)
 
-**Commit:** `c8ebfdc` | **Tag:** v2.6.1 | **CI:** pending
+**Commit:** `f334a2f` | **Tag:** v2.6.1 | **CI:** ✅ run 23361933312
 
 ### Summary
 Stable promotion of v2.6.1-pre. No new code changes — tags HEAD (c8ebfdc) as v2.6.1.
@@ -2196,4 +2196,4 @@ Stable promotion of v2.6.1-pre. No new code changes — tags HEAD (c8ebfdc) as v
 - `COMPONENT_MANAGER_BUILD_LOG.md` — this entry
 
 ### CI result
-→ pending
+→ ✅ run 23361933312 — PASSED — 8 APKs built
