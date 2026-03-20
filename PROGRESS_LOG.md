@@ -5,10 +5,10 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 ---
 
 ## [pre] — v2.5.5-pre — Show component description in game settings picker (2026-03-20)
-**Commit:** `d8ae34f`  |  **Tag:** v2.5.5-pre  |  **CI:** ⏳ pending
+**Commit:** `d8ae34f`  |  **Tag:** v2.5.5-pre  |  **CI:** ✅ run 23345802544 (3m30s)
 **What changed:** `appendLocalComponents()` now calls `entity.getBlurb()` and passes the result to `DialogSettingListItemEntity.setDesc()`. Locally installed components now show their description text under the component name in the game settings component picker. `EnvLayerEntity.getBlurb()` is not obfuscated in 5.3.5. Blurb value comes from `profile.json` `"description"` field stored at inject time.
 **Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentInjectorHelper.smali` [MOD — +5 lines in appendLocalComponents after setDownloaded]
-**CI result:** ⏳ pending
+**CI result:** ✅ passed
 
 ---
 

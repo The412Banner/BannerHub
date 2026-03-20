@@ -2103,4 +2103,4 @@ restores alpha to 1.0f and wires listeners if granted, or greys out if not.
 `appendLocalComponents()` built each `DialogSettingListItemEntity` via the no-arg constructor then called setTitle/setDisplayName/setType/setEnvLayerEntity/setDownloaded — but never called `setDesc()`. The blurb string was already stored in the `EnvLayerEntity` (it is written there by `registerComponent()` via the 19-param constructor param 1). Only needed to read it back and forward it to setDesc.
 
 ### CI result
-⏳ pending (tag v2.5.5-pre pushed)
+✅ run 23345802544 — PASSED (3m30s)
