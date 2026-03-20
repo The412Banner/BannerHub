@@ -59,6 +59,109 @@ jobs:
             echo "No patches to apply."
           fi
 
+      - name: Apply Grant Root Access smali patches
+        run: |
+          python3 << 'PYEOF'
+          import sys
+
+          def patch(path, old, new, label):
+              try:
+                  content = open(path, encoding='utf-8').read()
+              except UnicodeDecodeError:
+                  content = open(path, encoding='latin-1').read()
+              if old not in content:
+                  print(f"ERROR: anchor not found in {path} for: {label}")
+                  sys.exit(1)
+              open(path, 'w', encoding='utf-8').write(content.replace(old, new, 1))
+              print(f"OK: {label}")
+
+          # Patch 1: SettingBtnHolder.w() — handle click for contentType=0x64 (Grant Root Access)
+          # Injected EARLY right after getContentType() move-result p0, while p2 is still a View.
+          patch(
+              'apktool_out_base/smali_classes6/com/xj/landscape/launcher/ui/setting/holder/SettingBtnHolder.smali',
+              '    move-result p0\n'
+              '\n'
+              '    .line 15\n'
+              '    sget-object p1, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;'
+              '->Companion:Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity$Companion;\n',
+              '    move-result p0\n'
+              '\n'
+              '    # BannerHub: Grant Root Access (contentType=0x64) — injected early while p2 is still a View\n'
+              '    const/16 v0, 0x64\n'
+              '\n'
+              '    if-ne p0, v0, :bh_skip_root_grant\n'
+              '\n'
+              '    invoke-virtual {p2}, Landroid/view/View;->getContext()Landroid/content/Context;\n'
+              '\n'
+              '    move-result-object v0\n'
+              '\n'
+              '    invoke-static {v0}, Lcom/xj/winemu/sidebar/BhRootGrantHelper;->requestRoot(Landroid/content/Context;)V\n'
+              '\n'
+              '    sget-object v0, Lkotlin/Unit;->a:Lkotlin/Unit;\n'
+              '\n'
+              '    return-object v0\n'
+              '\n'
+              '    :bh_skip_root_grant\n'
+              '\n'
+              '    .line 15\n'
+              '    sget-object p1, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;'
+              '->Companion:Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity$Companion;\n',
+              'SettingBtnHolder.w(): Grant Root Access click handler (contentType=0x64)'
+          )
+
+          # Patch 2: SettingItemEntity.getContentName() — return "Grant Root Access" for contentType=0x64
+          patch(
+              'apktool_out_base/smali_classes13/com/xj/landscape/launcher/data/model/entity/SettingItemEntity.smali',
+              '    :cond_15\n'
+              '    invoke-static {p0}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->getCustomSettingName(I)Ljava/lang/String;\n',
+              '    :cond_15\n'
+              '    # BannerHub: Grant Root Access (contentType=0x64)\n'
+              '    const/16 v0, 0x64\n'
+              '\n'
+              '    if-ne p0, v0, :bh_skip_grant_name\n'
+              '\n'
+              '    const-string p0, "Grant Root Access"\n'
+              '\n'
+              '    return-object p0\n'
+              '\n'
+              '    :bh_skip_grant_name\n'
+              '    invoke-static {p0}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->getCustomSettingName(I)Ljava/lang/String;\n',
+              'SettingItemEntity.getContentName(): return "Grant Root Access" for contentType=0x64'
+          )
+
+          # Patch 3: SettingItemViewModel.k() — add Grant Root Access TYPE_BTN below Clear Cache
+          patch(
+              'apktool_out_base/smali_classes3/com/xj/landscape/launcher/vm/SettingItemViewModel.smali',
+              '    invoke-interface {p0, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
+              '\n'
+              '    .line 79\n'
+              '    return-object p0\n'
+              '.end method\n'
+              '\n'
+              '.method public final m()Ljava/util/List;\n',
+              '    invoke-interface {p0, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
+              '\n'
+              '    # BannerHub: Grant Root Access button (contentType=0x64) below Clear Cache\n'
+              '    new-instance v0, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;\n'
+              '\n'
+              '    const/16 v2, 0x64\n'
+              '\n'
+              '    invoke-direct/range {v0 .. v6}, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;'
+              '-><init>(IILandroid/util/SparseArray;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
+              '\n'
+              '    invoke-interface {p0, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
+              '\n'
+              '    .line 79\n'
+              '    return-object p0\n'
+              '.end method\n'
+              '\n'
+              '.method public final m()Ljava/util/List;\n',
+              'SettingItemViewModel.k(): add Grant Root Access TYPE_BTN after Clear Cache'
+          )
+
+          print("\nAll Grant Root Access patches applied successfully.")
+          PYEOF
+
       - name: Upload patched source
         uses: actions/upload-artifact@v4
         with:

@@ -80,8 +80,10 @@
     invoke-virtual {v1, v2, v3}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
     move-result-object v2
 
-    # Check if root is available — v5 = 1 if root granted, 0 if not
-    invoke-static {}, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->isRootAvailable()Z
+    # Check root_granted pref (set via Settings -> Advanced -> Grant Root Access)
+    const-string v3, "root_granted"
+    const/4 v4, 0x0
+    invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
     move-result v5
 
     # Sustained Perf switch
