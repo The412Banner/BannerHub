@@ -2104,3 +2104,21 @@ restores alpha to 1.0f and wires listeners if granted, or greys out if not.
 
 ### CI result
 ✅ run 23345802544 — PASSED (3m30s)
+
+---
+
+## Entry 57 — v2.5.6-pre — Download progress indicator in ComponentDownloadActivity (2026-03-20)
+
+### Files modified
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentDownloadActivity.smali`
+  - Field added: `mProgressBar:Landroid/widget/ProgressBar;`
+  - `onCreate`: create ProgressBar, set GONE, add to layout between status text and ListView
+  - `showRepos()`, `showCategories()`, `showAssets()`: set ProgressBar GONE at start
+  - `onItemClick` mode=2 `:no_ext`: set ProgressBar VISIBLE; status text changed from "Downloading..." to "Downloading: <mDownloadFilename>"
+  - All 6 `sw0_*` repo-fetch cases: set ProgressBar VISIBLE after setText, before startFetch*()
+
+### Root-cause analysis
+No visual feedback existed during repo metadata fetch or file download — the list was cleared and the status text changed but no spinner was shown. bh-lite shows an indeterminate ProgressBar during both phases. Added the same behaviour to BannerHub by storing a ProgressBar in a field and toggling visibility at the right transition points. No new layout files needed (all programmatic).
+
+### CI result
+✅ run 23346364788 — PASSED
