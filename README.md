@@ -123,9 +123,16 @@ The **Normal APK** uses package `banner.hub` — it installs alongside the origi
 
 ---
 
+## Credits
+
+- **RTS Touch Controls** — [@Nightwalker743](https://github.com/Nightwalker743)
+- **GameHub ReVanced patches** — [@playday3008](https://github.com/playday3008/gamehub-patches)
+
+---
+
 ## How It Works
 
-1. The original GameHub 5.3.5 ReVanced APK is stored as a release asset under the `base-apk` tag (136 MB).
+1. The original GameHub 5.3.5 ReVanced APK (patched by [@playday3008](https://github.com/playday3008/gamehub-patches)) is stored as a release asset under the `base-apk` tag (136 MB).
 2. CI downloads it, decompiles with apktool, overlays everything in `patches/`, rebuilds, zipaligns, and signs.
 3. The rebuilt APKs are uploaded as GitHub Release assets.
 
