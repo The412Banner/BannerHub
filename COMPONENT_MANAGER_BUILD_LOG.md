@@ -2241,3 +2241,39 @@ Stable promotion of v2.6.1-pre. No new code changes — tags HEAD (c8ebfdc) as v
 
 ### CI result
 → ✅ run 23361933312 — PASSED — 8 APKs built
+
+---
+
+## Entry 62 — v2.6.7-pre — Fix buildUI() VerifyError: .locals 5 p0=v5 register collision (2026-03-20)
+
+**Commit:** `18268e5` | **Tag:** v2.6.7-pre | **CI:** ⏳ pending
+
+### Root Cause
+With `.locals 5`, Dalvik register layout is:
+- v0–v4: 5 local registers
+- v5: p0 (the `this` reference = ComponentManagerActivity)
+
+Inside `buildUI()`, the line:
+```
+const/high16 v5, 0x3f800000  # 1.0f for LinearLayout$LayoutParams weight
+```
+wrote an IntegerConstant into v5, silently overwriting `this` (p0). ART's verifier then rejected the method at bytecode offset [0x32] with:
+```
+tried to get class from non-reference register v5 (type=IntegerConstant)
+```
+
+This was the THIRD VerifyError in v2.6.x — after (1) private method invoke-virtual and (2) getFileName Uri register collision.
+
+### Fix
+- `ComponentManagerActivity.smali` line 52: `.locals 5` → `.locals 6`
+- With `.locals 6`: v0–v5 are locals, p0 maps to v6 (never overwritten)
+- `const/high16 v5` now writes to a proper local register; p0 stays a valid reference throughout
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
+
+### Lesson
+Always verify `.locals N` so that no `const*` instruction targets the register that p0 maps to (vN). This is a silent register alias — smali assemblers do not warn about it.
+
+### CI result
+→ ⏳ pending — run triggered by tag v2.6.7-pre

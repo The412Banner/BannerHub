@@ -1317,3 +1317,15 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - Fix: moved pref saving into SustainedPerfSwitchClickListener and MaxAdrenoClickListener — both have a View with context, so getSharedPreferences always works
 - WineActivity.toggleSustainedPerf now only calls setSustainedPerformanceMode (still needs Window from t1); toggleMaxAdreno goes straight to su root command
 - **Logcat verified:** `logcat-2026-03-20_12-58-55.txt` — no errors from v2.6.1-pre; fix confirmed working by user
+
+---
+
+### [pre] — v2.6.7-pre — Fix buildUI() VerifyError: .locals 5 p0=v5 collision (2026-03-20)
+**Commit:** `18268e5`  |  **Tag:** v2.6.7-pre
+#### What changed
+- buildUI() crashed with VerifyError at offset [0x32]: "tried to get class from non-reference register v5 (type=IntegerConstant)"
+- Root cause: `.locals 5` made p0 (this) map to v5. `const/high16 v5, 0x3f800000` (1.0f for LayoutParams weight) overwrote p0/v5 with an integer constant, corrupting the `this` reference for all subsequent p0 uses
+- Fix: `.locals 5` → `.locals 6` in buildUI(); p0 now maps to v6 (never written), v5 is a proper local register
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali` — `.locals 5` → `.locals 6` in buildUI()
+- `PROGRESS_LOG.md` — this entry
