@@ -2122,3 +2122,20 @@ No visual feedback existed during repo metadata fetch or file download — the l
 
 ### CI result
 ✅ run 23346364788 — PASSED
+
+---
+
+## Entry 58 — v2.6.0 stable — Stable release (2026-03-20)
+
+### Summary
+Stable release of the v2.5.2-pre → v2.5.6-pre line. 8 APKs built successfully.
+
+### What was included
+- Entry 53: Grant Root Access button (Settings → Advanced)
+- Entry 54: Fix build-quick.yml missing patches
+- Entry 55: Fix VerifyError crash on root grant (iput → iput-boolean)
+- Entry 56: Component description in game settings picker (getBlurb → setDesc)
+- Entry 57: Download progress indicator in ComponentDownloadActivity
+
+### CI result
+✅ run 23347015897 — PASSED (8 APKs)

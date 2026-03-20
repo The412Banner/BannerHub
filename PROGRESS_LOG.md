@@ -4,6 +4,13 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [stable] — v2.6.0 — Stable release (2026-03-20)
+**Commit:** `1fc4505` (code) / `4948e7b` (README)  |  **Tag:** v2.6.0
+**What changed:** Stable release of v2.5.2-pre through v2.5.6-pre line. Grant Root Access (Settings → Advanced); fix VerifyError on root grant; fix perf toggles staying grey after root grant; component descriptions in game settings picker; download progress indicator in ComponentDownloadActivity.
+**CI result:** ✅ run 23347015897 — 8 APKs built successfully
+
+---
+
 ## [pre] — v2.5.6-pre — Download progress indicator in ComponentDownloadActivity (2026-03-20)
 **Commit:** `1fc4505`  |  **Tag:** v2.5.6-pre  |  **CI:** ✅ run 23346364788 (3m~)
 **What changed:** Added `mProgressBar` (indeterminate) to ComponentDownloadActivity. Shown during repo fetching ("Fetching X...") and file download ("Downloading: `<filename>`"). Hidden on `showRepos()`, `showCategories()`, `showAssets()`. Status text during download now shows "Downloading: `<filename>`" instead of just "Downloading...". Matches bh-lite behaviour.
