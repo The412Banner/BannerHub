@@ -1329,3 +1329,15 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali` — `.locals 5` → `.locals 6` in buildUI()
 - `PROGRESS_LOG.md` — this entry
+
+---
+
+### [pre] — v2.6.8-pre — Fix IllegalAccessError: private fields inaccessible to inner classes (2026-03-20)
+**Commit:** `5258d1c`  |  **Tag:** v2.6.8-pre
+#### What changed
+- Inject flow crashed: IllegalAccessError: Field 'ComponentManagerActivity.selectedType' is inaccessible to class 'ComponentManagerActivity$6'
+- Root cause: inner classes $4/$5/$6 use iget/iput to access outer-class fields (pendingUri, pendingType, mode, selectedType) which were declared .field private. ART enforces Java access rules — private fields require synthetic accessor methods, not direct iget/iput from inner classes
+- Fix: changed all 9 fields from .field private to .field public
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali` — 9 fields private→public
+- `PROGRESS_LOG.md` — this entry

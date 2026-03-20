@@ -2277,3 +2277,30 @@ Always verify `.locals N` so that no `const*` instruction targets the register t
 
 ### CI result
 → ✅ run 23365752576 — PASSED — Normal APK built
+
+---
+
+## Entry 63 — v2.6.8-pre — Fix IllegalAccessError: private fields inaccessible to inner classes (2026-03-20)
+
+**Commit:** `5258d1c` | **Tag:** v2.6.8-pre | **CI:** ✅ run 23366067758
+
+### Root Cause
+Inner classes `$4`, `$5`, `$6` use direct `iget`/`iput` bytecode to access ComponentManagerActivity fields:
+- `$4`: reads `pendingUri` (iget-object) + `pendingType` (iget)
+- `$5`: writes `mode` (iput)
+- `$6`: writes `selectedType` (iput) + `mode` (iput)
+
+ART enforces Java visibility at runtime. All 9 fields were declared `.field private`. When an inner class tries to access a private field of another class (even its outer class) via raw iget/iput, ART throws `IllegalAccessError`. In Java this is handled by synthetic `access$000()` methods — but our smali code did not generate those.
+
+### Fix
+Changed all 9 fields from `.field private` to `.field public`:
+- recyclerView, adapter, emptyState, countBadge, components, selectedIndex, selectedType, pendingUri, pendingType, mode
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
+
+### Lesson
+In smali, inner classes accessing outer-class fields must use `public` (or package-private) fields — or generate synthetic accessor methods. Private fields accessed cross-class via iget/iput will always throw IllegalAccessError at runtime.
+
+### CI result
+→ ✅ run 23366067758 — PASSED — Normal APK built
