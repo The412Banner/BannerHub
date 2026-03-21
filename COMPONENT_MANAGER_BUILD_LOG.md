@@ -30,6 +30,36 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 078 — GOG login fixes: timeouts, loading feedback, retry on fail, UA (v2.7.0-beta4, gog-beta)
+**Date:** 2026-03-21
+**Branch:** gog-beta  |  **Tag:** v2.7.0-beta4
+
+### Root-cause analysis
+Logcat analysis of two sessions revealed four distinct bugs:
+1. **43-second hang on first attempt** — `GogLoginActivity$2`'s `HttpURLConnection` had no `setConnectTimeout`/`setReadTimeout`. Android default timeout is platform-defined and can be 43+ seconds. The token exchange to `auth.gog.com/token` hung silently before finally failing.
+2. **Blank screen after redirect intercept** — `shouldOverrideUrlLoading` returns `true` (intercept) which tells WebView "I'm handling this navigation" — the WebView stops, clears its current page, and displays nothing. No loading indicator, no feedback. User sees a frozen blank white screen.
+3. **No recovery on failure** — `$4` (error toast Runnable) just showed a toast. WebView remained blank (no page loaded), so user had to back out and re-open the login screen to try again.
+4. **`.locals 2` bug in `$4`** — `$4.run()` declared `.locals 2` (v0, v1 only) but used v2 for `Toast.LENGTH_SHORT`. smali2 in CI apparently did not catch this, but it is technically out-of-range and risky.
+5. **User-Agent** — `GogLoginActivity`'s WebView sent the default Android WebView UA. GOG's login server may serve different JS/redirect behavior to unknown UAs vs. known GOG Galaxy client UAs.
+
+### Files changed
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity$2.smali`
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity$1.smali`
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity$4.smali`
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity.smali`
+
+### Methods changed
+- **`GogLoginActivity$2.run()`** — after `setDoOutput(true)` on token connection (v3): added `const/16 v4, 0x3a98` (15000ms) + `setConnectTimeout(I)V` + `setReadTimeout(I)V`. After `check-cast v8` on userData connection: added same 3-line timeout block using v9 (overwritten by "Authorization" header string immediately after — no collision). `.locals` stays 11.
+- **`GogLoginActivity$1.shouldOverrideUrlLoading(WebView,WebResourceRequest)`** — after `thread.start()`: added `iget webView` + `loadData("<html>Logging in to GOG...</html>", "text/html", "UTF-8")` using v0-v3 (already freed by this point). `.locals` stays 5.
+- **`GogLoginActivity$1.shouldOverrideUrlLoading(WebView,String)`** — NEW method (deprecated API override). Same intercept logic as WebResourceRequest variant: `Uri.parse(p2)` instead of `request.getUrl()`. Starts `$2` thread + `loadData` feedback. `.locals 5`. Ensures older Android WebView implementations that call the String variant are also handled.
+- **`GogLoginActivity$4.run()`** — `.locals 2→3` (fixes undeclared v2 use). After `toast.show()`: `iget webView` + `buildAuthUrl()` + `webView.loadUrl(url)` — reloads the GOG login form so user gets a clean retry screen instead of blank page.
+- **`GogLoginActivity.onCreate()`** — after `setDomStorageEnabled(true)`: added `const-string v2, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) GOG Galaxy/2.0"` + `invoke-virtual {v1, v2}, WebSettings->setUserAgentString`. v1=WebSettings object (already in register at this point), v2 reused (was `const/4 v2, 0x1` just above). `.locals` stays 4.
+
+### CI result
+→ pending
+
+---
+
 ## Entry 077 — GOG via side menu (DEX overflow fix) (v2.7.0-beta3, gog-beta)
 **Date:** 2026-03-21
 **Branch:** gog-beta  |  **Tag:** v2.7.0-beta3

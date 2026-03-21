@@ -121,6 +121,13 @@
 
     invoke-virtual {v3, v4}, Ljava/net/HttpURLConnection;->setDoOutput(Z)V
 
+    # Timeouts: 15 seconds (0x3A98 = 15000ms)
+    const/16 v4, 0x3a98
+
+    invoke-virtual {v3, v4}, Ljava/net/HttpURLConnection;->setConnectTimeout(I)V
+
+    invoke-virtual {v3, v4}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
+
     const-string v4, "Content-Type"
 
     const-string v5, "application/x-www-form-urlencoded"
@@ -182,6 +189,13 @@
     move-result-object v8
 
     check-cast v8, Ljava/net/HttpURLConnection;
+
+    # Timeouts on userData connection too
+    const/16 v9, 0x3a98
+
+    invoke-virtual {v8, v9}, Ljava/net/HttpURLConnection;->setConnectTimeout(I)V
+
+    invoke-virtual {v8, v9}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
 
     # Set Bearer token header
     const-string v9, "Authorization"

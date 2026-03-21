@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta4 — Fix GOG login: timeouts, retry on fail, loading feedback (2026-03-21)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta4
+**What changed:** Four GOG login fixes based on logcat analysis (43s hang, blank screen after intercept, no retry on failure, UA mismatch).
+- `GogLoginActivity$2`: `setConnectTimeout(15000)` + `setReadTimeout(15000)` on both HTTP connections (token POST + userData GET) — stops 43-second hang
+- `GogLoginActivity$1`: after intercepting the redirect and starting the token thread, calls `webView.loadData(...)` to show "Logging in to GOG..." instead of blank/spinning page. Also added the deprecated `shouldOverrideUrlLoading(WebView,String)` override for Android < 8.0 compatibility (same logic as the `WebResourceRequest` variant)
+- `GogLoginActivity$4`: fixed `.locals 2→3` (was referencing undeclared v2); added `webView.loadUrl(buildAuthUrl())` after the error toast so the login form reloads for a clean retry instead of leaving a blank screen
+- `GogLoginActivity`: added `setUserAgentString("Mozilla/5.0 ... GOG Galaxy/2.0")` so GOG's server treats the WebView as Galaxy client
+**Files touched:** `GogLoginActivity.smali`, `GogLoginActivity$1.smali`, `GogLoginActivity$2.smali`, `GogLoginActivity$4.smali`
+**CI result:** pending
+
+---
+
 ## [beta] — v2.7.0-beta3 — GOG via side menu (DEX overflow fix) (2026-03-21)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta3
 **What changed:** Moved GOG from the main tab bar (classes11, at DEX limit) to the left side menu (classes5, safe). beta1/beta2 failed: tab approach pushed classes11 to 65536 pool entries (unsigned short overflow). New approach: "GOG" item added as id=10 in HomeLeftMenuDialog side menu; clicking it opens new GogMainActivity (Activity, not Fragment). GogMainActivity shows login card or signed-in card; login opens WebView OAuth2 via GogLoginActivity.

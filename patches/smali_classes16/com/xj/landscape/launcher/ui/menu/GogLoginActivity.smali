@@ -126,6 +126,11 @@
     # Enable DOM storage (some auth pages need it)
     invoke-virtual {v1, v2}, Landroid/webkit/WebSettings;->setDomStorageEnabled(Z)V
 
+    # Set User-Agent to match GOG Galaxy desktop client
+    const-string v2, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) GOG Galaxy/2.0"
+
+    invoke-virtual {v1, v2}, Landroid/webkit/WebSettings;->setUserAgentString(Ljava/lang/String;)V
+
     # Set custom WebViewClient to intercept redirect
     new-instance v1, Lcom/xj/landscape/launcher/ui/menu/GogLoginActivity$1;
 
