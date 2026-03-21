@@ -298,6 +298,12 @@
     invoke-virtual {v12, v2}, Landroid/graphics/drawable/GradientDrawable;->setColor(I)V
     int-to-float v2, v4    # 8dp as float for corner radius
     invoke-virtual {v12, v2}, Landroid/graphics/drawable/GradientDrawable;->setCornerRadius(F)V
+    # card outline: 1dp stroke — v8 is free here (assigned as accentStrip below)
+    const/4 v2, 0x1
+    invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
+    move-result v2
+    const v8, 0xFF3A3A55
+    invoke-virtual {v12, v2, v8}, Landroid/graphics/drawable/GradientDrawable;->setStroke(II)V
     invoke-virtual {v7, v12}, Landroid/view/View;->setBackground(Landroid/graphics/drawable/Drawable;)V
 
     # Card padding: 12dp all sides
