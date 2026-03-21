@@ -129,10 +129,10 @@
     const/4 v4, 0x1
     invoke-virtual {v2, v3, v0, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;II)V
 
-    # Title "Component Manager" flex
+    # Title "Banners Component Manager" flex
     new-instance v3, Landroid/widget/TextView;
     invoke-direct {v3, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const-string v4, "Component Manager"
+    const-string v4, "Banners Component Manager"
     invoke-virtual {v3, v4}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
     const/high16 v4, 0x41880000    # 17sp
     invoke-virtual {v3, v4}, Landroid/widget/TextView;->setTextSize(F)V
