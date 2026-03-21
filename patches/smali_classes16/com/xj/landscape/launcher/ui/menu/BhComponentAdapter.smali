@@ -404,6 +404,46 @@
     invoke-direct {v2, v1, v3}, Landroidx/recyclerview/widget/RecyclerView$LayoutParams;-><init>(II)V
     invoke-virtual {v7, v2}, Landroid/view/View;->setLayoutParams(Landroid/view/ViewGroup$LayoutParams;)V
 
+    # Make card focusable so D-pad can highlight it
+    const/4 v0, 0x1
+    invoke-virtual {v7, v0}, Landroid/view/View;->setFocusable(Z)V
+
+    # Foreground StateListDrawable: focused=orange tint, pressed=dark overlay, default=transparent
+    new-instance v0, Landroid/graphics/drawable/StateListDrawable;
+    invoke-direct {v0}, Landroid/graphics/drawable/StateListDrawable;-><init>()V
+
+    # focused → orange overlay
+    const/4 v12, 0x1
+    new-array v1, v12, [I
+    const v2, 0x0101009c
+    const/4 v12, 0x0
+    aput v2, v1, v12
+    new-instance v2, Landroid/graphics/drawable/ColorDrawable;
+    const v3, 0x60FF9800
+    invoke-direct {v2, v3}, Landroid/graphics/drawable/ColorDrawable;-><init>(I)V
+    invoke-virtual {v0, v1, v2}, Landroid/graphics/drawable/StateListDrawable;->addState([ILandroid/graphics/drawable/Drawable;)V
+
+    # pressed → dark overlay
+    const/4 v12, 0x1
+    new-array v1, v12, [I
+    const v2, 0x010100a7
+    const/4 v12, 0x0
+    aput v2, v1, v12
+    new-instance v2, Landroid/graphics/drawable/ColorDrawable;
+    const v3, 0x40000000
+    invoke-direct {v2, v3}, Landroid/graphics/drawable/ColorDrawable;-><init>(I)V
+    invoke-virtual {v0, v1, v2}, Landroid/graphics/drawable/StateListDrawable;->addState([ILandroid/graphics/drawable/Drawable;)V
+
+    # default → transparent
+    const/4 v12, 0x0
+    new-array v1, v12, [I
+    new-instance v2, Landroid/graphics/drawable/ColorDrawable;
+    const v3, 0x00000000
+    invoke-direct {v2, v3}, Landroid/graphics/drawable/ColorDrawable;-><init>(I)V
+    invoke-virtual {v0, v1, v2}, Landroid/graphics/drawable/StateListDrawable;->addState([ILandroid/graphics/drawable/Drawable;)V
+
+    invoke-virtual {v7, v0}, Landroid/view/View;->setForeground(Landroid/graphics/drawable/Drawable;)V
+
     # ── Assemble ViewHolder: move to consecutive v0..v6 ───────────────────────
     # Constructor: <init>(adapter, itemView, accentStrip, nameText, typeBadge, badgeBg)
     move-object v2, v7     # itemView (card) → v2

@@ -77,13 +77,6 @@
     invoke-direct {v4, v2, v3, v5}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
     invoke-virtual {v0, v1, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
-    # Bottom bar
-    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->buildBottomBar()Landroid/widget/LinearLayout;
-    move-result-object v1
-    const/4 v2, -0x1
-    const/4 v3, -0x2
-    invoke-virtual {v0, v1, v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;II)V
-
     invoke-virtual {p0, v0}, Landroidx/appcompat/app/AppCompatActivity;->setContentView(Landroid/view/View;)V
     return-void
 .end method
@@ -160,6 +153,26 @@
     invoke-direct {v3, p0}, Landroid/view/View;-><init>(Landroid/content/Context;)V
     const/4 v4, 0x1
     invoke-virtual {v2, v3, v0, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;II)V
+
+    # "+ Add" button in header (orange, compact)
+    const-string v3, "+ Add"
+    const v4, 0xFFFF9800
+    invoke-virtual {p0, v3, v4}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->makeBtn(Ljava/lang/String;I)Landroid/widget/TextView;
+    move-result-object v3
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$BhAddListener;
+    invoke-direct {v4, p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$BhAddListener;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;)V
+    invoke-virtual {v3, v4}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # "↓ DL" button in header (orange, compact)
+    const-string v3, "\u2193 DL"
+    const v4, 0xFFFF9800
+    invoke-virtual {p0, v3, v4}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->makeBtn(Ljava/lang/String;I)Landroid/widget/TextView;
+    move-result-object v3
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$BhDownloadListener;
+    invoke-direct {v4, p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$BhDownloadListener;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;)V
+    invoke-virtual {v3, v4}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     # "✕ All" button (remove all)
     new-instance v3, Landroid/widget/TextView;
@@ -414,11 +427,11 @@
     invoke-virtual {v1, v2}, Landroid/graphics/drawable/GradientDrawable;->setCornerRadius(F)V
     invoke-virtual {v0, v1}, Landroid/view/View;->setBackground(Landroid/graphics/drawable/Drawable;)V
 
-    # padding: 16dp H, 8dp V
-    const/16 v1, 0x10
+    # padding: 8dp H, 4dp V (compact for header)
+    const/16 v1, 0x8
     invoke-virtual {p0, v1}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
     move-result v1
-    const/16 v2, 0x8
+    const/4 v2, 0x4
     invoke-virtual {p0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
     move-result v2
     invoke-virtual {v0, v1, v2, v1, v2}, Landroid/widget/TextView;->setPadding(IIII)V

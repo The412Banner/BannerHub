@@ -65,14 +65,25 @@
     invoke-direct {v5, v6}, Landroid/graphics/drawable/ColorDrawable;-><init>(I)V
     invoke-virtual {v3, v4, v5}, Landroid/graphics/drawable/StateListDrawable;->addState([ILandroid/graphics/drawable/Drawable;)V
 
-    # selected (D-pad/controller) → dark orange tint
+    # focused (D-pad/controller) → vivid amber
+    const/4 v6, 0x1
+    new-array v4, v6, [I
+    const v5, 0x0101009c
+    const/4 v6, 0x0
+    aput v5, v4, v6
+    new-instance v5, Landroid/graphics/drawable/ColorDrawable;
+    const v6, 0xFF3D2800
+    invoke-direct {v5, v6}, Landroid/graphics/drawable/ColorDrawable;-><init>(I)V
+    invoke-virtual {v3, v4, v5}, Landroid/graphics/drawable/StateListDrawable;->addState([ILandroid/graphics/drawable/Drawable;)V
+
+    # selected (D-pad/controller) → vivid amber
     const/4 v6, 0x1
     new-array v4, v6, [I
     const v5, 0x010100a1
     const/4 v6, 0x0
     aput v5, v4, v6
     new-instance v5, Landroid/graphics/drawable/ColorDrawable;
-    const v6, 0xFF241A06
+    const v6, 0xFF3D2800
     invoke-direct {v5, v6}, Landroid/graphics/drawable/ColorDrawable;-><init>(I)V
     invoke-virtual {v3, v4, v5}, Landroid/graphics/drawable/StateListDrawable;->addState([ILandroid/graphics/drawable/Drawable;)V
 
