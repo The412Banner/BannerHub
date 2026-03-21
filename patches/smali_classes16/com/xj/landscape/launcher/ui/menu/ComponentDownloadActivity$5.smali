@@ -68,7 +68,7 @@
     invoke-virtual {v7}, Ljava/io/File;->lastModified()J
     move-result-wide v8        # v8:v9 = dir.lastModified()
 
-    cmpg-long v10, v8, v3     # compare(modTime, timestamp): +1 if newer
+    cmp-long v10, v8, v3      # compare(modTime, timestamp): +1 if newer
     if-lez v10, :scan_next    # <= 0 means not newer than pre-inject time
 
     invoke-virtual {v7}, Ljava/io/File;->getName()Ljava/lang/String;
