@@ -2883,4 +2883,5 @@ LinearLayout weight=1 (height=0dp child) requires EXACTLY MeasureSpec on the wei
 Previous tap showed a Toast (title only). Replaced with full detail dialog using android.app.AlertDialog.Builder.setView(). Image loading uses only java.net + android.graphics.BitmapFactory — no third-party libs. View.post() marshals bitmap set to main thread without a Handler. $3 constructor changes from (GogGamesFragment, String) to (GogGamesFragment, GogGame) so all fields are accessible in the dialog.
 
 ### CI result
-→ pending
+→ beta14/beta15 failed (v16 register error in $1 and $2 — move-object/from16 fix applied in beta16)
+→ ✅ v2.7.0-beta16 run 23389111217 — Normal APK built successfully
