@@ -117,13 +117,13 @@ Download the APK matching your existing GameHub package from the [latest release
 
 | APK | Package | App Label |
 |-----|---------|-----------|
-| `Bannerhub-5.3.5-Revanced-Normal.apk` | `banner.hub` | BannerHub |
-| `Bannerhub-5.3.5-Revanced-PuBG.apk` | `com.tencent.ig` | BannerHub PuBG |
-| `Bannerhub-5.3.5-Revanced-AnTuTu.apk` | `com.antutu.ABenchMark` | BannerHub AnTuTu |
-| `Bannerhub-5.3.5-Revanced-alt-AnTuTu.apk` | `com.antutu.benchmark.full` | BannerHub AnTuTu |
-| `Bannerhub-5.3.5-Revanced-Ludashi.apk` | `com.ludashi.aibench` | BannerHub Ludashi |
-| `Bannerhub-5.3.5-Revanced-Genshin.apk` | `com.mihoyo.genshinimpact` | BannerHub Genshin |
-| `Bannerhub-5.3.5-Revanced-Original.apk` | `com.xiaoji.egggame` | BannerHub Original |
+| `BannerHub-vX.Y.Z-Normal.apk` | `banner.hub` | BannerHub |
+| `BannerHub-vX.Y.Z-PuBG.apk` | `com.tencent.ig` | BannerHub PuBG |
+| `BannerHub-vX.Y.Z-AnTuTu.apk` | `com.antutu.ABenchMark` | BannerHub AnTuTu |
+| `BannerHub-vX.Y.Z-alt-AnTuTu.apk` | `com.antutu.benchmark.full` | BannerHub AnTuTu |
+| `BannerHub-vX.Y.Z-Ludashi.apk` | `com.ludashi.aibench` | BannerHub Ludashi |
+| `BannerHub-vX.Y.Z-Genshin.apk` | `com.mihoyo.genshinimpact` | BannerHub Genshin |
+| `BannerHub-vX.Y.Z-Original.apk` | `com.xiaoji.egggame` | BannerHub Original |
 
 The **Normal APK** uses package `banner.hub` — it installs alongside the original GameHub without replacing it. All 7 variants can be installed simultaneously without conflicts. All APKs are signed with AOSP testkey (v1/v2/v3).
 
