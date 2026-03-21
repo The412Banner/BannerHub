@@ -64,6 +64,33 @@
     move-result-object v5
     invoke-virtual {v3, v4, v5}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
 
+    # Check HTTP response code — non-200 means expired/invalid token
+    invoke-virtual {v3}, Ljava/net/HttpURLConnection;->getResponseCode()I
+    move-result v4
+    const/16 v5, 0xC8  # 200
+    if-eq v4, v5, :ok_200
+
+    # Non-200 (e.g. 401 Unauthorized): clear stored access_token so the UI
+    # shows the "sign in" prompt rather than "loading" on next open
+    invoke-virtual {v0}, Landroidx/fragment/app/Fragment;->getContext()Landroid/content/Context;
+    move-result-object v4
+    if-eqz v4, :expired_disconnect
+    const-string v5, "bh_gog_prefs"
+    const/4 v6, 0x0
+    invoke-virtual {v4, v5, v6}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v5
+    invoke-interface {v5}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v5
+    const-string v6, "access_token"
+    invoke-interface {v5, v6}, Landroid/content/SharedPreferences$Editor;->remove(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+    move-result-object v5
+    invoke-interface {v5}, Landroid/content/SharedPreferences$Editor;->apply()V
+    :expired_disconnect
+    invoke-virtual {v3}, Ljava/net/HttpURLConnection;->disconnect()V
+    const/4 v2, 0x0  # null list — signals session expired to $2
+    goto :post_ui
+
+    :ok_200
     # Read response
     invoke-virtual {v3}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
     move-result-object v4

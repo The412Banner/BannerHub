@@ -31,6 +31,9 @@
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$2;->a:Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;
     iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$2;->b:Ljava/util/ArrayList;
 
+    # Null list = session expired (token was cleared by $1 after non-200 response)
+    if-eqz v1, :session_expired
+
     # Check if list is empty
     invoke-virtual {v1}, Ljava/util/ArrayList;->size()I
     move-result v2
@@ -41,6 +44,15 @@
     iget-object v3, v0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;->statusView:Landroid/widget/TextView;
     if-eqz v3, :done
     const-string v4, "No GOG games found"
+    invoke-virtual {v3, v4}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    const/4 v4, 0x0  # VISIBLE
+    invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
+    goto :done
+
+    :session_expired
+    iget-object v3, v0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;->statusView:Landroid/widget/TextView;
+    if-eqz v3, :done
+    const-string v4, "Session expired - sign in again via the GOG side menu"
     invoke-virtual {v3, v4}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
     const/4 v4, 0x0  # VISIBLE
     invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
