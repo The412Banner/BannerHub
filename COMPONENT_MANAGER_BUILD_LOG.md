@@ -30,6 +30,27 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 082 — Fix VerifyError: invoke-direct for String overload — missed by beta7 replace_all (v2.7.0-beta8, gog-beta)
+**Date:** 2026-03-21
+**Branch:** gog-beta  |  **Tag:** v2.7.0-beta8
+
+### Root-cause analysis
+beta7 used `replace_all` on `invoke-virtual {p0, v0}, ...->handleImplicitRedirect(...)` which fixed the WebResourceRequest overload. The String overload calls the same private method but loaded the parsed Uri into `v1` instead of `v0`, so the register operand differs: `invoke-virtual {p0, v1}`. The `replace_all` pattern didn't match `{p0, v1}` — only `{p0, v0}`. Logcat from beta7 confirmed: only the String variant VerifyError remained.
+
+### Fix
+Changed `invoke-virtual {p0, v1}` → `invoke-direct {p0, v1}` at line 162 of `GogLoginActivity$1.smali`.
+
+### Files changed
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity$1.smali`
+
+### Methods changed
+- `shouldOverrideUrlLoading(WebView,String)` — `invoke-virtual {p0, v1}` → `invoke-direct {p0, v1}` for `handleImplicitRedirect`
+
+### CI result
+→ pending
+
+---
+
 ## Entry 081 — Fix VerifyError: invoke-direct for private handleImplicitRedirect (v2.7.0-beta7, gog-beta)
 **Date:** 2026-03-21
 **Branch:** gog-beta  |  **Tag:** v2.7.0-beta7

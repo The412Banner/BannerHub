@@ -159,7 +159,7 @@
 
     move-result-object v1  # Uri
 
-    invoke-virtual {p0, v1}, Lcom/xj/landscape/launcher/ui/menu/GogLoginActivity$1;->handleImplicitRedirect(Landroid/net/Uri;)V
+    invoke-direct {p0, v1}, Lcom/xj/landscape/launcher/ui/menu/GogLoginActivity$1;->handleImplicitRedirect(Landroid/net/Uri;)V
 
     const/4 v0, 0x1
 
