@@ -30,6 +30,49 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 076 — GOG tab Phase 1: login + token exchange (v2.7.0-beta1, gog-beta)
+**Date:** 2026-03-21
+**Branch:** gog-beta  |  **Tag:** v2.7.0-beta1
+
+### Files created
+| Path | Description |
+|------|-------------|
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/main/BhGogTabCallback.smali` | Function0 → returns new GogFragment |
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogFragment.smali` | Fragment: login card / signed-in card, refreshView(), onResume |
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogFragment$1.smali` | OnClickListener: login button → start GogLoginActivity |
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogFragment$2.smali` | OnClickListener: sign out → clear SP, refreshView |
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity.smali` | Activity: WebView OAuth2, buildAuthUrl(), parseJsonStringField() |
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity$1.smali` | WebViewClient: intercept on_login_success, extract code, start $2 thread |
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity$2.smali` | Runnable: POST token exchange, GET userData.json, save SP, finish via $3 |
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity$3.smali` | Runnable (UI thread): finish() activity after successful login |
+| `[NEW]` `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogLoginActivity$4.smali` | Runnable (UI thread): show error toast on login failure |
+
+### Files modified
+| Path | Change |
+|------|--------|
+| `[MOD]` `patches/smali_classes11/…/LandscapeLauncherMainActivity.smali` | Inject GOG TabItemData after "My Games" in both tab-list branches (branch 1 line ~5904, branch 2 line ~6105); uses TabItemData(I, String, Function0) constructor with "GOG" literal |
+| `[MOD]` `patches/AndroidManifest.xml` | Added GogLoginActivity declaration |
+
+### Key methods
+- `BhGogTabCallback.invoke()` — .locals 1; new GogFragment; return
+- `GogFragment.buildLoginCard(Context)` — .locals 4; builds dark card with GOG title, subtitle, login button ($1 listener)
+- `GogFragment.buildLoggedInCard(Context)` — .locals 4; builds signed-in card with usernameView + sign-out button ($2 listener)
+- `GogFragment.onCreateView(...)` — .locals 4; FrameLayout root, both cards added MATCH_PARENT, refreshView()
+- `GogFragment.refreshView()` — .locals 5; toggle login/loggedIn card visibility; update usernameView from SP
+- `GogLoginActivity$1.shouldOverrideUrlLoading(WebView, WebResourceRequest)` — .locals 5; getUrl().toString(), startsWith("embed.gog.com/on_login_success"), getQueryParameter("code"), start $2 thread
+- `GogLoginActivity$2.run()` — .locals 11; POST auth.gog.com/token, GET embed.gog.com/userData.json, parseJsonStringField, save to bh_gog_prefs, runOnUiThread($3)
+- `GogLoginActivity.parseJsonStringField(String, String)` — static; manual "key":"value" extraction via indexOf/substring
+
+### Token exchange notes
+- Endpoint: `https://auth.gog.com/token`
+- Credentials: public GOG embedded client (`client_id=46899977096215655`, `client_secret=9d85c43b1482497dbbce61f6e4aa173a`)
+- Redirect URI: `https://embed.gog.com/on_login_success?origin=client`
+- Username source: `https://embed.gog.com/userData.json` with Bearer token
+
+**CI result:** [pending]
+
+---
+
 ## Entry 073 — Source badge + refresh + type badge fixes (v2.6.2-pre5)
 **Date:** 2026-03-21
 **Commit:** `26f5af5`  |  **Tag:** v2.6.2-pre5a  |  **CI:** ✅ run 23380498933
@@ -2493,6 +2536,25 @@ Same root cause as Entry 67: `GradientDrawable.setStroke(II)V` in `onCreateViewH
 → ✅ run 23369636270 — Normal APK built
 
 ---
+
+## Entry 73 — v2.6.2-pre7 — Fix Remove All count + clear SP entries on removal (2026-03-21)
+
+### Files changed
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$5.smali`
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
+
+### Methods changed
+- `ComponentDownloadActivity$5.run()` — added `"url_for:"+dirName → mDownloadUrl` SP write before `apply()`. Enables reverse lookup of the download URL by dir name for removal cleanup. `.locals` stays at 12; uses existing v6/v7 (freed after scan loop).
+- `ComponentManagerActivity.confirmRemoveAll()` — `.locals 5→7`; added counting loop before the dialog build that iterates `components[]` and counts only dirs where `new File(dir, ".bh_injected").exists()` is true. Dialog message now shows the BannerHub-managed count instead of all installed components.
+- `ComponentManagerActivity.removeComponent()` — `.locals 6→10`; after `deleteDir`, reads SP "banners_sources", looks up `"url_for:"+dirName`, if non-null opens an editor and removes 4 keys: `dirName`, `dirName+":type"`, `"dl:"+url`, `"url_for:"+dirName`. Clears the ✓ downloaded indicator in the repo list when a component is removed.
+- `ComponentManagerActivity.removeAllComponents()` — `.locals 8→12`; gets SP before loop (v8); inside loop per `.bh_injected` component, does same 4-key SP cleanup using v9 (editor), v10 (url), v11 (key temp). Each component's editor is opened fresh and `apply()`d immediately.
+
+### Root-cause / design
+- Bug A: `confirmRemoveAll` previously used raw `array-length` on `components[]` which includes all GameHub-installed components, not just BannerHub-injected ones. Fix: count `.bh_injected` marker files.
+- Bug B: On removal, the `"dl:"+url → "1"` SP key was never cleared, so the ✓ icon persisted in the online repo download list. Fix: `$5` writes a reverse key `"url_for:"+dirName` at injection time; removal methods read it to get the URL, then delete all 4 related SP entries.
+
+### CI result
+→ run 23380984014 — queued
 
 ## Entry 72 — v2.7.8-pre — Fix header centering: root switched to RelativeLayout (2026-03-21)
 

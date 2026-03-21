@@ -4,6 +4,43 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta1 — GOG tab Phase 1 (gog-beta branch) (2026-03-21)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta1
+**What changed:** Added GOG tab next to "My Games" in the main tab bar. Tapping GOG opens a Fragment showing a "Login with GOG" button. Login opens a WebView-based OAuth2 flow (auth.gog.com), intercepts the redirect, exchanges the code for a token, fetches the username from userData.json, and stores the session. Fragment refreshes on resume — shows "Signed in as [username]" + "Sign Out" when authenticated.
+**New files:** `BhGogTabCallback`, `GogFragment` (+$1 login, +$2 sign-out), `GogLoginActivity` (+$1 WebViewClient, +$2 TokenExchange, +$3 Finish, +$4 ErrorToast)
+**Patched:** `LandscapeLauncherMainActivity` (both tab branches), `AndroidManifest.xml` (GogLoginActivity registered)
+**CI result:** pending
+
+---
+
+## [ci] — Dynamic APK filenames (2026-03-21)
+**Commit:** `f238e3a`
+**What changed:** All 3 CI workflows now produce `BannerHub-<tag>-<variant>.apk` instead of hardcoded `Bannerhub-5.3.5-Revanced-*.apk`. Matrix `apk:` field replaced with `variant:` (Normal/PuBG/AnTuTu/alt-AnTuTu/PuBG-CrossFire/Ludashi/Genshin/Original). Filename built from `${{ github.ref_name }}` + variant at sign time.
+**Files touched:** `.github/workflows/build.yml`, `.github/workflows/build-quick.yml`, `.github/workflows/build-crossfire.yml`
+
+---
+
+## [stable] — v2.6.3 — Stable release (2026-03-21)
+**Commit:** `18b36ed` (code) / `9dda08f` (README)  |  **Tag:** v2.6.3
+**What changed:** Stable release of v2.6.2-pre3 through v2.6.2-pre7 line. New since v2.6.1: Component Manager UI rebuilt as card-based RecyclerView (search, swipe, source/type badges, count badge, empty state, auto-refresh); ✓ downloaded indicator in online repo lists (clears on removal); Remove All counts only BannerHub-managed components; compact cards (~20% smaller).
+**CI result:** ✅ run 23381119419 — 8 APKs built successfully
+
+---
+
+## [pre] — v2.6.2-pre7 — Fix Remove All count + clear SP on component removal (2026-03-21)
+**Commit:** `18b36ed`  |  **Tag:** v2.6.2-pre7  |  **CI:** run 23380984014 (queued)
+**What changed:** Bug A: `confirmRemoveAll()` now counts only `.bh_injected` components for the dialog message. Bug B: `$5.run()` writes a reverse key `"url_for:"+dirName → url` at injection time. `removeComponent()` and `removeAllComponents()` read this reverse key on removal to clear all 4 SP entries (`dirName`, `dirName:type`, `dl:url`, `url_for:dirName`) — clears the ✓ downloaded indicator in the online repo list.
+**Files touched:** `ComponentDownloadActivity$5.smali` [ADD url_for reverse key write]; `ComponentManagerActivity.smali` [FIX confirmRemoveAll count; ADD SP cleanup in removeComponent + removeAllComponents]
+
+---
+
+## [pre] — v2.6.2-pre6 — Shrink component cards ~20% (2026-03-21)
+**Commit:** `af5a813`  |  **Tag:** v2.6.2-pre6  |  **CI:** ✅ run 23380774414
+**What changed:** All dp values and text sizes in BhComponentAdapter.onCreateViewHolder scaled to ~80%. dp precomputations: 4→3, 8→6, 12→10, 36→29. Badge padding: 6→5dp. Text sizes: 15→12sp, 11→9sp, 20→16sp. No layout or logic changes.
+**Files touched:** `BhComponentAdapter.smali` [SCALE dp + sp constants in onCreateViewHolder]
+
+---
+
 ## [pre] — v2.6.2-pre5 — Fix source badge + refresh + type badge for Arihany items (2026-03-21)
 **Commit:** `26f5af5`  |  **Tag:** v2.6.2-pre5a  |  **CI:** ✅ run 23380498933
 **What changed:** Four fixes: (1) Bug #1: Added onResume() to ComponentManagerActivity → list now refreshes immediately when returning from ComponentDownloadActivity. (2) Bug #2a: setMaxLines(1) changed to setMaxLines(2) on nameText in onCreateViewHolder → source badge (appended as \n+repo) is now visible. (3) Bug #2b: $5 now scans components dir post-injection using System.currentTimeMillis() timestamp to find newly created dir → correct SP key regardless of filename format; falls back to filename-based key if scan finds nothing. (4) Type badge fix: $5 writes dirName+":type" → type string (FEXCore/Box64/VKD3D/GPU/DXVK); adapter reads SP type override before keyword detection → Arihany FEXCore/DXVK show correct badge. (5) Double-extension bug fixed in onItemClick: endsWith check prevents appending ".wcp" if filename already ends in ".wcp".
