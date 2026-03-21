@@ -66,7 +66,7 @@ beta1 and beta2 failed with `Unsigned short value out of range: 65536` from dexl
 - `HomeLeftMenuDialog.o1()` — packed-switch extended from 10 to 11 entries (0x0–0xa)
 
 ### CI result
-pending
+✅ run 23384471808 — Normal APK built in 3m43s
 
 ---
 

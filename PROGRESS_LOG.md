@@ -11,7 +11,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 **Removed:** `BhGogTabCallback`, `GogFragment` (+$1 +$2) — no longer needed
 **Patched:** `HomeLeftMenuDialog` (id=10 menu item + pswitch_10 → start GogMainActivity), `AndroidManifest.xml` (+GogMainActivity)
 **Reverted:** `LandscapeLauncherMainActivity` — GOG tab injection removed (classes11 overflow risk)
-**CI result:** pending
+**CI result:** ✅ run 23384471808 — Normal APK built successfully
 
 ---
 
