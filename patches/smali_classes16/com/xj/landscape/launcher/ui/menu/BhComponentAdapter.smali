@@ -247,9 +247,9 @@
 
 # ── onCreateViewHolder: build card view programmatically ──────────────────────
 .method public onCreateViewHolder(Landroid/view/ViewGroup;I)Landroidx/recyclerview/widget/RecyclerView$ViewHolder;
-    .locals 13
-    # p0=v13(adapter/this)  p1=v14(parent ViewGroup)  p2=v15(viewType int)
-    # All params v13-v15 are in range. Locals: v0-v12.
+    .locals 14
+    # p0=v14(adapter/this)  p1=v15(parent ViewGroup)  p2=v16(viewType int)
+    # All params v14-v16 are in range. Locals: v0-v13.
     #
     # Stable refs kept alive until ViewHolder constructor:
     #   v7 = card LinearLayout (itemView)
@@ -298,6 +298,12 @@
     invoke-virtual {v12, v2}, Landroid/graphics/drawable/GradientDrawable;->setColor(I)V
     int-to-float v2, v4    # 8dp as float for corner radius
     invoke-virtual {v12, v2}, Landroid/graphics/drawable/GradientDrawable;->setCornerRadius(F)V
+    # thin outline: 1dp stroke, subtle lighter border
+    const/4 v2, 0x1
+    invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
+    move-result v2
+    const v13, 0xFF2E2E45
+    invoke-virtual {v12, v2, v13}, Landroid/graphics/drawable/GradientDrawable;->setStroke(II)V
     invoke-virtual {v7, v12}, Landroid/view/View;->setBackground(Landroid/graphics/drawable/Drawable;)V
 
     # Card padding: 12dp all sides

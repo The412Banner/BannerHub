@@ -174,6 +174,16 @@
     invoke-virtual {v3, v4}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
     invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
+    # weight=0.5 flex spacer to shift buttons toward center-right
+    new-instance v3, Landroid/view/View;
+    invoke-direct {v3, p0}, Landroid/view/View;-><init>(Landroid/content/Context;)V
+    new-instance v4, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v5, 0x0
+    const/4 v6, -0x2
+    const/high16 v7, 0x3f000000
+    invoke-direct {v4, v5, v6, v7}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
+    invoke-virtual {v2, v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
     # "✕ All" button (remove all)
     new-instance v3, Landroid/widget/TextView;
     invoke-direct {v3, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
