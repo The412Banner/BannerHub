@@ -119,9 +119,10 @@
     float-to-int v14, v14
     invoke-virtual {v7, v14, v14, v14, v14}, Landroid/widget/LinearLayout;->setPadding(IIII)V
 
-    # Make card clickable (required for onClick ripple)
+    # Make card clickable + focusable (focusable enables D-pad/controller navigation)
     const/4 v14, 0x1
     invoke-virtual {v7, v14}, Landroid/view/View;->setClickable(Z)V
+    invoke-virtual {v7, v14}, Landroid/view/View;->setFocusable(Z)V
 
     # Touch ripple foreground (selectableItemBackground resolved from theme)
     # Guard: resolveAttribute may return resourceId=0 on some themes/ROMs
