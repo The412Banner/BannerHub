@@ -296,6 +296,16 @@
 
     :loop_done
 
+    # Establish initial focus on first card so D-pad/controller navigation can start.
+    # ScrollView.arrowScroll() only moves focus if findFocus() is non-null —
+    # without this, the first D-pad press has no anchor and just scrolls.
+    const/4 v5, 0x0
+    invoke-virtual {v4, v5}, Landroid/widget/LinearLayout;->getChildAt(I)Landroid/view/View;
+    move-result-object v5
+    if-eqz v5, :focus_done
+    invoke-virtual {v5}, Landroid/view/View;->requestFocus()Z
+    :focus_done
+
     # Hide statusView, show scrollView
     iget-object v5, v0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;->statusView:Landroid/widget/TextView;
     if-eqz v5, :show_scroll
