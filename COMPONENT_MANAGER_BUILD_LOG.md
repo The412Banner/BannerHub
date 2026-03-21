@@ -2453,3 +2453,19 @@ Same root cause as Entry 67: `GradientDrawable.setStroke(II)V` in `onCreateViewH
 
 ### CI result
 → ✅ run 23369636270 — Normal APK built
+
+---
+
+## Entry 72 — v2.7.8-pre — Fix header centering: root switched to RelativeLayout (2026-03-21)
+
+### Files changed
+- `patches/smali_classes16/.../ComponentManagerActivity.smali`
+
+### Methods changed
+- `ComponentManagerActivity.buildUI()` — replaced root `LinearLayout` + `weight=1` pattern with `RelativeLayout`. Header gets `setId(1)` + `addRule(ALIGN_PARENT_TOP, TRUE)` + `LayoutParams(MATCH_PARENT, WRAP_CONTENT)`. Content gets `LayoutParams(MATCH_PARENT, MATCH_PARENT)` + `addRule(BELOW, 1)` + `addRule(ALIGN_PARENT_BOTTOM, TRUE)`. `.locals` stays at 6.
+
+### Root-cause / design
+LinearLayout weight=1 (height=0dp child) requires EXACTLY MeasureSpec on the weight axis from the parent. AppCompat's ContentFrameLayout (subDecor content area) may provide AT_MOST instead. When AT_MOST is received, LinearLayout skips weight distribution entirely, and the weight=1 child stays at 0dp. Root LinearLayout ends up WRAP_CONTENT height = header height only. AppCompat then places this narrow root at the vertical center of the window. Two prior fixes (removing setFitsSystemWindows, explicit MATCH_PARENT LayoutParams) did not resolve it, indicating the MeasureSpec issue is in AppCompat internals. RelativeLayout constraint geometry bypasses MeasureSpec entirely.
+
+### CI result
+→ ✅ run 67991306650 — Normal APK built

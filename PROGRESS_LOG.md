@@ -4,6 +4,13 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.8-pre — Fix header centering: switch root to RelativeLayout (2026-03-21)
+**Commit:** `473955a`  |  **Tag:** v2.7.8-pre  |  **CI:** ✅ run 67991306650
+**What changed:** Root layout changed from LinearLayout (weight=1 pattern) to RelativeLayout. LinearLayout weight distribution requires an EXACTLY MeasureSpec from the AppCompat subDecor; if AT_MOST is provided, the weight=1 content FrameLayout collapses to 0px and AppCompat centers the wrapper at the vertical middle of the window. RelativeLayout uses constraint-based geometry: header gets ALIGN_PARENT_TOP + setId(1), content gets BELOW(1) + ALIGN_PARENT_BOTTOM + MATCH_PARENT×MATCH_PARENT. No MeasureSpec dependency.
+**Files touched:** `patches/smali_classes16/.../ComponentManagerActivity.smali` [MOD — buildUI() switched from LinearLayout to RelativeLayout root]
+
+---
+
 ## [pre] — v2.7.7-pre — Fix header stuck at vertical center of screen (2026-03-21)
 **Commit:** `6266731`  |  **Tag:** v2.7.7-pre  |  **CI:** ✅ run 23369636270
 **What changed:** buildUI() layout fix. Removed setFitsSystemWindows(true) from root LinearLayout — was interfering with AppCompat subDecor's insets handling, offsetting the view to center. Changed setContentView(View) → setContentView(View, ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)) to guarantee root fills window regardless of MeasureSpec from subDecor.
