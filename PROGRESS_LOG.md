@@ -8,7 +8,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta9
 **What changed:** Login confirmed working (beta8). Implemented GOG Games tab next to "My Games". New `GogGamesFragment` (Fragment subclass) fetches `embed.gog.com/account/getFilteredProducts?mediaType=1&sortBy=title` on background thread using stored access_token, parses all `"title":"…"` entries, and populates a ScrollView list on the main thread. If not logged in shows "Sign in via the GOG option in the side menu". Tab injected via `TabItemData.<init>(ILjava/lang/String;Function0)V` with title "GOG Games" after the "My Games" add in `LandscapeLauncherMainActivity.initView()`.
 **Files touched:** `GogGamesFragment.smali`, `GogGamesFragment$TabFactory.smali`, `GogGamesFragment$1.smali`, `GogGamesFragment$2.smali`, `LandscapeLauncherMainActivity.smali`
-**CI result:** ❌ run 23386175453 — DEX overflow: classes11 method pool at 65535 limit; 2 new method refs pushed it to 65537. Fix: use `Class.forName().newInstance()` (already in pool) for factory; use existing resource-based `TabItemData.<init>(IIFunction0;IDefaultConstructorMarker;)V` (already in pool); add `bh_gog_games_tab` string resource (0x7f130e94) so no string literal in classes11 code. Net new method_ids = 0.
+**CI result:** ✅ run 23386451735 — Normal APK built successfully (3m32s). (First attempt run 23386175453 failed with DEX overflow in classes11; fixed using reflection.)
 
 ---
 
