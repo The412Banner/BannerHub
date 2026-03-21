@@ -129,7 +129,7 @@
 
 # ── run: fetch userData.json, save tokens to SP, finish activity ──────────────
 .method public run()V
-    .locals 8
+    .locals 12
 
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogLoginActivity$2;->a:Lcom/xj/landscape/launcher/ui/menu/GogLoginActivity;
 
@@ -234,6 +234,22 @@
 
     invoke-interface {v5, v7, v6}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
 
+    move-result-object v5
+
+    # ── Store loginTime = System.currentTimeMillis() / 1000 ───────────────────
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+    move-result-wide v8   # v8+v9 = millis (long)
+    const-wide/16 v10, 0x3E8  # v10+v11 = 1000L
+    div-long v8, v8, v10  # v8+v9 = seconds since epoch
+    long-to-int v8, v8    # v8 = int seconds (valid until 2038)
+    const-string v9, "bh_gog_login_time"
+    invoke-interface {v5, v9, v8}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
+    move-result-object v5
+
+    # ── Store expires_in = 3600 (GOG access tokens are always 1 hour) ─────────
+    const/16 v8, 0xE10  # 3600
+    const-string v9, "bh_gog_expires_in"
+    invoke-interface {v5, v9, v8}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
     move-result-object v5
 
     invoke-interface {v5}, Landroid/content/SharedPreferences$Editor;->apply()V

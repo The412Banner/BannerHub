@@ -19,7 +19,7 @@
 # ── static String refresh(Context ctx) ───────────────────────────────────────
 # Returns new access_token string on success, null on any failure.
 .method public static refresh(Landroid/content/Context;)Ljava/lang/String;
-    .locals 11
+    .locals 13
 
     # v0–v10 used; p0 = context
 
@@ -140,6 +140,22 @@
     move-result-object v4
 
     :skip_refresh_save
+
+    # ── Store loginTime = System.currentTimeMillis() / 1000 ───────────────────
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+    move-result-wide v5   # v5+v6 = millis (long)
+    const-wide/16 v9, 0x3E8  # v9+v10 = 1000L
+    div-long v5, v5, v9   # v5+v6 = seconds since epoch
+    long-to-int v5, v5    # v5 = int seconds (valid until 2038)
+    const-string v6, "bh_gog_login_time"
+    invoke-interface {v4, v6, v5}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
+    move-result-object v4
+
+    # ── Store expires_in = 3600 (GOG access tokens are always 1 hour) ─────────
+    const/16 v5, 0xE10  # 3600
+    const-string v6, "bh_gog_expires_in"
+    invoke-interface {v4, v6, v5}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
+    move-result-object v4
 
     invoke-interface {v4}, Landroid/content/SharedPreferences$Editor;->apply()V
 
