@@ -1182,9 +1182,9 @@
 
     # ── Per-file progress "Downloading files... X%" ───────────────────────────
     # pct = v9 * 40 / v10 + 45  (maps 0→45% .. total→85%)
-    mul-int v13, v9, 0x28               # v13 = v9 * 40
-    div-int v13, v13, v10               # v13 = (v9*40)/v10
-    add-int/lit8 v13, v13, 0x2D        # v13 = pct (45..85)
+    mul-int/lit8 v13, v9, 0x28          # v13 = v9 * 40
+    div-int v13, v13, v10              # v13 = (v9*40)/v10
+    add-int/lit8 v13, v13, 0x2D       # v13 = pct (45..85)
 
     new-instance v14, Ljava/lang/StringBuilder;
     invoke-direct {v14}, Ljava/lang/StringBuilder;-><init>()V
