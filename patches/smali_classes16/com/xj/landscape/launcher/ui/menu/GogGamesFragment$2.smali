@@ -248,30 +248,35 @@
     invoke-virtual {v9, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     # ── Installed checkmark ("✓ Installed", green 10sp) ─────────────────────────
-    # Always created; saved in v16 (persistent) so $6 can flip it VISIBLE on install.
-    # Starts GONE; set VISIBLE immediately if gog_exe_ pref is already populated.
-    new-instance v16, Landroid/widget/TextView;
-    invoke-direct {v16, v3}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const-string v13, "✓ Installed"
-    invoke-virtual {v16, v13}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-    const v13, 0xFF4CAF50
-    invoke-virtual {v16, v13}, Landroid/widget/TextView;->setTextColor(I)V
-    const/high16 v13, 0x41200000  # 10.0f sp
-    invoke-virtual {v16, v13}, Landroid/widget/TextView;->setTextSize(F)V
+    # Always created in v13 (4-bit); persisted in v16 via move-object/from16
+    # (8-bit dest is valid). v16 is then passed to $6 via range {v10..v16}.
+    new-instance v13, Landroid/widget/TextView;
+    invoke-direct {v13, v3}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+    const-string v15, "✓ Installed"
+    invoke-virtual {v13, v15}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    const v15, 0xFF4CAF50
+    invoke-virtual {v13, v15}, Landroid/widget/TextView;->setTextColor(I)V
+    const/high16 v15, 0x41200000  # 10.0f sp
+    invoke-virtual {v13, v15}, Landroid/widget/TextView;->setTextSize(F)V
 
-    # Default GONE; check pref to decide initial visibility
-    const/16 v13, 0x8  # GONE
-    invoke-virtual {v16, v13}, Landroid/view/View;->setVisibility(I)V
+    # Persist ref in v16 (move-object/from16: 8-bit dest v16, 16-bit src v13)
+    move-object/from16 v16, v13
 
-    iget-object v13, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
-    if-eqz v13, :ck_add_view  # no gameId → stays GONE
+    # Default GONE (v13 still = checkmark)
+    const/16 v15, 0x8
+    invoke-virtual {v13, v15}, Landroid/view/View;->setVisibility(I)V
+    invoke-virtual {v9, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    new-instance v14, Ljava/lang/StringBuilder;
-    invoke-direct {v14}, Ljava/lang/StringBuilder;-><init>()V
+    # Check if already installed → flip to VISIBLE
+    iget-object v14, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
+    if-eqz v14, :ck_done  # no gameId → stays GONE
+
+    new-instance v13, Ljava/lang/StringBuilder;
+    invoke-direct {v13}, Ljava/lang/StringBuilder;-><init>()V
     const-string v15, "gog_exe_"
-    invoke-virtual {v14, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v14, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v14}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    invoke-virtual {v13, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v13, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v13}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v14  # "gog_exe_{gameId}"
 
     const-string v15, "bh_gog_prefs"
@@ -281,18 +286,16 @@
 
     const-string v13, ""
     invoke-interface {v15, v14, v13}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v13
+    move-result-object v13  # pref value
 
     invoke-virtual {v13}, Ljava/lang/String;->isEmpty()Z
     move-result v13
-    if-nez v13, :ck_add_view  # empty = not installed → stays GONE
+    if-nez v13, :ck_done  # empty = not installed → stays GONE
 
-    # Already installed → show VISIBLE immediately
-    const/4 v13, 0x0  # VISIBLE
-    invoke-virtual {v16, v13}, Landroid/view/View;->setVisibility(I)V
-
-    :ck_add_view
-    invoke-virtual {v9, v16}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+    # Already installed → reload checkmark and set VISIBLE
+    move-object/from16 v13, v16  # v13 = checkmark ref (from v16)
+    const/4 v15, 0x0  # VISIBLE
+    invoke-virtual {v13, v15}, Landroid/view/View;->setVisibility(I)V
 
     :ck_done
 
