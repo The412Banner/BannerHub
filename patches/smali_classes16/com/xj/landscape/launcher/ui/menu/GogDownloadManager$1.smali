@@ -1179,6 +1179,25 @@
     invoke-direct {p0, v13, v5, v11, v12}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->assembleFile(Lorg/json/JSONObject;Ljava/io/File;Ljava/lang/String;Ljava/io/File;)V
 
     add-int/lit8 v9, v9, 0x1
+
+    # ── Per-file progress "Downloading files... X%" ───────────────────────────
+    # pct = v9 * 40 / v10 + 45  (maps 0→45% .. total→85%)
+    mul-int v13, v9, 0x28               # v13 = v9 * 40
+    div-int v13, v13, v10               # v13 = (v9*40)/v10
+    add-int/lit8 v13, v13, 0x2D        # v13 = pct (45..85)
+
+    new-instance v14, Ljava/lang/StringBuilder;
+    invoke-direct {v14}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v3, "Downloading files... "
+    invoke-virtual {v14, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v14, v13}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v3, "%"
+    invoke-virtual {v14, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v14}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v14              # v14 = "Downloading files... X%"
+
+    invoke-direct {p0, v13, v14}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
     goto :file_loop
     :file_loop_done
 
