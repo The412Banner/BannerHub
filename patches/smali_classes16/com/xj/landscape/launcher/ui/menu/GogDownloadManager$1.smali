@@ -1031,6 +1031,58 @@
     goto :depot_loop
     :depot_loop_done
 
+    # ── Exe fallback: if temp_executable absent, scan depot files for first .exe ──
+    iget-object v9, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->c:Ljava/lang/String;
+    if-nez v9, :exe_scan_done
+
+    const/4 v9, 0x0
+    invoke-virtual {v8}, Ljava/util/ArrayList;->size()I
+    move-result v10
+
+    :exe_scan_loop
+    if-ge v9, v10, :exe_scan_done
+
+    invoke-virtual {v8, v9}, Ljava/util/ArrayList;->get(I)Ljava/lang/Object;
+    move-result-object v11
+    check-cast v11, Lorg/json/JSONObject;
+    const-string v12, "path"
+    invoke-virtual {v11, v12}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v12
+    if-eqz v12, :exe_scan_next
+    invoke-virtual {v12}, Ljava/lang/String;->isEmpty()Z
+    move-result v13
+    if-nez v13, :exe_scan_next
+
+    # Case-insensitive: lowercase copy for checks
+    invoke-virtual {v12}, Ljava/lang/String;->toLowerCase()Ljava/lang/String;
+    move-result-object v13
+
+    # Must end with .exe
+    const-string v14, ".exe"
+    invoke-virtual {v13, v14}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+    move-result v14
+    if-eqz v14, :exe_scan_next
+
+    # Skip redistributable paths
+    const-string v14, "redist"
+    invoke-virtual {v13, v14}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    move-result v14
+    if-nez v14, :exe_scan_next
+
+    # Normalize backslashes and store as field c (relative path to exe)
+    const-string v13, "\\"
+    const-string v14, "/"
+    invoke-virtual {v12, v13, v14}, Ljava/lang/String;->replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+    move-result-object v12
+    iput-object v12, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->c:Ljava/lang/String;
+    goto :exe_scan_done
+
+    :exe_scan_next
+    add-int/lit8 v9, v9, 0x1
+    goto :exe_scan_loop
+
+    :exe_scan_done
+
     invoke-virtual {v8}, Ljava/util/ArrayList;->size()I
     move-result v9
     if-lez v9, :err_no_files
