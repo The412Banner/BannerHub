@@ -670,7 +670,7 @@
     invoke-virtual {v7}, Ljava/io/File;->length()J
     move-result-wide v9   # v9:v10 = file length (both free here)
     const-wide/16 v11, 0x0  # v11:v12 = 0L (both free here)
-    cmpg-long v0, v9, v11  # v0 = (length > 0) ? positive : non-positive
+    cmp-long v0, v9, v11  # v0 = (length > 0) ? positive : non-positive
     if-gtz v0, :af_cached
 
     :af_download
