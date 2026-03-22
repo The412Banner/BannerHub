@@ -92,8 +92,8 @@
     const/4 v13, 0x0    # gameVideoUrl = null
     const/4 v14, 0x0    # disableImageQualityPlugin = false
     const/4 v15, 0x0    # redmagicBinder = null
-    const/4 v16, 0x0    # seamlessTransition = false
-    const/4 v17, 0x0    # isUseSteamAppIdForScript = false
+    const/16 v16, 0x0   # seamlessTransition = false
+    const/16 v17, 0x0   # isUseSteamAppIdForScript = false
 
     invoke-direct/range {v1 .. v17}, Lcom/xj/winemu/api/bean/WineActivityData;-><init>(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IZZLjava/lang/String;Ljava/lang/String;ZLjava/lang/String;ZLjava/lang/String;ZLandroid/os/IBinder;ZZ)V
 
