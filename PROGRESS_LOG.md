@@ -1767,3 +1767,14 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `GogGamesFragment$7.smali`: changed `const/4 v16/v17, 0x0` → `const/16 v16/v17, 0x0`; const/4 only supports v0-v15 (4-bit register field)
 #### Files touched
 - `patches/smali_classes16/.../GogGamesFragment$7.smali`
+
+### [pre] — v2.7.0-beta38 — GOG: always show Install+Launch buttons; toast when no exe path (2026-03-21)
+**Commit:** pending  |  **Tag:** v2.7.0-beta38
+#### What changed
+- `GogGamesFragment$3.smali`: removed conditional SP check; always shows both Install (setNegativeButton) and Launch (setNeutralButton) — dialog now has [Launch] [Install] [Close]
+- `GogGamesFragment$7.smali`: if gog_exe_ SP key empty, shows Toast "Reinstall game to enable launch" instead of silently doing nothing
+- `GogDownloadManager$1.smali`: SP write now always runs (no early exit on missing exe); always writes gog_dir_{gameId}=installDir.getName(); only writes gog_exe_{gameId} if temp_executable was in manifest
+#### Files touched
+- `patches/smali_classes16/.../GogGamesFragment$3.smali`
+- `patches/smali_classes16/.../GogGamesFragment$7.smali`
+- `patches/smali_classes16/.../GogDownloadManager$1.smali`

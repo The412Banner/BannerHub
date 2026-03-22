@@ -1102,9 +1102,7 @@
     .catch Ljava/lang/Exception; {:try_mf_start .. :try_mf_end} :mf_skip
     :mf_skip
 
-    # Save full exe path to bh_gog_prefs as "gog_exe_{gameId}" for launch
-    iget-object v13, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->c:Ljava/lang/String;
-    if-eqz v13, :sp_skip
+    # Save install data to bh_gog_prefs (always runs after successful install)
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
     iget-object v14, v0, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
@@ -1114,6 +1112,22 @@
     move-result-object v3
     invoke-virtual {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
     move-result-object v3
+
+    # Always write gog_dir_{gameId} = installDir name (e.g. "CyberpunkRedMod")
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v6, "gog_dir_"
+    invoke-virtual {v4, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v4
+    invoke-virtual {v5}, Ljava/io/File;->getName()Ljava/lang/String;
+    move-result-object v6
+    invoke-interface {v3, v4, v6}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    # Write gog_exe_{gameId} only if temp_executable was found in manifest
+    iget-object v13, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->c:Ljava/lang/String;
+    if-eqz v13, :sp_apply
     new-instance v4, Ljava/lang/StringBuilder;
     invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
     const-string v6, "gog_exe_"
@@ -1136,8 +1150,8 @@
     invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v6
     invoke-interface {v3, v4, v6}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+    :sp_apply
     invoke-interface {v3}, Landroid/content/SharedPreferences$Editor;->apply()V
-    :sp_skip
 
     # Delete chunk cache dir
     invoke-direct {p0, v12}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->deleteDir(Ljava/io/File;)V

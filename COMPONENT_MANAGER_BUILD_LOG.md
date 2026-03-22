@@ -3282,3 +3282,15 @@ GameHub launches PC games via PcGameSetupActivity, passing a WineActivityData Pa
 
 ### CI result
 → ✅ run completed — Normal APK built successfully
+
+### 401 — v2.7.0-beta38 — GOG: always show Install+Launch; toast on missing exe path (2026-03-21)
+**Files changed:**
+- `GogGamesFragment$3.smali`: removed SP-based conditional; always adds Install (setNegativeButton) + Launch (setNeutralButton) → dialog shows [Launch][Install][Close]
+- `GogGamesFragment$7.smali`: empty gog_exe_ → Toast "Reinstall game to enable launch" + return (was silent bail)
+- `GogDownloadManager$1.smali`: SP write always runs; always writes gog_dir_{gameId}=File.getName() (install dir name); conditionally writes gog_exe_ if field c is set; apply() moved to :sp_apply label
+
+### Root-cause / design
+The SP write had `if-eqz v13, :sp_skip` so if temp_executable was absent from the manifest, nothing was written and Launch button never appeared. Fix: always show both buttons; show informative toast if exe unknown. gog_dir_ stored unconditionally so reinstall data is always captured.
+
+### CI result
+→ pending

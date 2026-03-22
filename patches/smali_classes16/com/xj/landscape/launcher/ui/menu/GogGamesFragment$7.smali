@@ -60,10 +60,17 @@
     invoke-interface {v4, v5, v6}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     move-result-object v4  # raw exe path
 
-    # Bail if no exe path stored
+    # If no exe path stored, toast and bail
     invoke-virtual {v4}, Ljava/lang/String;->isEmpty()Z
     move-result v5
-    if-nez v5, :launch_done
+    if-eqz v5, :exe_ready
+    const-string v5, "Reinstall game to enable launch"
+    const/4 v6, 0x0
+    invoke-static {v0, v5, v6}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+    move-result-object v5
+    invoke-virtual {v5}, Landroid/widget/Toast;->show()V
+    goto :launch_done
+    :exe_ready
 
     # Normalize: replace backslashes with forward slashes
     const-string v5, "\\"

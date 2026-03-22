@@ -248,38 +248,18 @@
     const/4 v10, 0x0
     invoke-virtual {v6, v9, v10}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
 
-    # Check if game is already installed — read gog_exe_{gameId} from bh_gog_prefs
-    const-string v3, "bh_gog_prefs"
-    const/4 v4, 0x0
-    invoke-virtual {v0, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-    move-result-object v3
-    iget-object v4, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
-    new-instance v5, Ljava/lang/StringBuilder;
-    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v7, "gog_exe_"
-    invoke-virtual {v5, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v4
-    const-string v5, ""
-    invoke-interface {v3, v4, v5}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v3
-    invoke-virtual {v3}, Ljava/lang/String;->isEmpty()Z
-    move-result v3
-    if-nez v3, :show_install_btn
-    # Already installed → Launch button
-    new-instance v9, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;
-    invoke-direct {v9, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;)V
-    const-string v10, "Launch"
-    invoke-virtual {v6, v10, v9}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
-    goto :show_dialog
-    :show_install_btn
-    # Not installed → Install button
+    # Install button (always shown — negative = left)
     new-instance v9, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
     invoke-direct {v9, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;)V
     const-string v10, "Install"
     invoke-virtual {v6, v10, v9}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
-    :show_dialog
+
+    # Launch button (always shown — neutral = far left)
+    new-instance v9, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;
+    invoke-direct {v9, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;)V
+    const-string v10, "Launch"
+    invoke-virtual {v6, v10, v9}, Landroid/app/AlertDialog$Builder;->setNeutralButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
     invoke-virtual {v6}, Landroid/app/AlertDialog$Builder;->show()Landroid/app/AlertDialog;
 
     :done
