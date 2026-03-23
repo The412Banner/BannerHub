@@ -4,6 +4,21 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-epic-beta20 — feat: paginate Epic library sync via stateToken cursor (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta20
+**Commit:** `158d1eb`
+**What changed:** `EpicMainActivity$1` now carries a `url` field (constructor updated to accept initial URL). After parsing each page, checks response for `"stateToken"` — if found, spawns a new `$1` thread with `base_url + "&cursor=" + stateToken`. "Sync done" only posted on final page. Fixes: only 7 of 14 games shown (first-page-only fetch).
+**Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`, `EpicMainActivity.smali`
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta19 — fix(epic): DLC filter — match object-open brace (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta19 (deleted, superseded by beta20)
+**Commit:** `1da2916`
+**What changed:** DLC detection switched to positive detection of `mainGameItem\":{` or `mainGameItem\" : {` (opening brace). Previous `":null"` matching caused false positives that hid base games.
+
+---
+
 ## [epic-beta] — v2.7.1-epic-beta17 — fix(epic): robust catalog title parse (2026-03-23)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta17
 **Commit:** `3f2ae9b`
