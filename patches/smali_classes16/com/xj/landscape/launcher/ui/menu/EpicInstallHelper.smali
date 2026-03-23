@@ -198,7 +198,7 @@
     if-ltz v0, :utf16
     # ASCII: len bytes (includes null terminator → read len, use len-1 chars)
     new-array v1, v0, [B
-    invoke-virtual {p0, v1}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/Buffer;
+    invoke-virtual {p0, v1}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/ByteBuffer;
     add-int/lit8 v2, v0, -0x1   # len - 1
     const/4 v3, 0x0
     const-string v4, "US-ASCII"
@@ -209,7 +209,7 @@
     neg-int v0, v0               # charCount (includes null)
     mul-int/lit8 v1, v0, 0x2     # byte count
     new-array v1, v1, [B
-    invoke-virtual {p0, v1}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/Buffer;
+    invoke-virtual {p0, v1}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/ByteBuffer;
     add-int/lit8 v2, v0, -0x1    # charCount - 1
     mul-int/lit8 v2, v2, 0x2     # byte count without null
     const/4 v3, 0x0
@@ -450,7 +450,7 @@
 
     # Seek to stored_as byte at offset 36 (skip SHA1: 20 bytes from pos 16)
     const/16 v5, 0x24   # 36
-    invoke-virtual {v0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {v0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
     invoke-virtual {v0}, Ljava/nio/ByteBuffer;->get()B
     move-result v5
     shl-int/lit8 v5, v5, 0x18
@@ -485,11 +485,11 @@
     :dir_done
 
     # Seek to body start (at headerSize)
-    invoke-virtual {v0, v2}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {v0, v2}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
 
     # Extract body bytes (sizeCompressed bytes)
     new-array v7, v3, [B
-    invoke-virtual {v0, v7}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/Buffer;
+    invoke-virtual {v0, v7}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/ByteBuffer;
 
     # Decompress if needed (storedAs & 1)
     and-int/lit8 v8, v5, 0x1
@@ -565,7 +565,7 @@
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->position()I
     move-result v0
     add-int v0, v0, v1
-    invoke-virtual {p0, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {p0, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
     :try_end
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :done
     :done
@@ -659,7 +659,7 @@
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->position()I
     move-result v6
     add-int v5, v5, v6
-    invoke-virtual {p0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {p0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
 
     # ── Read group numbers (columnar, uint8 each) ─────────────────────────
     const/4 v1, 0x0
@@ -679,14 +679,14 @@
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->position()I
     move-result v6
     add-int v5, v5, v6
-    invoke-virtual {p0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {p0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
 
     # ── Skip file sizes (columnar, int64 each) ────────────────────────────
     mul-int/lit8 v5, v0, 0x8
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->position()I
     move-result v6
     add-int v5, v5, v6
-    invoke-virtual {p0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {p0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
 
     const/4 v0, 0x1
     return v0
@@ -754,7 +754,7 @@
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->position()I
     move-result v13
     add-int/lit8 v13, v13, 0x15   # 20 + 1 = 21 (0x15)
-    invoke-virtual {p0, v13}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {p0, v13}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
 
     # Install tags array (count + FStrings, skip)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
@@ -945,7 +945,7 @@
     move-result v4
     # Seek to flags byte at offset 61
     const/16 v5, 0x3D   # 61
-    invoke-virtual {v1, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {v1, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->get()B
     move-result v2   # hash_type, ignore
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->get()B
@@ -953,11 +953,11 @@
     shl-int/lit8 v5, v5, 0x18
     ushr-int/lit8 v5, v5, 0x18   # zero-extend byte → flags (0-255)
     # Seek to data start (at headerSize) and extract
-    invoke-virtual {v1, v3}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
+    invoke-virtual {v1, v3}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->remaining()I
     move-result v6
     new-array v2, v6, [B
-    invoke-virtual {v1, v2}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/Buffer;
+    invoke-virtual {v1, v2}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/ByteBuffer;
     # Decompress if flags & 1
     and-int/lit8 v3, v5, 0x1
     if-eqz v3, :no_decomp
