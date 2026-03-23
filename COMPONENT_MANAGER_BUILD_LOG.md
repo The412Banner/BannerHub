@@ -3673,3 +3673,27 @@ v7 still holds val$appName at :err_api (set from iget before URL build, not over
 
 ### CI result
 → ✅ — Normal APK built successfully
+
+---
+
+### Entry #42 — v2.7.1-pre — fix: catalog API appName for manifest URL (2026-03-23)
+**Commit:** `88da0e6`  |  **Tag:** `v2.7.1-pre`  |  **CI:** ✅ 3m29s
+
+**Files touched:**
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$6.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`
+
+**Root-cause analysis:**
+The Epic library API (`library-service.live.use1a.on.epicgames.com`) returns UUID-format
+`appName` values (e.g. `2babe444d943...` for Samorost 3, `a922e114...` for Fortnite).
+The manifest URL (`launcher-public-service-prod06.ol.epicgames.com/.../app/{appName}/...`)
+requires human-readable artifact names (e.g. `"Samorost3Game"`, `"Fortnite"`).
+The catalog API (already fetched by `$6.fetchTitle`) returns the correct artifact `"appName"`.
+
+**Fix:**
+- `$6.smali`: Added `public static lastAppName:String`. Reset to `""` at start of
+  `fetchTitle()`. After DLC check passes, parse `"appName"` from catalog JSON and
+  `sput-object` into `lastAppName`.
+- `$1.smali`: After `:title_done`, `sget-object` `$6.lastAppName`; if non-empty,
+  `move-object v12, v9` to replace library UUID with catalog artifact appName before
+  it flows into `$2`→`$5`→`$9`→`$7` and ultimately the manifest URL.
