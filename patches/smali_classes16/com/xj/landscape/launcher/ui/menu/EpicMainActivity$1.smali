@@ -14,19 +14,23 @@
 #   v0  = this$0 (EpicMainActivity / Context) — preserved throughout
 #   v1  = EpicCredentials → later reused as $3 Runnable
 #   v2  = accessToken String
-#   v3  = temp strings / StringBuilder result
+#   v3  = temp strings / StringBuilder result / closing-quote marker
 #   v4  = HttpURLConnection
-#   v5  = InputStream / InputStreamReader (freed after read)
-#   v6  = InputStreamReader temp
+#   v5  = InputStream / temp
+#   v6  = InputStreamReader / temp
 #   v7  = BufferedReader
 #   v8  = response StringBuilder → JSON String
 #   v9  = line String (read loop)
-#  v10  = parse cursor (int pos)
-#  v11  = marker string  "\"appName\":\""
-#  v12  = indexOf / length result (int temp)
+#  v10  = parse cursor (int pos, reused as start pos)
+#  v11  = marker string "\"appName\":\""
+#  v12  = indexOf/length result (int temp, reused as end pos)
 #  v13  = extracted appName String
 #  v14  = boolean temp / $2 Runnable
 #  p0   = v15 = this (EpicMainActivity$1)
+#
+# Key idioms:
+#   indexOf returns -1 when not found → use if-ltz (< 0) instead of if-eq reg,-1
+#   add 1 literal → add-int/lit8 (format 22b, 8-bit literal)
 
 .field final synthetic this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
 
@@ -124,45 +128,50 @@
     move-result-object v8   # v8 = JSON response String
 
     # ── Parse "appName":"..." records ─────────────────────────────────────────
-    const/4 v10, 0x0                    # v10 = pos cursor (start at 0)
-    const-string v11, "\"appName\":\""  # v11 = search marker (length 11)
+    # v10 = pos cursor;  v11 = marker;  v12 = int temp;  v13 = appName String
+    # v14 = bool/runnable temp;  v3 = closing-quote string "\""
+    #
+    # indexOf returns -1 when not found → if-ltz detects this without a literal reg.
+    # add-int/lit8 adds a small integer literal (format 22b).
+
+    const/4 v10, 0x0
+    const-string v11, "\"appName\":\""
+    const-string v3, "\""
 
     :parse_loop
-    # Find next "appName":"
     invoke-virtual {v8, v11, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v10                  # v10 = idx of marker, or -1
-    if-eq v10, -1, :sync_done
+    move-result v10            # v10 = idx of "appName":" or -1
+    if-ltz v10, :sync_done     # not found → done
 
-    # Advance pos past the marker
+    # advance past marker to start of value
     invoke-virtual {v11}, Ljava/lang/String;->length()I
     move-result v12
-    add-int v10, v10, v12            # v10 = start of appName value
+    add-int v10, v10, v12      # v10 = start of appName value
 
-    # Find closing quote of appName value
-    const-string v3, "\""
+    # find closing quote
     invoke-virtual {v8, v3, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v12                  # v12 = end of appName value
-    if-eq v12, -1, :sync_done
+    move-result v12            # v12 = end of appName value, or -1
+    if-ltz v12, :sync_done     # no closing quote → done
 
-    # Extract appName
+    # extract appName
     invoke-virtual {v8, v10, v12}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v13           # v13 = appName String
+    move-result-object v13     # v13 = appName
 
-    # Advance pos past this record for next iteration
-    add-int v10, v12, 0x1
+    # advance cursor past this value
+    add-int/lit8 v10, v12, 0x1
 
-    # Skip if empty
+    # skip empty appName
     invoke-virtual {v13}, Ljava/lang/String;->isEmpty()Z
     move-result v14
     if-nez v14, :parse_loop
 
-    # Skip placeholder appName "1"
+    # skip placeholder "1"
     const-string v14, "1"
     invoke-virtual {v13, v14}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
     move-result v14
     if-nez v14, :parse_loop
 
-    # Post $2 to UI thread
+    # post $2 to UI thread
     new-instance v14, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
     invoke-direct {v14, v0, v13}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-virtual {v0, v14}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
