@@ -2044,3 +2044,99 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$3.smali` (new)
 - `patches/smali_classes5/com/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog.smali`
 - `patches/AndroidManifest.xml`
+
+### [fix] — epic-integration — Phase 2 CI fixes: if-ltz, add-int/lit8, const/high16 (2026-03-22)
+**Commits:** `6d8f74e` → `dfee0d3`  |  **Branch:** epic-integration
+#### What changed
+Three smali instruction bugs caught by apktool during Phase 2 CI builds:
+- **`6d8f74e`**: `$1` parse loop — `if-eq vX, -1` is invalid smali (no integer literal in if-eq); replaced with `if-ltz` since `indexOf` only returns -1 or ≥0. `add-int v10, v12, 0x1` also invalid (3-register form requires third operand as register); replaced with `add-int/lit8 v10, v12, 0x1` (format 22b, 8-bit literal)
+- **`dfee0d3`**: `const/high16 v, 0x4180` invalid — low 16 bits must be zero; smali requires full 32-bit float literal. Fixed `0x4180` → `0x41800000` (16.0f) and `0x41A0` → `0x41A00000` (20.0f)
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$2.smali`
+
+### [fix] — epic-integration — Runtime crash: no-arg constructor missing on EpicMainActivity (2026-03-22)
+**Commit:** `564f655`  |  **Branch:** epic-integration
+#### What changed
+- `InstantiationException: has no zero argument constructor` on first launch
+- Android instantiates Activities via zero-arg reflection (`Class.newInstance()`). Smali does not auto-generate a default constructor — must write `.method public constructor <init>()V` explicitly calling `invoke-direct {p0}, Landroid/app/Activity;-><init>()V`
+- Added no-arg constructors to `EpicMainActivity.smali`
+#### Root cause
+Smali is not a compiler — there is no implicit constructor generation. Every Activity needs an explicit `<init>()V` that chains to its super.
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity.smali`
+
+### [fix] — epic-integration — Runtime crash: VerifyError 0x4D — String.getBytes missing charset arg (2026-03-22)
+**Commit:** `7f5ebe0`  |  **Branch:** epic-integration
+#### What changed
+- `VerifyError: expected 1 argument registers, method signature has 2 or more` at offset 0x4D in `EpicTokenRefresh`
+- `invoke-virtual {v5}` for `String.getBytes(String)` was missing the charset register. Correct form: `invoke-virtual {v5, v6}` where v6 = `"UTF-8"` string
+- This was in the Basic auth header encoding path (`client_id:client_secret` → bytes → Base64)
+- The class was never loaded during the login flow (login uses authorization_code exchange, not token refresh), so the VerifyError was deferred until `EpicMainActivity$1` called `EpicTokenRefresh.refresh()`
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicTokenRefresh.smali`
+
+### [fix] — epic-integration — Runtime crash: VerifyError 0x80 — second getBytes also missing charset (2026-03-22)
+**Commit:** `c667d64`  |  **Branch:** epic-integration
+#### What changed
+- After 0x4D fix, a second `invoke-virtual {v2}` for `String.getBytes(String)` at offset 0x80 also had missing charset arg — this was the POST body encoding path
+- Fixed: `invoke-virtual {v2, v6}` where v6 = `"UTF-8"`
+- Confirmed by offset change in logcat: 0x4D (first fix done) → 0x80 (second occurrence)
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicTokenRefresh.smali`
+
+### [ci] — epic-integration — Base APK: LFS attempt, then switched to own repo release (2026-03-23)
+**Commits:** `24ef727` → `ddedc0e` → `fd184c6`  |  **Branch:** epic-integration
+#### What changed
+- **`24ef727`**: Removed `gh release download` from CI (cross-repo download required GITHUB_TOKEN with cross-repo read, unreliable). Committed base APK to repo via Git LFS (`git lfs track "base/*.apk"`). `.gitattributes` + `.gitignore` negation `!base/*.apk` after `*.apk` rule.
+- **`ddedc0e`**: CI failed — `actions/checkout@v4` does not pull LFS objects by default. Added `lfs: true` to checkout step. CI still failed — `ZipException: zip END header not found` (LFS pointer file, not the real APK).
+- **`fd184c6`**: Abandoned LFS entirely. Uploaded base APK (142 MB) as release asset to `The412Banner/bannerhub-testing` `base-apk` release via `gh release upload`. CI now does `gh release download base-apk --repo The412Banner/bannerhub-testing`. APK is not tracked in git. `.gitattributes` cleared, `.gitignore` reverted to `*.apk` only.
+#### Root cause
+GitHub rejects files >100 MB without LFS. LFS requires `lfs: true` in checkout AND a working Git LFS server. Simplest solution: store APK in its own GitHub release and download in CI with `gh release download`.
+#### Files touched
+- `.github/workflows/build-quick.yml`
+- `.gitattributes` (added then cleared)
+- `.gitignore`
+- `base/Gamehub-5.3.5-Revanced-Normal.apk` (added then removed from git tracking)
+
+### [fix] — epic-integration — Runtime crash: IllegalAccessError — private fields inaccessible to inner classes (2026-03-23)
+**Commit:** `57f0cff`  |  **Branch:** epic-integration
+#### What changed
+- `IllegalAccessError: Field 'EpicMainActivity.syncText' is inaccessible to class 'EpicMainActivity$3'`
+- In real Java, inner classes access private fields of the enclosing class through compiler-generated synthetic accessor methods. In manually-written smali, no synthetic accessors exist — Android's runtime enforces field access strictly.
+- Changed `gameList` and `syncText` fields from `private` to `public` in `EpicMainActivity.smali`
+#### Root cause
+Smali inner classes (`$1`, `$2`, `$3`) are separate `.class` files with no special relationship to the outer class at the bytecode level. They cannot access `private` fields directly. Must use `public` (or `package-private`, but `public` is simplest in smali).
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity.smali`
+
+### [ci] — epic-integration — Upload action replaced with gh CLI for rolling-retag support (2026-03-23)
+**Commit:** `427790e`  |  **Branch:** epic-integration
+#### What changed
+- `softprops/action-gh-release@v2` fails with `already_exists` when the same tag name is reused (rolling retag strategy: delete tag → retag HEAD → push)
+- Root cause: the action creates a draft release, uploads the APK (✅), then tries to "finalize" (publish) it — but a previously-published release with the same tag_name already exists from a prior CI run, causing `Validation Failed: already_exists`
+- Replaced the entire upload step with `gh release delete "$TAG" --yes 2>/dev/null || true` followed by `gh release create "$TAG" --prerelease "$APK"`. The delete-first approach ensures no stale release exists before creating a fresh one.
+#### Files touched
+- `.github/workflows/build-quick.yml`
+
+### [fix] — epic-integration — JSON parse: handle optional whitespace after colon in appName (2026-03-23)
+**Commit:** `3171d87`  |  **Branch:** epic-integration
+#### What changed
+- Epic's library API may return `"appName": "Fortnite"` (space after colon) rather than `"appName":"Fortnite"` (compact). The old marker `"appName":"` (including the opening quote) failed `indexOf` when a space was present, silently returning 0 games.
+- New approach: search for `"appName":` (without opening quote), then call `indexOf("\"", pos)` to find the opening quote (skipping any whitespace), advance past it, then call `indexOf("\"", pos)` again to find the closing quote. Two `indexOf` calls instead of one.
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`
+
+### [debug] — epic-integration — Add Log.d diagnostic points to library sync thread (2026-03-23)
+**Commit:** `1abbdd1`  |  **Branch:** epic-integration
+#### What changed
+- Library screen shows but no games appear — cannot determine failure point without logging
+- Added `android.util.Log.d("BH_EPIC", ...)` calls at:
+  - `"sync_start"` — confirms the background thread runs
+  - `"no_creds"` — `EpicTokenRefresh.refresh()` returned null (no stored credentials or refresh failed)
+  - `"no_token"` — credentials loaded but `accessToken` field is null
+  - HTTP response code as string (e.g. `"200"`, `"401"`) — via `Integer.toString(responseCode)`
+  - `"exception"` — at `:catch_all` handler
+- These tags will appear in logcat filtered by `BH_EPIC` to pinpoint the exact failure
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`
