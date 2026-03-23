@@ -191,10 +191,10 @@
     # lastIndexOf(String,int) searches backward from cursor — finds same-record field.
 
     const/4 v10, 0x0
-    const-string v11, "\"appName\":"
+    const-string v11, "\"appName\" :"
     const-string v3, "\""
-    const-string v4, "\"namespace\":"
-    const-string v5, "\"catalogItemId\":"
+    const-string v4, "\"namespace\" :"
+    const-string v5, "\"catalogItemId\" :"
 
     :parse_loop
     invoke-virtual {v8, v11, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
@@ -235,9 +235,9 @@
     move-result v14
     if-nez v14, :parse_loop
 
-    # ── Extract namespace (backward search from cursor) ───────────────────────
+    # ── Extract namespace (forward search from cursor) ────────────────────────
     const-string v6, ""
-    invoke-virtual {v8, v4, v10}, Ljava/lang/String;->lastIndexOf(Ljava/lang/String;I)I
+    invoke-virtual {v8, v4, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v9
     if-ltz v9, :ns_done
     invoke-virtual {v4}, Ljava/lang/String;->length()I
@@ -254,9 +254,9 @@
     move-result-object v6
     :ns_done
 
-    # ── Extract catalogItemId (backward search from cursor) ───────────────────
+    # ── Extract catalogItemId (forward search from cursor) ────────────────────
     const-string v7, ""
-    invoke-virtual {v8, v5, v10}, Ljava/lang/String;->lastIndexOf(Ljava/lang/String;I)I
+    invoke-virtual {v8, v5, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v9
     if-ltz v9, :cat_done
     invoke-virtual {v5}, Ljava/lang/String;->length()I
