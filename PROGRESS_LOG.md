@@ -6,7 +6,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ## [epic-beta] — v2.7.1-epic-beta27 — fix: EpicInstallHelper smali errors (lit8 0xFF + v16 out-of-range) (2026-03-23)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta27
-**Commit:** TBD
+**Commit:** `c7d3593`
 **What changed:** Three smali assembler errors in `EpicInstallHelper.smali`: (1) `and-int/lit8 v5, v5, 0xFF` — lit8 is signed (-128..127) so 255 is invalid; replaced with `shl-int/lit8 v5, v5, 0x18` + `ushr-int/lit8 v5, v5, 0x18` (zero-extend byte trick) at 3 sites (stored_as, groupNum, chunk flags). (2) `parseFileList` had `.locals 15` in a 2-param static method → p0=v15, p1=v16; Dalvik 4-bit register fields only reach v0-v15. Fixed by reducing to `.locals 14` and reusing freed registers (chunkOffset→v8, partSize→v9 instead of v13/v14 after GUID words are done).
 **Files touched:** `EpicInstallHelper.smali`
 
