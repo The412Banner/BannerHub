@@ -19,7 +19,7 @@ jobs:
 
       - name: Download original APK
         run: |
-          gh release download base-apk --pattern "*.apk" -D base/ -R ${{ github.repository }}
+          gh release download base-apk --pattern "*.apk" -D base/ -R The412Banner/bannerhub
           ls base/
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
