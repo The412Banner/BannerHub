@@ -191,10 +191,10 @@
     # lastIndexOf(String,int) searches backward from cursor — finds same-record field.
 
     const/4 v10, 0x0
-    const-string v11, "\"appName\" :"
+    const-string v11, "\"appName\":"
     const-string v3, "\""
-    const-string v4, "\"namespace\" :"
-    const-string v5, "\"catalogItemId\" :"
+    const-string v4, "\"namespace\":"
+    const-string v5, "\"catalogItemId\":"
 
     :parse_loop
     invoke-virtual {v8, v11, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
