@@ -4,6 +4,46 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-epic-beta17 — fix(epic): robust catalog title parse (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta17
+**Commit:** `3f2ae9b`
+**What changed:** Fixed `EpicMainActivity$6.fetchTitle` title parser to be format-agnostic — searches for `"title"` key then seeks the next `"` after it, skipping any spacing around `:`. Works for both compact (`"title":"value"`) and pretty-printed (`"title" : "value"`) JSON. **Result: real game names now showing on all cards.**
+**Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$6.smali`
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta16 — feat(epic): catalog title fetch (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta16
+**Commit:** `0ae057e`
+**What changed:** New `EpicMainActivity$6` — static `fetchTitle(Context, accessToken, namespace, catalogItemId)` GETs Epic catalog API and parses `"title"` field. Called from `$1` parse loop; result replaces UUID appName as display value. Falls back to appName if fetch fails.
+**Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`, `EpicMainActivity$6.smali` (new)
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta15 — feat(epic): parse namespace + catalogItemId (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta15
+**Commit:** `24633c5`
+**What changed:** `$1` now backward-searches JSON for `"namespace" :` and `"catalogItemId" :` per record using `lastIndexOf`. `$2` constructor extended to `(EpicMainActivity, String, String, String)` with `namespace` and `catalogItemId` as new final synthetic fields.
+**Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`, `EpicMainActivity$2.smali`
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta14 — fix(epic): right-align Install button (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta14
+**Commit:** `462aa65`
+**What changed:** Install button LP changed from MATCH_PARENT to WRAP_CONTENT + Gravity.END.
+**Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$2.smali`
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta13 — feat(epic): GOG-style horizontal game cards (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta13
+**Commit:** `2cdcd04`
+**What changed:** Rewrote `EpicMainActivity$2` to use horizontal card layout matching GOG tab style. Dark rounded #1A1A1A background (GradientDrawable 10dp radius), 12dp padding, 60dp×60dp dark-grey letter placeholder on left, right vertical panel with bold white title (15sp), grey "Epic Games" subtitle (13sp), and Install button (MATCH_PARENT × 40dp, 8dp top margin, white text). All sizes use dp→px via DisplayMetrics.density. `.locals` updated to 15 for register v2=density.
+**Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$2.smali`
+
+---
+
 ## [beta] — v2.7.0-beta69 — feat(gog): rename Launch button to Add on GOG game cards (2026-03-22)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta69
 **Commit:** `def0813`
