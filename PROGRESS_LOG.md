@@ -4,6 +4,45 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-epic-beta27 — fix: EpicInstallHelper smali errors (lit8 0xFF + v16 out-of-range) (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta27
+**Commit:** TBD
+**What changed:** Three smali assembler errors in `EpicInstallHelper.smali`: (1) `and-int/lit8 v5, v5, 0xFF` — lit8 is signed (-128..127) so 255 is invalid; replaced with `shl-int/lit8 v5, v5, 0x18` + `ushr-int/lit8 v5, v5, 0x18` (zero-extend byte trick) at 3 sites (stored_as, groupNum, chunk flags). (2) `parseFileList` had `.locals 15` in a 2-param static method → p0=v15, p1=v16; Dalvik 4-bit register fields only reach v0-v15. Fixed by reducing to `.locals 14` and reusing freed registers (chunkOffset→v8, partSize→v9 instead of v13/v14 after GUID words are done).
+**Files touched:** `EpicInstallHelper.smali`
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta26 — fix: invoke-direct/range for 6-arg constructors in $5 and $9 (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta26
+**Commit:** `10858ac`
+**What changed:** `EpicMainActivity$5.onClick` created `$9` with 6-arg `invoke-direct` (exceeds Dalvik 5-register limit). `EpicMainActivity$9.onClick` did the same for `$7`. Both rewritten with `.locals 8`/`.locals 7` and `invoke-direct/range {v0 .. v5}` (instance in v0, args in v1-v5 consecutively).
+**Files touched:** `EpicMainActivity$5.smali`, `EpicMainActivity$9.smali`
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta25 — feat: full install pipeline — manifest parse + chunk download + assembly (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta25
+**Commit:** `8b2fcfd`
+**What changed:** Full Epic install pipeline in `$7`. `EpicInstallHelper` (static helpers: downloadBytes, decompressZlib, readFString, toHex8/16/2, parseManifestDownloadUrl, parseCdnBase, parseBody, parseCloudDir, skipManifestMeta, parseChunkList, parseFileList, buildChunkUrl, downloadAndDecompressChunk, readFile). `EpicManifestData` (chunk + file data holder). `$7.run()`: manifest API → signed URL + CDN → binary manifest download → header parse + zlib → chunk/file manifest parse → per-chunk download+cache+decompress → file assembly at `/storage/emulated/0/Epic/{appName}`.
+**Files touched:** `EpicMainActivity$7.smali` (full pipeline), `EpicInstallHelper.smali` (new), `EpicManifestData.smali` (new)
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta24 — feat: Install dialog + progress UI (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta24
+**Commit:** `ce143bb`
+**What changed:** Install button now shows AlertDialog confirming install path (`/storage/emulated/0/Epic/{appName}`). `$5` rewritten with AlertDialog; `$2` updated to pass namespace+catalogItemId; `$8` (progress Runnable), `$9` (dialog listener), `$7` (download stub) added. Full download pipeline in beta25.
+**Files touched:** `EpicMainActivity$2.smali`, `EpicMainActivity$5.smali`, `EpicMainActivity$7.smali` (new stub), `EpicMainActivity$8.smali` (new), `EpicMainActivity$9.smali` (new)
+
+---
+
+## [epic-beta] — v2.7.1-epic-beta23 — diag: disable DLC filter (return "" not null) (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta23
+**Commit:** `4c1742f`
+**What changed:** `$6.fetchTitle` returns `""` for DLC items (was `null`). Result: all 20 games show with real names. DLC filter left disabled pending proper fix. Confirmed: no DLC false-positives when `includeDLCDetails=true` removed from catalog URL.
+
+---
+
 ## [epic-beta] — v2.7.1-epic-beta20 — feat: paginate Epic library sync via stateToken cursor (2026-03-23)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta20
 **Commit:** `158d1eb`

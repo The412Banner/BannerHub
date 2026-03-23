@@ -453,7 +453,8 @@
     invoke-virtual {v0, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
     invoke-virtual {v0}, Ljava/nio/ByteBuffer;->get()B
     move-result v5
-    and-int/lit8 v5, v5, 0xFF   # stored_as
+    shl-int/lit8 v5, v5, 0x18
+    ushr-int/lit8 v5, v5, 0x18   # zero-extend byte → stored_as (0-255)
 
     # Read version (manifest feature level) at offset 37
     invoke-virtual {v0}, Ljava/nio/ByteBuffer;->getInt()I
@@ -668,7 +669,8 @@
     if-ge v1, v0, :grp_done
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->get()B
     move-result v5
-    and-int/lit8 v5, v5, 0xFF
+    shl-int/lit8 v5, v5, 0x18
+    ushr-int/lit8 v5, v5, 0x18   # zero-extend byte → groupNum (0-255)
     aput v5, v4, v1
     add-int/lit8 v1, v1, 0x1
     goto :grp_loop
@@ -704,21 +706,21 @@
 # filePartData[f] = "chunkIdx:chunkOffset:partSize[;...]"
 # Returns true on success.
 #
-# Register map (.locals 15):
+# Register map (.locals 14):
+# p0=v14 (ByteBuffer), p1=v15 (EpicManifestData) — both ≤ v15
 #   v0  = fileCount
 #   v1  = f (file loop index)
 #   v2  = fileNames String[]
 #   v3  = filePartData String[]
-#   v4  = filename (from readFString)
+#   v4  = guidHex (String after GUID build)
 #   v5  = part data StringBuilder
 #   v6  = partCount / tagCount
 #   v7  = p (part loop index)
-#   v8,v9,v10,v11 = GUID ints (g1-g4) / reused
-#   v12 = guidHex (String) → then chunkIdx after search
-#   v13 = chunkOffset (int)
-#   v14 = partSize (int)
+#   v8,v9,v10,v11 = GUID ints g1-g4; reused as chunkOffset, partSize, searchIdx, chunkCount
+#   v12 = chunkGuidHex[] array
+#   v13 = temp (pos seek, GUID hex temps, search element/bool)
 .method public static parseFileList(Ljava/nio/ByteBuffer;Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;)Z
-    .locals 15
+    .locals 14
     :try_start
     # Read section size + data version + file count
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
@@ -807,48 +809,48 @@
     invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v4   # v4 = guidHex
 
-    # Read chunkOffset and partSize
+    # Read chunkOffset → v8, partSize → v9 (GUID words v8-v11 are now free)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v13   # chunkOffset
+    move-result v8   # chunkOffset
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v14   # partSize
+    move-result v9   # partSize
 
-    # Find chunkIdx by searching v12 (chunkGuidHex[])
-    const/4 v8, 0x0   # search index
-    array-length v9, v12   # chunkCount
+    # Find chunkIdx: v10=searchIdx, v11=chunkCount, v13=element/bool
+    const/4 v10, 0x0
+    array-length v11, v12
     :search_loop
-    if-ge v8, v9, :search_done   # not found → idx = -1
-    aget-object v10, v12, v8
-    invoke-virtual {v10, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-    move-result v11
-    if-nez v11, :search_done
-    add-int/lit8 v8, v8, 0x1
+    if-ge v10, v11, :search_done
+    aget-object v13, v12, v10
+    invoke-virtual {v13, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    move-result v13
+    if-nez v13, :search_done
+    add-int/lit8 v10, v10, 0x1
     goto :search_loop
     :search_done
-    # v8 = chunkIdx (or array-length if not found → use -1)
-    array-length v9, v12
-    if-ne v8, v9, :idx_ok
-    const/4 v8, -0x1   # not found
+    # v10 = chunkIdx (or array-length if not found)
+    array-length v11, v12
+    if-ne v10, v11, :idx_ok
+    const/4 v10, -0x1   # not found
     :idx_ok
 
-    # Append ";chunkIdx:chunkOffset:partSize" to v5
+    # Append ";chunkIdx:chunkOffset:partSize" — v10=idx, v8=offset, v9=size, v11=tmp
     if-eqz v7, :first_part
-    const-string v10, ";"
-    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v11, ";"
+    invoke-virtual {v5, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     :first_part
+    invoke-static {v10}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+    move-result-object v11
+    invoke-virtual {v5, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v11, ":"
+    invoke-virtual {v5, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-static {v8}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
-    move-result-object v10
-    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    const-string v10, ":"
-    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-static {v13}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
-    move-result-object v10
-    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    const-string v10, ":"
-    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-static {v14}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
-    move-result-object v10
-    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v11
+    invoke-virtual {v5, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v11, ":"
+    invoke-virtual {v5, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-static {v9}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+    move-result-object v11
+    invoke-virtual {v5, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     add-int/lit8 v7, v7, 0x1
     goto :part_loop
@@ -950,7 +952,8 @@
     move-result v2   # hash_type, ignore
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->get()B
     move-result v5   # flags
-    and-int/lit8 v5, v5, 0xFF
+    shl-int/lit8 v5, v5, 0x18
+    ushr-int/lit8 v5, v5, 0x18   # zero-extend byte → flags (0-255)
     # Seek to data start (at headerSize) and extract
     invoke-virtual {v1, v3}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->remaining()I
