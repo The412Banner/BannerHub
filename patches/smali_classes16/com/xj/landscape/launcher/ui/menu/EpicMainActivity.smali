@@ -55,7 +55,7 @@
     const/16 v3, 0x11  # Gravity.CENTER = 17
     invoke-virtual {v2, v3}, Landroid/widget/TextView;->setGravity(I)V
     const/4 v3, 0x2    # TypedValue.COMPLEX_UNIT_SP = 2
-    const/high16 v4, 0x41A0  # 20.0f
+    const/high16 v4, 0x41A00000  # 20.0f
     invoke-virtual {v2, v3, v4}, Landroid/widget/TextView;->setTextSize(IF)V
     invoke-virtual {v1, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 

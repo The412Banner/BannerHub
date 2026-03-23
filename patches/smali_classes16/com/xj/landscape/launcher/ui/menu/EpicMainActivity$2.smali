@@ -57,7 +57,7 @@
     const/4 v5, -0x1   # white 0xFFFFFFFF
     invoke-virtual {v4, v5}, Landroid/widget/TextView;->setTextColor(I)V
     const/4 v5, 0x2    # SP unit
-    const/high16 v6, 0x4180  # 16.0f
+    const/high16 v6, 0x41800000  # 16.0f
     invoke-virtual {v4, v5, v6}, Landroid/widget/TextView;->setTextSize(IF)V
     invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
