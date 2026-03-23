@@ -17,12 +17,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download original APK
-        run: |
-          gh release download base-apk --pattern "*.apk" -D base/ -R The412Banner/bannerhub
-          ls base/
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify base APK present
+        run: ls -lh base/*.apk
 
       - name: Install apktool
         run: |
