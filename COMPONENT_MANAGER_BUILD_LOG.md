@@ -3626,3 +3626,18 @@ Fix: restore spaces in all 3 markers; change lastIndexOf → indexOf for namespa
 
 ### CI result
 → ✅ — Normal APK built successfully
+
+---
+
+## Entry 79 — v2.7.1-beta39 — debug: show ns/cat in install dialog (2026-03-23)
+
+**Branch:** epic-integration | **Commit:** dc8dbc7 | **Tag:** v2.7.1-beta39
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$5.smali` — dialog message now shows ns= and cat= instead of "Chunks downloaded from Epic CDN."
+
+### Purpose
+Diagnostic build. Install confirmation dialog will now show the actual namespace and catalogItemId values being passed to the manifest API so we can verify whether they're being correctly extracted from the library sync JSON.
+
+### CI result
+→ ✅ — Normal APK built successfully
