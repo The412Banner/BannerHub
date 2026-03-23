@@ -8,7 +8,7 @@
 #   Right: vertical LinearLayout (weight=1, 12dp left padding)
 #     - Title TextView (appName, white #F0F0F0, 15sp bold)
 #     - Subtitle TextView ("Epic Games", grey #888888, 13sp)
-#     - Install Button (white text, MATCH_PARENT × 40dp, 8dp top margin)
+#     - Install Button (white text, WRAP_CONTENT × 40dp, gravity=END)
 # Card: horizontal LL, rounded dark #1A1A1A bg (10dp radius), 12dp padding.
 #
 # Register map (.locals 15 → p0 = v15):
@@ -174,17 +174,15 @@
     invoke-direct {v12, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$5;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-virtual {v11, v12}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
-    # LP: MATCH_PARENT × 40dp, topMargin = 8dp
+    # LP: WRAP_CONTENT × 40dp, gravity=END (right-aligned compact button)
     const/high16 v14, 0x42200000   # 40.0f
     mul-float v14, v2, v14
     float-to-int v14, v14
-    const/4 v13, -0x1   # MATCH_PARENT = -1
+    const/4 v13, -0x2   # WRAP_CONTENT = -2
     new-instance v5, Landroid/widget/LinearLayout$LayoutParams;
     invoke-direct {v5, v13, v14}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    const/high16 v14, 0x41000000   # 8.0f
-    mul-float v14, v2, v14
-    float-to-int v14, v14
-    iput v14, v5, Landroid/view/ViewGroup$MarginLayoutParams;->topMargin:I
+    const v14, 0x800005   # Gravity.END
+    iput v14, v5, Landroid/widget/LinearLayout$LayoutParams;->gravity:I
     invoke-virtual {v8, v11, v5}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     # ── Add card to gameList ──────────────────────────────────────────────────
