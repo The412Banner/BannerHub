@@ -532,8 +532,6 @@
     invoke-virtual {v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;)I
     move-result v1
     if-ltz v1, :no_query
-    invoke-virtual {v0, v0, v1}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    # Actually substring(0, v1):
     const/4 v2, 0x0
     invoke-virtual {v0, v2, v1}, Ljava/lang/String;->substring(II)Ljava/lang/String;
     move-result-object v0
