@@ -2266,3 +2266,10 @@ Removed spaces before `:` in Epic library sync JSON markers (`"appName\" :"` →
 Restored space in appName marker (beta37 regression). Changed namespace/catalogItemId search from lastIndexOf→indexOf (fields come after appName in Epic JSON, not before).
 #### Files touched
 `EpicMainActivity$1.smali`
+
+### [fix] — v2.7.1-beta40 — Epic: library appName preserved for manifest URL (2026-03-23)
+**Commit:** `75db695`  |  **Tag:** v2.7.1-beta40
+#### What changed
+Separated library appName from display title. appName flows to manifest URL ($5/$9/$7), displayTitle shown on card. Fixes 404 for Samorost 3 and similar games where technical appName ≠ display title.
+#### Files touched
+`EpicMainActivity$1.smali`, `EpicMainActivity$2.smali`, `EpicMainActivity$5.smali`

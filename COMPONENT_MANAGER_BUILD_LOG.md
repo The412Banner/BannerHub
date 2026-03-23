@@ -3641,3 +3641,20 @@ Diagnostic build. Install confirmation dialog will now show the actual namespace
 
 ### CI result
 → ✅ — Normal APK built successfully
+
+---
+
+## Entry 80 — v2.7.1-beta40 — fix: library appName preserved for manifest URL (2026-03-23)
+
+**Branch:** epic-integration | **Commit:** 75db695 | **Tag:** v2.7.1-beta40
+
+### Files touched
+- `EpicMainActivity$1.smali` — save v13 (library appName) to v12 before fetchTitle; pass v12 to $2 ctor; iput displayTitle after ctor
+- `EpicMainActivity$2.smali` — add displayTitle field; use it for card TextView instead of appName
+- `EpicMainActivity$5.smali` — revert debug dialog back to "Chunks downloaded from Epic CDN."
+
+### Root-cause / design
+$1 overwrites v13 (library appName e.g. "Samorost3Game") with catalog display title ("Samorost 3") then passes it to $2→$5→$9→$7. $7 uses it in the manifest URL: /app/Samorost 3/label/Live → 404. Screenshots confirmed ns/cat were correct (real IDs); appName was the wrong value. Fix: save library appName to v12 (free after catalogItemId extraction) before fetchTitle; use v12 for manifest URL chain, v13 (display title) for card UI only via new displayTitle field in $2.
+
+### CI result
+→ ✅ — Normal APK built successfully
