@@ -69,6 +69,10 @@
     const/4 v5, -0x1   # white text
     invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextColor(I)V
 
+    new-instance v5, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$5;
+    invoke-direct {v5, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$5;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {v4, v5}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
     new-instance v5, Landroid/widget/LinearLayout$LayoutParams;
     const/4 v6, -0x1   # MATCH_PARENT = -1
     const/16 v7, 0x50  # 80px height
