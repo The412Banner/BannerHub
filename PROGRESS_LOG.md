@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [docs] — v2.7.1-pre — Thorough README rewrite (2026-03-23)
+**Branch:** `main`  |  **Tag:** v2.7.1-pre (no new CI — docs only)
+**Commit:** `3e62286`
+**What changed:** Full README rewrite. Added Table of Contents. Every feature section expanded with technical depth: GOG tab covers auth flow, all three download pipelines (Gen 2 / Gen 1 / installer fallback), install flow, copy to downloads, uninstall. Component Manager covers card UI, all CRUD actions, format support table. Performance toggles section explains sysfs KGSL min_freq lock vs setSustainedPerformanceMode, CPU governor paths, and why root is required for the sysfs approach vs ioctl. Added gesture map table for RTS controls, core label table for CPU affinity, expanded Advanced tab and offline mode docs. Added FAQ (6 questions), expanded How It Works with classes12 bypass note.
+**Files touched:** `README.md`
+**CI result:** N/A (docs-only commit, no tag pushed)
+
+---
+
 ## [beta] — v2.7.0-beta69 — feat(gog): rename Launch button to Add on GOG game cards (2026-03-22)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta69
 **Commit:** `def0813`
@@ -2005,3 +2014,12 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$3.smali`
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$6.smali`
+
+### [fix] — v2.7.1-pre-beta44 — Fix CDN manifest URL & separator; show appName on screen (2026-03-23)
+**Commit:** `f49e8cc`  |  **Tag:** v2.7.1-pre-beta44  |  **Branch:** epic-integration (bannerhub-testing)
+#### What changed
+- `EpicInstallHelper.parseManifestDownloadUrl`: fixed inverted `if-nez` → `if-eqz` — first CDN query param no longer gets spurious `&` prefix, subsequent params now correctly separated with `&`. Was producing `?&Policy=XXXSignature=YYYKey-Pair-Id=ZZZ` (malformed CloudFront signed URL), causing Samorost 3 binary manifest download to fail with HTTP 0.
+- `EpicMainActivity$7`: progress text changed from generic `"Fetching manifest info..."` to `"Fetching: {appName}"` — shows on screen whether catalog artifact name resolved (e.g. `Samorost3Game`) or is still library UUID.
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$7.smali`
