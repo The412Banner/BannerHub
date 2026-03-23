@@ -100,7 +100,7 @@
     invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v3
     const-string v2, "BannerHub"
-    invoke-static {v2, v3}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    invoke-static {v2, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
     invoke-virtual {v1}, Ljava/net/HttpURLConnection;->disconnect()V
     :try_end
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :fail
