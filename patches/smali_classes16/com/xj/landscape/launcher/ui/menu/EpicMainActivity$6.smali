@@ -247,10 +247,10 @@
 
     invoke-virtual {v2}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
     move-result-object v3
-    new-instance v4, Ljava/io/InputStreamReader;
-    invoke-direct {v4, v3}, Ljava/io/InputStreamReader;-><init>(Ljava/io/InputStream;)V
+    new-instance v0, Ljava/io/InputStreamReader;
+    invoke-direct {v0, v3}, Ljava/io/InputStreamReader;-><init>(Ljava/io/InputStream;)V
     new-instance v4, Ljava/io/BufferedReader;
-    invoke-direct {v4, v3}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
+    invoke-direct {v4, v0}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
     new-instance v5, Ljava/lang/StringBuilder;
     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
     :read_loop
