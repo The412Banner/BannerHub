@@ -3,30 +3,29 @@
 .implements Ljava/lang/Runnable;
 
 # BannerHub: UI Runnable posted by $1 for each Epic game found in library.
-# Carries appName, namespace, and catalogItemId extracted by $1 from the library JSON.
-# namespace + catalogItemId are stored as fields for use in the catalog API (Task #16).
+# Carries appName, namespace, catalogItemId; coverUrl set via iput-object by $1 before post.
 # Builds a GOG-style horizontal card in EpicMainActivity.gameList:
-#   Left:  60dp×60dp dark-grey (#333333) placeholder with first-letter TextView
+#   Left:  60dp×60dp ImageView (dark-grey #333333 bg; cover art loaded async by $10)
 #   Right: vertical LinearLayout (weight=1, 12dp left padding)
-#     - Title TextView (appName, white #F0F0F0, 15sp bold)
+#     - Title TextView (appName/title, white #F0F0F0, 15sp bold)
 #     - Subtitle TextView ("Epic Games", grey #888888, 13sp)
 #     - Install Button (white text, WRAP_CONTENT × 40dp, gravity=END)
 # Card: horizontal LL, rounded dark #1A1A1A bg (10dp radius), 12dp padding.
 #
 # Register map (.locals 15 → p0 = v15):
 #   v0  = this$0 (EpicMainActivity)
-#   v1  = appName String
+#   v1  = appName/title String
 #   v2  = density float (dp→px)
 #   v3  = gameList LinearLayout
 #   v4  = card root LinearLayout (HORIZONTAL)
 #   v5  = GradientDrawable / LayoutParams (reused)
-#   v6  = placeholder LinearLayout (left, 60dp square)
-#   v7  = letter TextView
+#   v6  = ImageView (left, 60dp square, bg #333333, CENTER_CROP)
+#   v7  = coverUrl String (from val$coverUrl field)
 #   v8  = right info LinearLayout (VERTICAL)
 #   v9  = title TextView
 #   v10 = subtitle TextView
 #   v11 = Install Button
-#   v12 = EpicMainActivity$5 (OnClickListener)
+#   v12 = EpicMainActivity$5 (OnClickListener) / $10 thumb loader
 #   v13 = LayoutParams temp / int temp
 #   v14 = float/int temp
 #   p0  = v15 = this
@@ -35,6 +34,7 @@
 .field final synthetic appName:Ljava/lang/String;
 .field final synthetic namespace:Ljava/lang/String;
 .field final synthetic catalogItemId:Ljava/lang/String;
+.field public val$coverUrl:Ljava/lang/String;
 
 
 .method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
@@ -86,13 +86,16 @@
     float-to-int v14, v14
     invoke-virtual {v4, v14, v14, v14, v14}, Landroid/widget/LinearLayout;->setPadding(IIII)V
 
-    # ── Left placeholder: dark grey, 60dp × 60dp, gravity CENTER ─────────────
-    new-instance v6, Landroid/widget/LinearLayout;
-    invoke-direct {v6, v0}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
-    const v14, 0xFF333333
+    # ── Load coverUrl into v7 ─────────────────────────────────────────────────
+    iget-object v7, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$coverUrl:Ljava/lang/String;
+
+    # ── Left: ImageView, 60dp × 60dp, dark bg, CENTER_CROP ───────────────────
+    new-instance v6, Landroid/widget/ImageView;
+    invoke-direct {v6, v0}, Landroid/widget/ImageView;-><init>(Landroid/content/Context;)V
+    const v14, 0xFF333333   # dark grey placeholder bg
     invoke-virtual {v6, v14}, Landroid/view/View;->setBackgroundColor(I)V
-    const/16 v14, 0x11   # Gravity.CENTER = 17
-    invoke-virtual {v6, v14}, Landroid/widget/LinearLayout;->setGravity(I)V
+    sget-object v13, Landroid/widget/ImageView$ScaleType;->CENTER_CROP:Landroid/widget/ImageView$ScaleType;
+    invoke-virtual {v6, v13}, Landroid/widget/ImageView;->setScaleType(Landroid/widget/ImageView$ScaleType;)V
 
     # LP: 60dp × 60dp
     const/high16 v14, 0x42700000   # 60.0f
@@ -101,22 +104,6 @@
     new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
     invoke-direct {v13, v14, v14}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
     invoke-virtual {v4, v6, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-
-    # First-letter TextView inside placeholder (appName guaranteed non-empty by $1)
-    new-instance v7, Landroid/widget/TextView;
-    invoke-direct {v7, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const/4 v13, 0x0
-    const/4 v14, 0x1
-    invoke-virtual {v1, v13, v14}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v13
-    invoke-virtual {v7, v13}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-    const v14, 0xFFCCCCCC
-    invoke-virtual {v7, v14}, Landroid/widget/TextView;->setTextColor(I)V
-    const/high16 v14, 0x41900000   # 18.0f
-    invoke-virtual {v7, v14}, Landroid/widget/TextView;->setTextSize(F)V
-    sget-object v13, Landroid/graphics/Typeface;->DEFAULT_BOLD:Landroid/graphics/Typeface;
-    invoke-virtual {v7, v13}, Landroid/widget/TextView;->setTypeface(Landroid/graphics/Typeface;)V
-    invoke-virtual {v6, v7}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     # ── Right info panel: VERTICAL LinearLayout, weight=1 ────────────────────
     new-instance v8, Landroid/widget/LinearLayout;
@@ -196,5 +183,18 @@
     # ── Add card to gameList ──────────────────────────────────────────────────
     invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
+    # ── Launch thumbnail loader if coverUrl is available ──────────────────────
+    if-eqz v7, :skip_thumb
+    invoke-virtual {v7}, Ljava/lang/String;->isEmpty()Z
+    move-result v14
+    if-nez v14, :skip_thumb
+
+    new-instance v12, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$10;
+    invoke-direct {v12, v7, v6}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$10;-><init>(Ljava/lang/String;Landroid/widget/ImageView;)V
+    new-instance v13, Ljava/lang/Thread;
+    invoke-direct {v13, v12}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
+    invoke-virtual {v13}, Ljava/lang/Thread;->start()V
+
+    :skip_thumb
     return-void
 .end method

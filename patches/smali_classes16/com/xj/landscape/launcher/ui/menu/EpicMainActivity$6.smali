@@ -184,3 +184,138 @@
     return-object v0
 
 .end method
+
+
+# ── fetchCoverUrl ──────────────────────────────────────────────────────────────
+# Same HTTP call as fetchTitle; parses keyImages for DieselGameBoxTall URL.
+# Falls back to DieselGameBox if Tall not found.  Returns "" on any failure.
+.method public static fetchCoverUrl(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    .locals 10
+    # p0=Context, p1=accessToken, p2=namespace, p3=catalogItemId
+
+    invoke-virtual {p2}, Ljava/lang/String;->isEmpty()Z
+    move-result v0
+    if-nez v0, :no_cover
+    invoke-virtual {p3}, Ljava/lang/String;->isEmpty()Z
+    move-result v0
+    if-nez v0, :no_cover
+
+    :try_start
+
+    # Build catalog URL (same endpoint as fetchTitle)
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v1, "https://catalog-public-service-prod06.ol.epicgames.com/catalog/api/shared/namespace/"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v1, "/bulk/items?id="
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0, p3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v1, "&includeMainGameDetails=true&country=US&locale=en-US"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v1
+
+    # Open HTTP GET
+    new-instance v0, Ljava/net/URL;
+    invoke-direct {v0, v1}, Ljava/net/URL;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v0}, Ljava/net/URL;->openConnection()Ljava/net/URLConnection;
+    move-result-object v2
+    check-cast v2, Ljava/net/HttpURLConnection;
+    const/16 v1, 0x3a98
+    invoke-virtual {v2, v1}, Ljava/net/HttpURLConnection;->setConnectTimeout(I)V
+    invoke-virtual {v2, v1}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
+    const-string v1, "GET"
+    invoke-virtual {v2, v1}, Ljava/net/HttpURLConnection;->setRequestMethod(Ljava/lang/String;)V
+    const-string v1, "User-Agent"
+    const-string v3, "EpicGamesLauncher/14.0.8"
+    invoke-virtual {v2, v1, v3}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
+    const-string v1, "Authorization"
+    new-instance v3, Ljava/lang/StringBuilder;
+    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v4, "Bearer "
+    invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v3, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+    invoke-virtual {v2, v1, v3}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
+
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->getResponseCode()I
+    move-result v1
+    const/16 v3, 0xC8
+    if-ne v1, v3, :non200
+
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
+    move-result-object v3
+    new-instance v4, Ljava/io/InputStreamReader;
+    invoke-direct {v4, v3}, Ljava/io/InputStreamReader;-><init>(Ljava/io/InputStream;)V
+    new-instance v4, Ljava/io/BufferedReader;
+    invoke-direct {v4, v3}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
+    new-instance v5, Ljava/lang/StringBuilder;
+    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+    :read_loop
+    invoke-virtual {v4}, Ljava/io/BufferedReader;->readLine()Ljava/lang/String;
+    move-result-object v6
+    if-eqz v6, :read_done
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    goto :read_loop
+    :read_done
+    invoke-virtual {v4}, Ljava/io/BufferedReader;->close()V
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->disconnect()V
+    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v5   # v5 = JSON response
+
+    # ── Find cover image type: try DieselGameBoxTall first, then DieselGameBox ─
+    const-string v8, "DieselGameBoxTall"
+    const/4 v7, 0x0
+    invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-gez v7, :found_type
+
+    # Fallback: "DieselGameBox" with surrounding quotes avoids matching BoxTall
+    const-string v8, "\"DieselGameBox\""
+    const/4 v7, 0x0
+    invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-ltz v7, :no_cover
+
+    :found_type
+    # From v7, find "url" key forward (within the same JSON object, ~300 chars)
+    const-string v9, "\"url\""
+    invoke-virtual {v5, v9, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-ltz v7, :no_cover
+
+    # Advance past "url" key length
+    invoke-virtual {v9}, Ljava/lang/String;->length()I
+    move-result v0
+    add-int v7, v7, v0
+
+    # Find opening quote of value (skips ':' and any whitespace)
+    const-string v9, "\""
+    invoke-virtual {v5, v9, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-ltz v7, :no_cover
+    add-int/lit8 v7, v7, 0x1   # past opening quote
+
+    # Find closing quote
+    invoke-virtual {v5, v9, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v0
+    if-ltz v0, :no_cover
+
+    invoke-virtual {v5, v7, v0}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v0
+    return-object v0
+
+    :non200
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->disconnect()V
+
+    :try_end
+    .catch Ljava/lang/Exception; {:try_start .. :try_end} :catch_all
+
+    :catch_all
+    :no_cover
+    const-string v0, ""
+    return-object v0
+
+.end method
