@@ -205,23 +205,20 @@ BCI is a companion app that provides SAF-based component management without root
 
 Located in the in-game **Performance sidebar tab**, above the Dual Battery Mode toggle. Both toggles persist their state in `bh_prefs` SharedPreferences and are re-applied automatically every time the Performance sidebar is opened.
 
-Root access is checked once when you grant it in **Settings → Advanced**. The toggles read that stored result — there is no root permission popup every time the sidebar opens.
+Both toggles require root and are greyed out on non-rooted devices. Root access is checked once when you grant it in **Settings → Advanced**. The toggles read that stored result — there is no root permission popup every time the sidebar opens.
+
+Both toggles require root. Without root, both are greyed out at 50% opacity and have no click listener — tapping them does nothing.
 
 #### Sustained Performance Mode
 
+**Requires root.**
+
 | | Without root | With root |
 |---|---|---|
-| **Behavior** | Calls `Window.setSustainedPerformanceMode(true)` | Sets all CPU cores to `performance` governor via `su` |
-| **Disable** | Calls `setSustainedPerformanceMode(false)` | Reverts all CPU cores to `schedutil` governor |
-| **Interactive** | Yes, but effect depends on device | Yes — guaranteed effect on any rooted device |
+| **Behavior** | Greyed out, non-interactive | Sets all CPU cores to `performance` governor via `su` |
+| **Disable** | N/A | Reverts all CPU cores to `schedutil` governor |
 
-**What `setSustainedPerformanceMode` does (no-root path):**
-
-This is a standard Android API (available since Android 7.0) that hints the system to run at a lower but thermally-stable performance level rather than letting the CPU spike to turbo clocks and then throttle. It is designed to eliminate frame-time spikes from thermal events on sustained workloads. Not all devices or OEM kernels honor the hint — support varies.
-
-**What the root path does:**
-
-The CPU frequency governor controls how the kernel selects a clock speed for each core at any given moment. The `performance` governor always selects the maximum available frequency, regardless of current CPU load. This eliminates all downclocking while the toggle is on. On disable, `schedutil` is restored — a modern load-tracking governor that scales frequency based on actual CPU utilization.
+The CPU frequency governor controls how the kernel selects a clock speed for each core. The `performance` governor always selects the maximum available frequency regardless of load, eliminating all downclocking while the toggle is on. On disable, `schedutil` is restored — a load-tracking governor that scales frequency dynamically.
 
 Shell commands issued (with `su`):
 ```
@@ -234,11 +231,12 @@ for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo scheduti
 
 #### Max Adreno Clocks
 
+**Requires root.**
+
 | | Without root | With root |
 |---|---|---|
-| **Behavior** | Toggle is greyed out and non-interactive | Locks GPU clock floor = GPU clock ceiling |
+| **Behavior** | Greyed out, non-interactive | Locks GPU clock floor = GPU clock ceiling |
 | **Disable** | N/A | Removes the floor — DVFS returns to normal |
-| **Interactive** | No | Yes |
 
 **What it does (root only):**
 
@@ -379,7 +377,7 @@ All new BannerHub code lives in `smali_classes16/`. Existing GameHub smali files
 
 **Q: Does BannerHub require root?**
 
-Most features work without root. The only features that require root are Max Adreno Clocks and the root path of Sustained Performance Mode. All other features — the GOG tab, Component Manager, downloader, RTS controls, VRAM unlock, core affinity, offline modes, and settings — work on any non-rooted Android device.
+Most features work without root. The only features that require root are the two Performance sidebar toggles (Sustained Performance Mode and Max Adreno Clocks) — both are greyed out and non-interactive on non-rooted devices. All other features — the GOG tab, Component Manager, downloader, RTS controls, VRAM unlock, core affinity, offline modes, and settings — work on any non-rooted Android device.
 
 **Q: Will this replace my existing GameHub install?**
 
