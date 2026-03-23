@@ -53,7 +53,7 @@
     const-string v1, "/bulk/items?id="
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v0, p3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    const-string v1, "&includeDLCDetails=true&includeMainGameDetails=true&country=US&locale=en-US"
+    const-string v1, "&includeMainGameDetails=true&country=US&locale=en-US"
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v1   # v1 = URL string

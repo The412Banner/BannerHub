@@ -57,6 +57,8 @@
     const-string v3, "BH_EPIC"
     const-string v4, "sync_start"
     invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+    iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->url:Ljava/lang/String;
+    invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
     # Show on-screen status
     new-instance v3, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
@@ -276,7 +278,18 @@
     # v9 reused as result; v0=context, v2=accessToken, v6=namespace, v7=catalogItemId
     invoke-static {v0, v2, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->fetchTitle(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     move-result-object v9
-    if-eqz v9, :parse_loop   # null = DLC → skip entirely
+    if-nez v9, :not_dlc   # null = DLC → log and skip
+    const-string v3, "BH_EPIC"
+    new-instance v9, Ljava/lang/StringBuilder;
+    invoke-direct {v9}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v4, "dlc:"
+    invoke-virtual {v9, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v9, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v9}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v9
+    invoke-static {v3, v9}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+    goto :parse_loop
+    :not_dlc
     invoke-virtual {v9}, Ljava/lang/String;->isEmpty()Z
     move-result v14
     if-nez v14, :title_done   # "" = fetch failed → keep appName in v13
@@ -320,7 +333,18 @@
     move-result v9
     if-nez v9, :no_next_page
 
-    # Build next URL: base_url + "&cursor=" + stateToken
+    # Log the cursor value
+    const-string v4, "BH_EPIC"
+    new-instance v5, Ljava/lang/StringBuilder;
+    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v9, "cursor:"
+    invoke-virtual {v5, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v5
+    invoke-static {v4, v5}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+
+    # Build next URL: base_url + "&cursor=" + nextCursor
     iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->url:Ljava/lang/String;
     new-instance v5, Ljava/lang/StringBuilder;
     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
@@ -339,6 +363,9 @@
     return-void
 
     :no_next_page
+    const-string v3, "BH_EPIC"
+    const-string v4, "lastpage"
+    invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
     new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
     const-string v3, "Sync done"
     invoke-direct {v1, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
