@@ -168,19 +168,10 @@
     invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v8   # v8 = JSON response String
 
-    # Show first 200 chars of raw JSON in syncText so we can see the response structure
-    invoke-virtual {v8}, Ljava/lang/String;->length()I
-    move-result v3
-    const/16 v4, 0xC8
-    if-le v3, v4, :show_json
-    const/16 v3, 0xC8
-    :show_json
-    const/4 v4, 0x0
-    invoke-virtual {v8, v4, v3}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v3
-    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
-    invoke-direct {v4, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
-    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    const-string v4, "Parsing library..."
+    invoke-direct {v3, v0, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
 
     # ── Parse "appName":"..." records ─────────────────────────────────────────
     # v10 = pos cursor;  v11 = marker;  v12 = int temp;  v13 = appName String
@@ -190,7 +181,7 @@
     # add-int/lit8 adds a small integer literal (format 22b).
 
     const/4 v10, 0x0
-    const-string v11, "\"appName\":"
+    const-string v11, "\"appName\" :"
     const-string v3, "\""
 
     :parse_loop
@@ -239,8 +230,12 @@
 
     goto :parse_loop
 
-    # ── Parse done — JSON preview already on screen, nothing more to post ──────
+    # ── Parse done ─────────────────────────────────────────────────────────────
     :sync_done
+    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    const-string v3, "Sync done"
+    invoke-direct {v1, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {v0, v1}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     return-void
     :try_end
 
