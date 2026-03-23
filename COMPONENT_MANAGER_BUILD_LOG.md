@@ -3658,3 +3658,18 @@ $1 overwrites v13 (library appName e.g. "Samorost3Game") with catalog display ti
 
 ### CI result
 → ✅ — Normal APK built successfully
+
+---
+
+## Entry 81 — v2.7.1-beta41 — debug: show appName in manifest 404 error (2026-03-23)
+
+**Branch:** epic-integration | **Commit:** 21d10a5 | **Tag:** v2.7.1-beta41
+
+### Files touched
+- `EpicMainActivity$7.smali` — :err_api handler now shows "HTTP {code} app={appName}"
+
+### Purpose
+v7 still holds val$appName at :err_api (set from iget before URL build, not overwritten). Exposing it in the error message will confirm whether beta40's library-appName fix actually changed the value being sent.
+
+### CI result
+→ ✅ — Normal APK built successfully
