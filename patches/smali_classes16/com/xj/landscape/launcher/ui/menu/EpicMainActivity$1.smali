@@ -302,6 +302,9 @@
     # Replace library UUID in v12 with catalog artifact appName when available.
     # $6.lastAppName is set (and reset) inside fetchTitle for each call.
     sget-object v9, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->lastAppName:Ljava/lang/String;
+    # DEBUG: log what the catalog API returned for "appName"
+    const-string v14, "BH_EPIC"
+    invoke-static {v14, v9}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
     if-eqz v9, :keep_lib_appname
     invoke-virtual {v9}, Ljava/lang/String;->isEmpty()Z
     move-result v14

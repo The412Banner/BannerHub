@@ -135,6 +135,10 @@
     invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5   # v5 = manifest API URL
 
+    # DEBUG: log the exact manifest URL so we can verify the appName
+    const-string v9, "BH_EPIC_URL"
+    invoke-static {v9, v5}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+
     # ── Step 4: Fetch manifest API response ───────────────────────────────
     invoke-static {v5, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->downloadBytes(Ljava/lang/String;Ljava/lang/String;)[B
     move-result-object v5
