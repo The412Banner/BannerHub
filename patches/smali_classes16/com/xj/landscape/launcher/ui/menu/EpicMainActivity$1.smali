@@ -168,22 +168,15 @@
     invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v8   # v8 = JSON response String
 
-    # Log JSON response length + show length on screen
+    # Show first 200 chars of raw JSON in syncText so we can see the response structure
     invoke-virtual {v8}, Ljava/lang/String;->length()I
     move-result v3
-    invoke-static {v3}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
-    move-result-object v3
-    const-string v4, "BH_EPIC"
-    invoke-static {v4, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
-    # Show JSON length on screen so we know response was received
-    new-instance v4, Ljava/lang/StringBuilder;
-    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v5, "Got JSON ("
-    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    const-string v5, " chars), parsing..."
-    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    const/16 v4, 0xC8
+    if-le v3, v4, :show_json
+    const/16 v3, 0xC8
+    :show_json
+    const/4 v4, 0x0
+    invoke-virtual {v8, v4, v3}, Ljava/lang/String;->substring(II)Ljava/lang/String;
     move-result-object v3
     new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
     invoke-direct {v4, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
@@ -246,12 +239,8 @@
 
     goto :parse_loop
 
-    # ── Show final status (stays on screen — not hidden) ──────────────────────
+    # ── Parse done — JSON preview already on screen, nothing more to post ──────
     :sync_done
-    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
-    const-string v3, "Sync done"
-    invoke-direct {v1, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
-    invoke-virtual {v0, v1}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     return-void
     :try_end
 
