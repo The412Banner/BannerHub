@@ -70,6 +70,8 @@ Tap the icon in GameHub's top-right toolbar to open **BannersComponentInjector**
 ### Performance Sidebar Toggles
 Two toggles in the in-game **Performance sidebar tab** (above Dual Battery Mode). Both states persist across launches and are re-applied on startup.
 
+> **Warning:** These toggles write directly to kernel sysfs nodes and CPU governor interfaces via root. Locking clocks at maximum can cause **sustained high temperatures, accelerated battery degradation, and thermal throttling** on devices with poor cooling. Extended use at maximum clocks is not recommended for long gaming sessions on thermally constrained devices. BannerHub and its contributors are not responsible for any hardware damage, battery wear, data loss, or reduced device lifespan resulting from the use of these features. **Use at your own risk.**
+
 | | Sustained Perf (Root+) | Max Adreno Clocks (Root) |
 |---|---|---|
 | **What it targets** | CPU performance governor | GPU (Adreno/kgsl-3d0) clock speed |
@@ -116,7 +118,9 @@ When autoLogin fails and no network is available at cold start, the Steam login 
 - CPU Usage display toggle
 - Performance Metrics toggle
 - Sustained Performance Mode toggle
-- **Grant Root Access** — tapping this button shows a 5-point warning dialog; on confirmation it runs `su -c id` on a background thread and stores the result in `bh_prefs`. Performance toggles read this preference on sidebar open — no more unsolicited root popup every time the Performance tab is opened.
+- **Grant Root Access** — tapping this button shows a warning dialog before proceeding; on confirmation it runs `su -c id` on a background thread and stores the result in `bh_prefs`. Performance toggles read this preference on sidebar open — no more unsolicited root popup every time the Performance tab is opened.
+
+  > **Warning:** Granting root access gives BannerHub (and by extension GameHub) superuser (`su`) privileges on your device. This means the app can read and write any file, modify system settings, and execute commands with full system permissions. Only grant root access if you understand the risks, trust the software, and have a root-enabled device you control. BannerHub and its contributors are not responsible for any data loss, security issues, or damage caused by the use of root features. **Never grant root access to apps you do not fully trust.**
 
 ### Component Descriptions in Game Settings Picker
 When selecting a component (DXVK / VKD3D / Box64 / FEXCore / GPU Driver) in per-game settings, locally installed components now show their description text below the name. The description comes from `profile.json`'s `"description"` field (WCP) or `meta.json`'s `"description"` field (ZIP / adrenotools), stored at inject time.
