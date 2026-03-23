@@ -2017,3 +2017,13 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `EpicGame.smali`, `EpicCredentials.smali`, `EpicCredentialStore.smali`, `EpicTokenRefresh.smali` (new)
 - `EpicLoginActivity.smali`, `EpicLoginActivity$1–$5.smali` (new)
+
+### [feat] — epic-integration — Menu injection + AndroidManifest: test build ready (2026-03-22)
+**Commit:** `fab41d5`  |  **Branch:** epic-integration
+#### What changed
+- `HomeLeftMenuDialog`: "Epic Games" menu item (id=11) added after GOG; :pswitch_11 handler starts EpicLoginActivity; :pswitch_11 added to packed-switch table
+- `AndroidManifest.xml`: EpicLoginActivity declared (sensorLandscape)
+- Test build now functional: "Epic Games" in side menu → WebView login → tokens saved
+#### Files touched
+- `patches/smali_classes5/com/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog.smali`
+- `patches/AndroidManifest.xml`
