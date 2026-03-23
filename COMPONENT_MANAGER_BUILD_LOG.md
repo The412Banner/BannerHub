@@ -3587,3 +3587,21 @@ Three bugs from beta65: (1) right-column LP MATCH_PARENT clips content to parent
 
 ### CI result
 → ✅ run 23411207426 — Normal APK built successfully
+
+---
+
+## Entry 77 — v2.7.1-beta37 — fix: Epic manifest HTTP 404 (JSON key marker spaces) (2026-03-23)
+
+**Branch:** epic-integration | **Commit:** f2ea347 | **Tag:** v2.7.1-beta37
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali` — lines 194/196/197: removed space before `:` in three const-string markers
+
+### Methods changed
+- `EpicMainActivity$1.run()` — library sync loop; `const-string v11`, `v4`, `v5` (appName/namespace/catalogItemId markers)
+
+### Root-cause / design
+Epic's library-service API returns compact JSON (`"namespace":"value"` — no space before colon). The markers used `"\"namespace\" :"` (with space), so `String.indexOf` never matched → namespace and catalogItemId always defaulted to empty string `""` → manifest URL built as `.../namespace//catalogItem//app/{appName}/label/Live` → HTTP 404. Fix: remove the space from all three markers so they match compact JSON exactly.
+
+### CI result
+→ ✅ run 23453694677 — Normal APK built successfully

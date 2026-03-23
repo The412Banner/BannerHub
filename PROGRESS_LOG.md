@@ -2252,3 +2252,10 @@ Smali inner classes (`$1`, `$2`, `$3`) are separate `.class` files with no speci
 - `catch_all`: added `move-exception v3` + `Throwable.toString()` so the actual exception class and message appear, not just the string `"exception"`
 #### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`
+
+### [fix] — v2.7.1-beta37 — Epic manifest HTTP 404: JSON key marker spaces (2026-03-23)
+**Commit:** `f2ea347`  |  **Tag:** v2.7.1-beta37
+#### What changed
+Removed spaces before `:` in Epic library sync JSON markers (`"appName\" :"` → `"appName\":"`, same for namespace/catalogItemId). Epic's library API returns compact JSON — markers with spaces never matched → empty namespace/catalogItemId → manifest URL invalid → 404.
+#### Files touched
+`EpicMainActivity$1.smali`
