@@ -135,8 +135,8 @@
     goto :not_dlc
 
     :is_dlc
-    const/4 v0, 0x0
-    return-object v0   # null = DLC
+    const-string v0, ""
+    return-object v0   # diagnostic: return "" so DLC shows as UUID appName instead of being dropped
 
     :not_dlc
 
