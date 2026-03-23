@@ -267,7 +267,17 @@
     move-result-object v7
     :cat_done
 
-    # post $2(appName, namespace, catalogItemId) to UI thread
+    # ── Fetch display title from catalog API ──────────────────────────────────
+    # v9 reused as result; v0=context, v2=accessToken, v6=namespace, v7=catalogItemId
+    invoke-static {v0, v2, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->fetchTitle(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v9
+    invoke-virtual {v9}, Ljava/lang/String;->isEmpty()Z
+    move-result v14
+    if-nez v14, :title_done
+    move-object v13, v9   # replace appName with catalog title for display
+    :title_done
+
+    # post $2(appName/title, namespace, catalogItemId) to UI thread
     new-instance v14, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
     invoke-direct {v14, v0, v13, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
     invoke-virtual {v0, v14}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
