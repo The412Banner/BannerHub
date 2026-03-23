@@ -2029,7 +2029,7 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `patches/AndroidManifest.xml`
 
 ### [feat] — epic-integration — Phase 2: EpicMainActivity + library sync (2026-03-22)
-**Commit:** `TBD`  |  **Branch:** epic-integration
+**Commit:** `dfee0d3`  |  **Branch:** epic-integration
 #### What changed
 - **EpicMainActivity**: entry activity; loads EpicCredentialStore → if null starts EpicLoginActivity+finish; if logged in builds ScrollView→LinearLayout UI with header + "Syncing..." text; starts $1 background thread
 - **EpicMainActivity$1**: background sync; calls EpicTokenRefresh.refresh(); GETs Epic library API (Bearer auth, UE User-Agent); parses `"appName":"..."` window from JSON; skips empty/"1" entries; posts $2(appName) per game to UI thread; posts $3 when done
