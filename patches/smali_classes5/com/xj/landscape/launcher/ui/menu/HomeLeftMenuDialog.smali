@@ -1588,6 +1588,14 @@
     invoke-virtual {p2, p0}, Landroid/content/Context;->startActivity(Landroid/content/Intent;)V
     goto :goto_1
 
+    # BannerHub: Epic Games menu item
+    :pswitch_11
+    new-instance p0, Landroid/content/Intent;
+    const-class p1, Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity;
+    invoke-direct {p0, p2, p1}, Landroid/content/Intent;-><init>(Landroid/content/Context;Ljava/lang/Class;)V
+    invoke-virtual {p2, p0}, Landroid/content/Context;->startActivity(Landroid/content/Intent;)V
+    goto :goto_1
+
     :cond_2
     :goto_1
     sget-object p0, Lkotlin/Unit;->a:Lkotlin/Unit;
@@ -1612,6 +1620,7 @@
         :pswitch_0
         :pswitch_9
         :pswitch_10
+        :pswitch_11
     .end packed-switch
 .end method
 
@@ -3901,6 +3910,18 @@
     const/16 v10, 0x18
     const/4 v11, 0x0
     const/16 v5, 0xa
+    const/4 v8, 0x0
+    const/4 v9, 0x0
+    invoke-direct/range {v4 .. v11}, Lcom/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog$MenuItem;-><init>(IILjava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    invoke-interface {p0, v4}, Ljava/util/List;->add(Ljava/lang/Object;)Z
+
+    # BannerHub: Epic Games menu item (id=11)
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog$MenuItem;
+    sget v6, Lcom/xj/landscape/launcher/R$drawable;->menu_setting_normal:I
+    const-string v7, "Epic Games"
+    const/16 v10, 0x18
+    const/4 v11, 0x0
+    const/16 v5, 0xb
     const/4 v8, 0x0
     const/4 v9, 0x0
     invoke-direct/range {v4 .. v11}, Lcom/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog$MenuItem;-><init>(IILjava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
