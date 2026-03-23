@@ -57,8 +57,8 @@
 .method private static postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     .locals 2
     new-instance v0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$8;
-    invoke-direct {v0, p1, p2}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$8;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
-    invoke-virtual {p1, v0}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
+    invoke-direct {v0, p0, p1}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$8;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {p0, v0}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     return-void
 .end method
 
