@@ -2259,3 +2259,10 @@ Smali inner classes (`$1`, `$2`, `$3`) are separate `.class` files with no speci
 Removed spaces before `:` in Epic library sync JSON markers (`"appName\" :"` → `"appName\":"`, same for namespace/catalogItemId). Epic's library API returns compact JSON — markers with spaces never matched → empty namespace/catalogItemId → manifest URL invalid → 404.
 #### Files touched
 `EpicMainActivity$1.smali`
+
+### [fix] — v2.7.1-beta38 — Epic JSON: restore spaces + forward-search namespace/catalogItemId (2026-03-23)
+**Commit:** `9476937`  |  **Tag:** v2.7.1-beta38
+#### What changed
+Restored space in appName marker (beta37 regression). Changed namespace/catalogItemId search from lastIndexOf→indexOf (fields come after appName in Epic JSON, not before).
+#### Files touched
+`EpicMainActivity$1.smali`

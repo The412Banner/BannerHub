@@ -3605,3 +3605,24 @@ Epic's library-service API returns compact JSON (`"namespace":"value"` — no sp
 
 ### CI result
 → ✅ run 23453694677 — Normal APK built successfully
+
+---
+
+## Entry 78 — v2.7.1-beta38 — fix: games list restored + namespace/catalogItemId forward search (2026-03-23)
+
+**Branch:** epic-integration | **Commit:** 9476937 | **Tag:** v2.7.1-beta38
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali` — lines 194-197 (restore spaces), 240/259 (lastIndexOf → indexOf)
+
+### Methods changed
+- `EpicMainActivity$1.run()` — library sync parse loop
+
+### Root-cause / design
+Two bugs:
+1. beta37 regression: Epic API returns spaced JSON ("appName" : "value") — removing the space broke indexOf match → 0 games shown.
+2. Original 404: namespace and catalogItemId were searched with lastIndexOf (backward from appName cursor) but these fields come AFTER appName in Epic's JSON order → backwards search never found them → empty strings → manifest URL .../namespace//catalogItem//... → HTTP 404.
+Fix: restore spaces in all 3 markers; change lastIndexOf → indexOf for namespace and catalogItemId (forward search from appName cursor position).
+
+### CI result
+→ ✅ — Normal APK built successfully
