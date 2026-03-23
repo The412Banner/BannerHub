@@ -2,4 +2,3 @@ apktool_out/
 jadx_out/
 rebuilt-*.apk
 *.apk
-!base/*.apk
