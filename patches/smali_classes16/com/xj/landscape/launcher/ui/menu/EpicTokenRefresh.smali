@@ -104,8 +104,6 @@
 
     # ── Basic auth header: base64(client_id:client_secret) ───────────────────
     const-string v5, "34a02cf8f4414e29b15921876da36f9a:daafbccc737745039dffe53d94fc76cf"
-    invoke-static {v5}, Landroid/util/Base64;->encode([B, I)[B
-    # Base64.encode takes byte[], flags — need to get bytes first
     const-string v6, "UTF-8"
     invoke-virtual {v5}, Ljava/lang/String;->getBytes(Ljava/lang/String;)[B
     move-result-object v5
