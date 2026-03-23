@@ -24,8 +24,11 @@
 #   v5 = response StringBuilder → response String
 #   v6 = line String (read loop)
 #   v7 = int temp (cursor, indexOf result)
-#   v8 = title marker string
+#   v8 = title key marker "\"title\""
 #   v9 = quote marker string "\""
+# Parse strategy: find "title" key, then seek next '"' past it (skips any
+# spacing around ':'), extract until next '"'. Works for both compact
+# ("title":"value") and pretty-printed ("title" : "value") JSON.
 
 
 .method public static fetchTitle(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
@@ -111,24 +114,30 @@
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5   # v5 = JSON response
 
-    # ── Parse "title" : "..." (first occurrence = item's own title) ───────────
-    const-string v8, "\"title\" :"
+    # ── Parse "title" value — format-agnostic (works with and without spaces) ──
+    # Strategy: find "title" key, then seek to the NEXT '"' after it.
+    # That '"' is the opening quote of the value regardless of ":" or " : " spacing.
+    const-string v8, "\"title\""
     const-string v9, "\""
     const/4 v7, 0x0
 
+    # Find "title" key
     invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v7
     if-ltz v7, :no_title
 
+    # Advance past the key (length of "\"title\"" = 7 chars)
     invoke-virtual {v8}, Ljava/lang/String;->length()I
     move-result v0
     add-int v7, v7, v0
 
+    # Find opening quote of value (skips `:` and any whitespace)
     invoke-virtual {v5, v9, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v7
     if-ltz v7, :no_title
-    add-int/lit8 v7, v7, 0x1
+    add-int/lit8 v7, v7, 0x1   # advance past opening quote
 
+    # Find closing quote
     invoke-virtual {v5, v9, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v0
     if-ltz v0, :no_title
