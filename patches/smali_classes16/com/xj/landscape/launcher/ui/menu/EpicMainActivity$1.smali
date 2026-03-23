@@ -293,8 +293,8 @@
     # ── Parse done — check for next page via stateToken ───────────────────────
     :sync_done
     # v8 = full JSON response (still valid); v0 = context; v2 = accessToken
-    # Parse "stateToken" value using format-agnostic seek
-    const-string v3, "\"stateToken\""
+    # Parse "nextCursor" value using format-agnostic seek
+    const-string v3, "\"nextCursor\""
     const-string v4, "\""
     const/4 v9, 0x0
     invoke-virtual {v8, v3, v9}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
