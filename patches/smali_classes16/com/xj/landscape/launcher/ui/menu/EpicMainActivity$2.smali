@@ -175,9 +175,11 @@
     const v14, 0xFFFFFFFF
     invoke-virtual {v11, v14}, Landroid/widget/Button;->setTextColor(I)V
 
-    # Wire OnClickListener
+    # Wire OnClickListener — pass namespace + catalogItemId so $5 can start the install flow
     new-instance v12, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$5;
-    invoke-direct {v12, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$5;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    iget-object v13, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->namespace:Ljava/lang/String;
+    iget-object v14, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->catalogItemId:Ljava/lang/String;
+    invoke-direct {v12, v0, v1, v13, v14}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$5;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
     invoke-virtual {v11, v12}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     # LP: WRAP_CONTENT × 40dp, gravity=END (right-aligned compact button)
