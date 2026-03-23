@@ -52,7 +52,7 @@
 
     const-string v3, "BH_EPIC"
     const-string v4, "sync_start"
-    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
     # ── Refresh access token ───────────────────────────────────────────────────
     invoke-static {v0}, Lcom/xj/landscape/launcher/ui/menu/EpicTokenRefresh;->refresh(Landroid/content/Context;)Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;
@@ -60,7 +60,7 @@
     if-nez v1, :have_creds
     const-string v3, "BH_EPIC"
     const-string v4, "no_creds"
-    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
     goto :sync_done
 
     :have_creds
@@ -68,7 +68,7 @@
     if-nez v2, :have_token
     const-string v3, "BH_EPIC"
     const-string v4, "no_token"
-    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
     goto :sync_done
 
     :have_token
@@ -110,7 +110,7 @@
     invoke-static {v3}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
     move-result-object v5
     const-string v6, "BH_EPIC"
-    invoke-static {v6, v5}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    invoke-static {v6, v5}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
     const/16 v5, 0xC8   # 200
     if-eq v3, v5, :read_resp
     invoke-virtual {v4}, Ljava/net/HttpURLConnection;->disconnect()V
@@ -140,6 +140,14 @@
     invoke-virtual {v4}, Ljava/net/HttpURLConnection;->disconnect()V
     invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v8   # v8 = JSON response String
+
+    # Log JSON response length so we can tell if data arrived
+    invoke-virtual {v8}, Ljava/lang/String;->length()I
+    move-result v3
+    invoke-static {v3}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+    move-result-object v3
+    const-string v4, "BH_EPIC"
+    invoke-static {v4, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
     # ── Parse "appName":"..." records ─────────────────────────────────────────
     # v10 = pos cursor;  v11 = marker;  v12 = int temp;  v13 = appName String
@@ -208,9 +216,11 @@
 
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :catch_all
     :catch_all
-    const-string v0, "BH_EPIC"
-    const-string v1, "exception"
-    invoke-static {v0, v1}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    move-exception v3
+    invoke-virtual {v3}, Ljava/lang/Throwable;->toString()Ljava/lang/String;
+    move-result-object v3
+    const-string v4, "BH_EPIC"
+    invoke-static {v4, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
     new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$3;
     invoke-direct {v1, v0}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$3;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;)V
