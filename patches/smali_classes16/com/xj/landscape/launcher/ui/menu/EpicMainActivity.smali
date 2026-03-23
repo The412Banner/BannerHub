@@ -10,8 +10,8 @@
 #   syncText  – "Syncing..." TextView hidden by $3 when sync completes
 
 
-.field private gameList:Landroid/widget/LinearLayout;
-.field private syncText:Landroid/widget/TextView;
+.field public gameList:Landroid/widget/LinearLayout;
+.field public syncText:Landroid/widget/TextView;
 
 
 .method public constructor <init>()V
