@@ -87,6 +87,20 @@
     invoke-virtual {v1}, Ljava/net/HttpURLConnection;->disconnect()V
     return-object v3
     :bad
+    # Log the actual HTTP response code so we can diagnose failures
+    # v0=statusCode(int) v1=connection  v2/v3 free
+    new-instance v3, Ljava/lang/StringBuilder;
+    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v2, "downloadBytes HTTP "
+    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v2, " url="
+    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v3, p0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+    const-string v2, "BannerHub"
+    invoke-static {v2, v3}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
     invoke-virtual {v1}, Ljava/net/HttpURLConnection;->disconnect()V
     :try_end
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :fail
