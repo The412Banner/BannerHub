@@ -71,7 +71,7 @@
     const-string v4, "Err: token refresh returned null"
     invoke-direct {v3, v0, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
-    goto :sync_done
+    return-void
 
     :have_creds
     iget-object v2, v1, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->accessToken:Ljava/lang/String;
@@ -83,7 +83,7 @@
     const-string v4, "Err: null access token"
     invoke-direct {v3, v0, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
-    goto :sync_done
+    return-void
 
     :have_token
 
@@ -141,7 +141,7 @@
     new-instance v3, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
     invoke-direct {v3, v0, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
-    goto :sync_done
+    return-void
 
     # ── Read response body ─────────────────────────────────────────────────────
     :read_resp
@@ -246,10 +246,11 @@
 
     goto :parse_loop
 
-    # ── Post $3 (hide "Syncing...") ────────────────────────────────────────────
+    # ── Show final status (stays on screen — not hidden) ──────────────────────
     :sync_done
-    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$3;
-    invoke-direct {v1, v0}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$3;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;)V
+    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    const-string v3, "Sync done"
+    invoke-direct {v1, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-virtual {v0, v1}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     return-void
     :try_end
