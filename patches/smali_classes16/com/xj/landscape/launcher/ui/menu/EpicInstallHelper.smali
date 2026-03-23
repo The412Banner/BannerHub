@@ -343,7 +343,7 @@
     add-int/lit8 v8, v1, 0x1
 
     # append to query string
-    if-nez v6, :not_first
+    if-eqz v6, :not_first
     const-string v12, "&"
     invoke-virtual {v5, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     :not_first
