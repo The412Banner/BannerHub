@@ -7,23 +7,28 @@
 # (grant_type=authorization_code), saves EpicCredentials on success, then
 # posts $4 (success) or $5 (failure) back to the UI thread.
 #
+# .locals 15 → p0 = v15 (within 4-bit range; v16 would break iget-object)
+#
 # Register map for run():
 #   v0  = authCode (String)
-#   v1  = this$0  (EpicLoginActivity / Context)
-#   v2  = StringBuilder body / body string / cmp-long temp / wide const
-#   v3  = URL string / URL / const temp / wide const hi
+#   v1  = this$0  (EpicLoginActivity / Context)  — preserved throughout
+#   v2  = POST body StringBuilder → body string
+#            → cmp-long int temp → wide const temp (7200000)
+#            → EpicCredentials object (after :has_expires)
+#            → $4/$5 runnable object (success/failure)
+#   v3  = URL string → URL object → const/string temp → wide const hi
 #   v4  = HttpURLConnection
-#   v5  = int temp / OutputStream / response code / InputStream / "expires_at" key
-#   v6  = Base64 bytes / InputStreamReader / int NO_WRAP / const 200 / v5 hi
+#   v5  = int/OutputStream/int responseCode/InputStream/"expires_at" → wide pair lo (0L)
+#   v6  = byte[]/InputStreamReader/int NO_WRAP/const 200  → wide pair hi (0L)
 #   v7  = "UTF-8" / BufferedReader
-#   v8  = response StringBuilder / response JSON String
-#   v9  = response line (loop) / access_token
+#   v8  = response StringBuilder → response JSON String
+#   v9  = response line (loop) → access_token
 #  v10  = refresh_token
 #  v11  = account_id
 #  v12  = displayName
-#  v13  = expiresAt (wide lo)
-#  v14  = expiresAt (wide hi)
-#  v15  = EpicCredentials object
+#  v13  = expiresAt wide lo
+#  v14  = expiresAt wide hi
+#  p0  (= v15) = this (EpicLoginActivity$2)
 
 .field final synthetic this$0:Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity;
 .field final synthetic authCode:Ljava/lang/String;
@@ -39,7 +44,7 @@
 
 
 .method public run()V
-    .locals 16
+    .locals 15
 
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity$2;->authCode:Ljava/lang/String;
     iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity$2;->this$0:Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity;
@@ -55,7 +60,7 @@
     const-string v3, "&token_type=eg1"
     invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v2   # v2 = POST body string
+    move-result-object v2   # v2 = body string
 
     # ── Open connection ───────────────────────────────────────────────────────
     const-string v3, "https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token"
@@ -145,7 +150,7 @@
     invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v8   # v8 = response JSON string
 
-    # ── Parse new tokens ──────────────────────────────────────────────────────
+    # ── Parse tokens ──────────────────────────────────────────────────────────
     const-string v9, "access_token"
     invoke-static {v8, v9}, Lcom/xj/landscape/launcher/ui/menu/GogLoginActivity;->parseJsonStringField(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     move-result-object v9   # v9 = access_token or null
@@ -167,46 +172,45 @@
 
     const-string v5, "expires_at"
     invoke-static {v8, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicCredentialStore;->parseJsonLongField(Ljava/lang/String;Ljava/lang/String;)J
-    move-result-wide v13   # v13+v14 = expiresAt (0 if field is ISO string)
+    move-result-wide v13   # v13+v14 = expiresAt (0 if ISO string)
 
-    # expiresAt fallback: if 0 (parseJsonLongField returned 0 for ISO string),
-    # compute now + 2 hours
+    # expiresAt fallback: if 0 use now + 2h
     const-wide/16 v5, 0x0
-    cmp-long v2, v13, v5   # v2 (int) = sign(expiresAt - 0)
+    cmp-long v2, v13, v5   # v2 (int) = sign(expiresAt - 0)  [v2 reused here]
     if-nez v2, :has_expires
     invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
     move-result-wide v13
-    const-wide/32 v2, 0x6DDD00   # 7200000ms = 2h
+    const-wide/32 v2, 0x6DDD00   # 7200000ms = 2h  [v2+v3 as wide]
     add-long v13, v13, v2
 
     :has_expires
 
-    # ── Build EpicCredentials ─────────────────────────────────────────────────
-    new-instance v15, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;
-    invoke-direct {v15}, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;-><init>()V
+    # ── Build EpicCredentials  [v2 reused as EpicCredentials object] ──────────
+    new-instance v2, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;
+    invoke-direct {v2}, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;-><init>()V
 
-    iput-object v9, v15, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->accessToken:Ljava/lang/String;
+    iput-object v9, v2, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->accessToken:Ljava/lang/String;
 
     if-eqz v10, :skip_refresh
-    iput-object v10, v15, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->refreshToken:Ljava/lang/String;
+    iput-object v10, v2, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->refreshToken:Ljava/lang/String;
     :skip_refresh
 
     if-eqz v11, :skip_account
-    iput-object v11, v15, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->accountId:Ljava/lang/String;
+    iput-object v11, v2, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->accountId:Ljava/lang/String;
     :skip_account
 
     if-eqz v12, :skip_name
-    iput-object v12, v15, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->displayName:Ljava/lang/String;
+    iput-object v12, v2, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->displayName:Ljava/lang/String;
     :skip_name
 
-    iput-wide v13, v15, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->expiresAt:J
+    iput-wide v13, v2, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->expiresAt:J
 
     # ── Persist and post success to UI thread ─────────────────────────────────
-    invoke-static {v1, v15}, Lcom/xj/landscape/launcher/ui/menu/EpicCredentialStore;->save(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;)V
+    invoke-static {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicCredentialStore;->save(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;)V
 
-    new-instance v2, Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity$4;
-    invoke-direct {v2, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity;)V
-    invoke-virtual {v1, v2}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity$4;
+    invoke-direct {v3, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicLoginActivity;)V
+    invoke-virtual {v1, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     return-void
 
     # ── Failure: post $5 to UI thread ─────────────────────────────────────────
