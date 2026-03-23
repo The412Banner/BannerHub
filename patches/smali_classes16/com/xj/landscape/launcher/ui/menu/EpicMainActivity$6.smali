@@ -149,11 +149,11 @@
 
     :not_dlc
 
-    # ── Parse catalog "appName" → store in lastAppName for $1 to read ──────────
-    # The catalog API's "appName" is the human-readable artifact name (e.g.
-    # "Samorost3Game", "Fortnite") that the manifest URL requires.  The library
-    # API returns UUIDs for the same field, so we must get it from here instead.
-    const-string v8, "\"appName\""
+    # ── Parse catalog "appId" (inside releaseInfo[]) → store in lastAppName ─────
+    # The catalog API's releaseInfo[0].appId is the human-readable artifact name
+    # (e.g. "Samorost3Game", "Fortnite") that the manifest URL requires.
+    # The library API returns UUIDs for the same concept, so we get it from here.
+    const-string v8, "\"appId\""
     const-string v9, "\""
     const/4 v7, 0x0
     invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
