@@ -2027,3 +2027,20 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `patches/smali_classes5/com/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog.smali`
 - `patches/AndroidManifest.xml`
+
+### [feat] — epic-integration — Phase 2: EpicMainActivity + library sync (2026-03-22)
+**Commit:** `TBD`  |  **Branch:** epic-integration
+#### What changed
+- **EpicMainActivity**: entry activity; loads EpicCredentialStore → if null starts EpicLoginActivity+finish; if logged in builds ScrollView→LinearLayout UI with header + "Syncing..." text; starts $1 background thread
+- **EpicMainActivity$1**: background sync; calls EpicTokenRefresh.refresh(); GETs Epic library API (Bearer auth, UE User-Agent); parses `"appName":"..."` window from JSON; skips empty/"1" entries; posts $2(appName) per game to UI thread; posts $3 when done
+- **EpicMainActivity$2**: UI runnable; adds card (dark LinearLayout): appName TextView (white 16sp) + Install Button (MATCH_PARENT × 80px, white text)
+- **EpicMainActivity$3**: sync-done runnable; hides "Syncing..." TextView (View.GONE)
+- **HomeLeftMenuDialog**: :pswitch_11 now starts EpicMainActivity (was EpicLoginActivity)
+- **AndroidManifest.xml**: EpicMainActivity declared
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity.smali` (new)
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali` (new)
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$2.smali` (new)
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$3.smali` (new)
+- `patches/smali_classes5/com/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog.smali`
+- `patches/AndroidManifest.xml`
