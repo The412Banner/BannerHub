@@ -3,6 +3,8 @@
 .implements Ljava/lang/Runnable;
 
 # BannerHub: UI Runnable posted by $1 for each Epic game found in library.
+# Carries appName, namespace, and catalogItemId extracted by $1 from the library JSON.
+# namespace + catalogItemId are stored as fields for use in the catalog API (Task #16).
 # Builds a GOG-style horizontal card in EpicMainActivity.gameList:
 #   Left:  60dp×60dp dark-grey (#333333) placeholder with first-letter TextView
 #   Right: vertical LinearLayout (weight=1, 12dp left padding)
@@ -31,12 +33,16 @@
 
 .field final synthetic this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
 .field final synthetic appName:Ljava/lang/String;
+.field final synthetic namespace:Ljava/lang/String;
+.field final synthetic catalogItemId:Ljava/lang/String;
 
 
-.method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+.method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
     .locals 0
     iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
     iput-object p2, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->appName:Ljava/lang/String;
+    iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->namespace:Ljava/lang/String;
+    iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->catalogItemId:Ljava/lang/String;
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
     return-void
 .end method

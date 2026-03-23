@@ -174,15 +174,21 @@
     invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
 
     # ── Parse "appName":"..." records ─────────────────────────────────────────
-    # v10 = pos cursor;  v11 = marker;  v12 = int temp;  v13 = appName String
+    # v10 = pos cursor;  v11 = appName marker;  v12 = int temp;  v13 = appName String
     # v14 = bool/runnable temp;  v3 = closing-quote string "\""
+    # v4  = namespace marker;    v5  = catalogItemId marker
+    # v6  = namespace String;    v7  = catalogItemId String
+    # v9  = backward-search temp position
     #
     # indexOf returns -1 when not found → if-ltz detects this without a literal reg.
     # add-int/lit8 adds a small integer literal (format 22b).
+    # lastIndexOf(String,int) searches backward from cursor — finds same-record field.
 
     const/4 v10, 0x0
     const-string v11, "\"appName\" :"
     const-string v3, "\""
+    const-string v4, "\"namespace\" :"
+    const-string v5, "\"catalogItemId\" :"
 
     :parse_loop
     invoke-virtual {v8, v11, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
@@ -223,9 +229,47 @@
     move-result v14
     if-nez v14, :parse_loop
 
-    # post $2 to UI thread
+    # ── Extract namespace (backward search from cursor) ───────────────────────
+    const-string v6, ""
+    invoke-virtual {v8, v4, v10}, Ljava/lang/String;->lastIndexOf(Ljava/lang/String;I)I
+    move-result v9
+    if-ltz v9, :ns_done
+    invoke-virtual {v4}, Ljava/lang/String;->length()I
+    move-result v12
+    add-int v9, v9, v12
+    invoke-virtual {v8, v3, v9}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v9
+    if-ltz v9, :ns_done
+    add-int/lit8 v9, v9, 0x1
+    invoke-virtual {v8, v3, v9}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v12
+    if-ltz v12, :ns_done
+    invoke-virtual {v8, v9, v12}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v6
+    :ns_done
+
+    # ── Extract catalogItemId (backward search from cursor) ───────────────────
+    const-string v7, ""
+    invoke-virtual {v8, v5, v10}, Ljava/lang/String;->lastIndexOf(Ljava/lang/String;I)I
+    move-result v9
+    if-ltz v9, :cat_done
+    invoke-virtual {v5}, Ljava/lang/String;->length()I
+    move-result v12
+    add-int v9, v9, v12
+    invoke-virtual {v8, v3, v9}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v9
+    if-ltz v9, :cat_done
+    add-int/lit8 v9, v9, 0x1
+    invoke-virtual {v8, v3, v9}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v12
+    if-ltz v12, :cat_done
+    invoke-virtual {v8, v9, v12}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v7
+    :cat_done
+
+    # post $2(appName, namespace, catalogItemId) to UI thread
     new-instance v14, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
-    invoke-direct {v14, v0, v13}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-direct {v14, v0, v13, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
     invoke-virtual {v0, v14}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
 
     goto :parse_loop
