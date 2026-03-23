@@ -2140,3 +2140,13 @@ Smali inner classes (`$1`, `$2`, `$3`) are separate `.class` files with no speci
 - These tags will appear in logcat filtered by `BH_EPIC` to pinpoint the exact failure
 #### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`
+
+### [debug] — v2.7.1-epic-beta7 — Log.e + exception detail + JSON length (2026-03-23)
+**Commit:** `eb76955`  |  **Tag:** v2.7.1-epic-beta7
+#### What changed
+- All `Log.d("BH_EPIC", ...)` → `Log.e` in `EpicMainActivity$1.run()`
+  - `Log.d` is evicted from Android's circular logcat buffer when system_server floods it with window-transition verbose logs at the exact moment EpicMainActivity opens — this is why no `BH_EPIC` tags appeared in beta6 logcat despite the code being present
+- After reading HTTP response body: log JSON response length so we can confirm whether Epic returned data
+- `catch_all`: added `move-exception v3` + `Throwable.toString()` so the actual exception class and message appear, not just the string `"exception"`
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$1.smali`
