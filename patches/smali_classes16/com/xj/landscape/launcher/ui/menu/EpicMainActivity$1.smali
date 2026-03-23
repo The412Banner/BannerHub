@@ -4,11 +4,13 @@
 
 # BannerHub: Background library-sync Runnable for EpicMainActivity.
 # 1. Refreshes access token via EpicTokenRefresh.refresh().
-# 2. GETs https://library-service.live.use1a.on.epicgames.com/library/api/public/items?includeMetadata=true
+# 2. GETs the library URL stored in the `url` field (first page = base URL;
+#    subsequent pages append &cursor={stateToken} from prior response).
 # 3. Parses "appName":"..." occurrences from JSON response.
 # 4. Skips entries where appName is empty or "1".
 # 5. Posts EpicMainActivity$2(appName) to UI thread per valid game.
-# 6. Posts EpicMainActivity$3 when done (hides "Syncing..." text).
+# 6. At end: if response contains "stateToken", spawns new $1 with next URL.
+#    Otherwise posts "Sync done" status (hides "Syncing..." text).
 #
 # Register map (.locals 15  →  p0 = v15):
 #   v0  = this$0 (EpicMainActivity / Context) — preserved throughout
@@ -33,11 +35,13 @@
 #   add 1 literal → add-int/lit8 (format 22b, 8-bit literal)
 
 .field final synthetic this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
+.field final synthetic url:Ljava/lang/String;
 
 
-.method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;)V
+.method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     .locals 0
     iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
+    iput-object p2, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->url:Ljava/lang/String;
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
     return-void
 .end method
@@ -88,7 +92,7 @@
     :have_token
 
     # ── Open connection ────────────────────────────────────────────────────────
-    const-string v3, "https://library-service.live.use1a.on.epicgames.com/library/api/public/items?includeMetadata=true"
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->url:Ljava/lang/String;
     new-instance v4, Ljava/net/URL;
     invoke-direct {v4, v3}, Ljava/net/URL;-><init>(Ljava/lang/String;)V
     invoke-virtual {v4}, Ljava/net/URL;->openConnection()Ljava/net/URLConnection;
@@ -286,8 +290,55 @@
 
     goto :parse_loop
 
-    # ── Parse done ─────────────────────────────────────────────────────────────
+    # ── Parse done — check for next page via stateToken ───────────────────────
     :sync_done
+    # v8 = full JSON response (still valid); v0 = context; v2 = accessToken
+    # Parse "stateToken" value using format-agnostic seek
+    const-string v3, "\"stateToken\""
+    const-string v4, "\""
+    const/4 v9, 0x0
+    invoke-virtual {v8, v3, v9}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v9
+    if-ltz v9, :no_next_page
+
+    invoke-virtual {v3}, Ljava/lang/String;->length()I
+    move-result v10
+    add-int v9, v9, v10
+
+    invoke-virtual {v8, v4, v9}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v9
+    if-ltz v9, :no_next_page
+    add-int/lit8 v9, v9, 0x1
+
+    invoke-virtual {v8, v4, v9}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v10
+    if-ltz v10, :no_next_page
+
+    invoke-virtual {v8, v9, v10}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v3   # v3 = stateToken value
+    invoke-virtual {v3}, Ljava/lang/String;->isEmpty()Z
+    move-result v9
+    if-nez v9, :no_next_page
+
+    # Build next URL: base_url + "&cursor=" + stateToken
+    iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->url:Ljava/lang/String;
+    new-instance v5, Ljava/lang/StringBuilder;
+    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v4, "&cursor="
+    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3   # v3 = next page URL
+
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;
+    invoke-direct {v4, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    new-instance v5, Ljava/lang/Thread;
+    invoke-direct {v5, v4}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
+    invoke-virtual {v5}, Ljava/lang/Thread;->start()V
+    return-void
+
+    :no_next_page
     new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
     const-string v3, "Sync done"
     invoke-direct {v1, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V

@@ -82,7 +82,8 @@
 
     # ── Start sync thread ──────────────────────────────────────────────────────
     new-instance v2, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;
-    invoke-direct {v2, p0}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;)V
+    const-string v3, "https://library-service.live.use1a.on.epicgames.com/library/api/public/items?includeMetadata=true"
+    invoke-direct {v2, p0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     new-instance v3, Ljava/lang/Thread;
     invoke-direct {v3, v2}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
     invoke-virtual {v3}, Ljava/lang/Thread;->start()V
