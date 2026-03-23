@@ -54,6 +54,12 @@
     const-string v4, "sync_start"
     invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
+    # Show on-screen status
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    const-string v4, "Syncing library..."
+    invoke-direct {v3, v0, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
+
     # ── Refresh access token ───────────────────────────────────────────────────
     invoke-static {v0}, Lcom/xj/landscape/launcher/ui/menu/EpicTokenRefresh;->refresh(Landroid/content/Context;)Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;
     move-result-object v1
@@ -61,6 +67,10 @@
     const-string v3, "BH_EPIC"
     const-string v4, "no_creds"
     invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    const-string v4, "Err: token refresh returned null"
+    invoke-direct {v3, v0, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :sync_done
 
     :have_creds
@@ -69,6 +79,10 @@
     const-string v3, "BH_EPIC"
     const-string v4, "no_token"
     invoke-static {v3, v4}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    const-string v4, "Err: null access token"
+    invoke-direct {v3, v0, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :sync_done
 
     :have_token
@@ -114,6 +128,19 @@
     const/16 v5, 0xC8   # 200
     if-eq v3, v5, :read_resp
     invoke-virtual {v4}, Ljava/net/HttpURLConnection;->disconnect()V
+    # show HTTP error code on screen
+    invoke-static {v3}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+    move-result-object v4
+    new-instance v3, Ljava/lang/StringBuilder;
+    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v5, "HTTP error: "
+    invoke-virtual {v3, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v4
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    invoke-direct {v3, v0, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {v0, v3}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :sync_done
 
     # ── Read response body ─────────────────────────────────────────────────────
@@ -141,13 +168,26 @@
     invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v8   # v8 = JSON response String
 
-    # Log JSON response length so we can tell if data arrived
+    # Log JSON response length + show length on screen
     invoke-virtual {v8}, Ljava/lang/String;->length()I
     move-result v3
     invoke-static {v3}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
     move-result-object v3
     const-string v4, "BH_EPIC"
     invoke-static {v4, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+    # Show JSON length on screen so we know response was received
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v5, "Got JSON ("
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v5, " chars), parsing..."
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    invoke-direct {v4, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
 
     # ── Parse "appName":"..." records ─────────────────────────────────────────
     # v10 = pos cursor;  v11 = marker;  v12 = int temp;  v13 = appName String
@@ -218,12 +258,13 @@
     :catch_all
     move-exception v3
     invoke-virtual {v3}, Ljava/lang/Throwable;->toString()Ljava/lang/String;
-    move-result-object v3
+    move-result-object v3          # v3 = "java.io.IOException: ..." or similar
     const-string v4, "BH_EPIC"
     invoke-static {v4, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
-    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$3;
-    invoke-direct {v1, v0}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$3;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;)V
+    # Show exception on screen instead of hiding, so user can read it
+    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;
+    invoke-direct {v1, v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-virtual {v0, v1}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     return-void
 .end method
