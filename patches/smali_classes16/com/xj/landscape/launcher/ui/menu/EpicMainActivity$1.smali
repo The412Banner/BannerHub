@@ -50,15 +50,25 @@
 
     :try_start
 
+    const-string v3, "BH_EPIC"
+    const-string v4, "sync_start"
+    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+
     # ── Refresh access token ───────────────────────────────────────────────────
     invoke-static {v0}, Lcom/xj/landscape/launcher/ui/menu/EpicTokenRefresh;->refresh(Landroid/content/Context;)Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;
     move-result-object v1
     if-nez v1, :have_creds
+    const-string v3, "BH_EPIC"
+    const-string v4, "no_creds"
+    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
     goto :sync_done
 
     :have_creds
     iget-object v2, v1, Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;->accessToken:Ljava/lang/String;
     if-nez v2, :have_token
+    const-string v3, "BH_EPIC"
+    const-string v4, "no_token"
+    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
     goto :sync_done
 
     :have_token
@@ -97,6 +107,10 @@
     # ── Check response code ────────────────────────────────────────────────────
     invoke-virtual {v4}, Ljava/net/HttpURLConnection;->getResponseCode()I
     move-result v3
+    invoke-static {v3}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+    move-result-object v5
+    const-string v6, "BH_EPIC"
+    invoke-static {v6, v5}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
     const/16 v5, 0xC8   # 200
     if-eq v3, v5, :read_resp
     invoke-virtual {v4}, Ljava/net/HttpURLConnection;->disconnect()V
@@ -194,6 +208,9 @@
 
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :catch_all
     :catch_all
+    const-string v0, "BH_EPIC"
+    const-string v1, "exception"
+    invoke-static {v0, v1}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$1;->this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
     new-instance v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$3;
     invoke-direct {v1, v0}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$3;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;)V
