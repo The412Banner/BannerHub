@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-epic-beta28 — feat: Epic game cover art (DieselGameBoxTall async load) (2026-03-23)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta28
+**Commit:** `44b3865`
+**What changed:** Each Epic game card now shows real cover art. `$6.fetchCoverUrl` makes the same catalog API call and extracts the `DieselGameBoxTall` URL (fallback: `DieselGameBox`). `$1` calls `fetchCoverUrl` after `fetchTitle` and sets it on the `$2` instance via `iput-object` (avoids range invoke). `$2`: `val$coverUrl` field added; placeholder LL+letter-TV replaced with 60dp ImageView (dark bg, CENTER_CROP); `$10` thread launched if URL non-empty. `$10`+`$10$1`: background image fetch → `BitmapFactory.decodeStream` → `View.post(setImageBitmap)`.
+**Files touched:** `$1.smali`, `$2.smali`, `$6.smali`, `$10.smali` (new), `$10$1.smali` (new)
+
+---
+
 ## [epic-beta] — v2.7.1-epic-beta27 — fix: EpicInstallHelper smali errors (lit8 0xFF + v16 out-of-range) (2026-03-23)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-epic-beta27
 **Commit:** `c7d3593`
