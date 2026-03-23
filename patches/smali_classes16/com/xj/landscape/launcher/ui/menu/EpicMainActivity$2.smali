@@ -35,6 +35,7 @@
 .field final synthetic namespace:Ljava/lang/String;
 .field final synthetic catalogItemId:Ljava/lang/String;
 .field public val$coverUrl:Ljava/lang/String;
+.field public displayTitle:Ljava/lang/String;
 
 
 .method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
@@ -131,10 +132,11 @@
     iput v14, v5, Landroid/widget/LinearLayout$LayoutParams;->weight:F
     invoke-virtual {v4, v8, v5}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
-    # ── Title TextView (appName, white #F0F0F0, 15sp bold) ────────────────────
+    # ── Title TextView (displayTitle, white #F0F0F0, 15sp bold) ──────────────
     new-instance v9, Landroid/widget/TextView;
     invoke-direct {v9, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    invoke-virtual {v9, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    iget-object v10, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->displayTitle:Ljava/lang/String;
+    invoke-virtual {v9, v10}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
     const v14, 0xFFF0F0F0
     invoke-virtual {v9, v14}, Landroid/widget/TextView;->setTextColor(I)V
     const/high16 v14, 0x41700000   # 15.0f

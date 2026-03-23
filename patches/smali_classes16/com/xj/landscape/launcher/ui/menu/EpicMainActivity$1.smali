@@ -273,9 +273,13 @@
     move-result-object v7
     :cat_done
 
+    # Save library appName (v13) before fetchTitle might overwrite it.
+    # v12 is free here (was temp position in cat extraction).
+    # v12 = library appName (for manifest URL); v13 = display title (for card UI).
+    move-object v12, v13
+
     # ── Fetch display title from catalog API ──────────────────────────────────
-    # Returns: null = DLC (skip), "" = fetch failed (use appName), else = title
-    # v9 reused as result; v0=context, v2=accessToken, v6=namespace, v7=catalogItemId
+    # Returns: null = DLC (skip), "" = fetch failed (keep v13=appName), else = title
     invoke-static {v0, v2, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->fetchTitle(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     move-result-object v9
     if-nez v9, :not_dlc   # null = DLC → log and skip
@@ -292,18 +296,23 @@
     :not_dlc
     invoke-virtual {v9}, Ljava/lang/String;->isEmpty()Z
     move-result v14
-    if-nez v14, :title_done   # "" = fetch failed → keep appName in v13
-    move-object v13, v9        # use catalog title as display
+    if-nez v14, :title_done   # "" = fetch failed → v13 stays as library appName
+    move-object v13, v9        # fetchTitle succeeded → v13 = display title
     :title_done
+    # v12 = library appName (for manifest URL)
+    # v13 = display title (if fetchTitle succeeded) or library appName (if not)
 
-    # Fetch cover art URL (v9 is free — title result already moved to v13)
+    # Fetch cover art URL
     invoke-static {v0, v2, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->fetchCoverUrl(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     move-result-object v9   # v9 = coverUrl ("" if not found)
 
-    # post $2(title, namespace, catalogItemId) to UI thread; set coverUrl via iput
+    # post $2 to UI thread:
+    #   appName field (v12) = library appName → used in manifest URL via $5/$9/$7
+    #   displayTitle field (v13) = display title → shown on card TextView
     new-instance v14, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
-    invoke-direct {v14, v0, v13, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+    invoke-direct {v14, v0, v12, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
     iput-object v9, v14, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$coverUrl:Ljava/lang/String;
+    iput-object v13, v14, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->displayTitle:Ljava/lang/String;
     invoke-virtual {v0, v14}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
 
     goto :parse_loop
