@@ -114,29 +114,27 @@
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5   # v5 = JSON response
 
-    # ── DLC check: "mainGameItem" non-null → DLC → return null ───────────────
-    # Base game: field absent, or "mainGameItem":null / "mainGameItem" : null
-    # DLC:       "mainGameItem":{...}  (non-null object)
-    const-string v8, "\"mainGameItem\""
+    # ── DLC check: only filter if mainGameItem is positively an object ────────
+    # Look for "mainGameItem":{" or "mainGameItem\" : {" — the opening brace of
+    # the parent-game object that Epic sets on DLC items.
+    # Any other value (null, absent, empty) is treated as a base game.
+    # This avoids false positives from null-spacing variations.
+    const-string v8, "mainGameItem\":{"
     const/4 v7, 0x0
     invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v7
-    if-ltz v7, :not_dlc   # field absent → base game
+    if-gez v7, :is_dlc   # compact ":{" found → DLC
 
-    # "mainGameItem" found — check if value is null (compact or pretty-printed)
-    const-string v8, "mainGameItem\":null"
+    const-string v8, "mainGameItem\" : {"
     const/4 v7, 0x0
     invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v7
-    if-gez v7, :not_dlc   # "...\":null" → base game
+    if-gez v7, :is_dlc   # pretty-printed " : {" found → DLC
 
-    const-string v8, "mainGameItem\" : null"
-    const/4 v7, 0x0
-    invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v7
-    if-gez v7, :not_dlc   # "...\" : null" → base game
+    # No DLC marker found → base game, proceed to title parse
+    goto :not_dlc
 
-    # mainGameItem present and non-null → DLC
+    :is_dlc
     const/4 v0, 0x0
     return-object v0   # null = DLC
 
