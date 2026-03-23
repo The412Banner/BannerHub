@@ -114,6 +114,34 @@
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5   # v5 = JSON response
 
+    # ── DLC check: "mainGameItem" non-null → DLC → return null ───────────────
+    # Base game: field absent, or "mainGameItem":null / "mainGameItem" : null
+    # DLC:       "mainGameItem":{...}  (non-null object)
+    const-string v8, "\"mainGameItem\""
+    const/4 v7, 0x0
+    invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-ltz v7, :not_dlc   # field absent → base game
+
+    # "mainGameItem" found — check if value is null (compact or pretty-printed)
+    const-string v8, "mainGameItem\":null"
+    const/4 v7, 0x0
+    invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-gez v7, :not_dlc   # "...\":null" → base game
+
+    const-string v8, "mainGameItem\" : null"
+    const/4 v7, 0x0
+    invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-gez v7, :not_dlc   # "...\" : null" → base game
+
+    # mainGameItem present and non-null → DLC
+    const/4 v0, 0x0
+    return-object v0   # null = DLC
+
+    :not_dlc
+
     # ── Parse "title" value — format-agnostic (works with and without spaces) ──
     # Strategy: find "title" key, then seek to the NEXT '"' after it.
     # That '"' is the opening quote of the value regardless of ":" or " : " spacing.
