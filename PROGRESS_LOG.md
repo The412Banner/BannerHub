@@ -2005,3 +2005,15 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$3.smali`
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$6.smali`
+
+### [feat] — epic-integration — Phase 1: data classes, credential store, token refresh, login activity (2026-03-22)
+**Commit:** `21f6be4`  |  **Branch:** epic-integration
+#### What changed
+- **EpicGame**: data class with catalogId, appName, title, namespace, artCover/artSquare, developer, description, downloadSize (J), canRunOffline (Z), requiresOT (Z), isDLC (Z), baseGameAppName, thirdPartyManagedApp
+- **EpicCredentials**: credential holder — accessToken, refreshToken, accountId, displayName, expiresAt (J epoch millis)
+- **EpicCredentialStore**: load/save/clear via `{filesDir}/epic/credentials.json`; `parseJsonLongField()` shared helper; reuses `GogLoginActivity.parseJsonStringField()`
+- **EpicTokenRefresh**: `needsRefresh()` (5-min buffer); `refresh()` POSTs grant_type=refresh_token to Epic OAuth endpoint; Basic auth = base64(Legendary public creds); falls back to now+2h if expires_at absent
+- **EpicLoginActivity** + **$1–$5**: WebView OAuth login flow; $1 WebViewClient injects JS on redirect page; $3 JS interface (@JavascriptInterface) parses authorizationCode; $2 POSTs authorization_code grant on background thread, saves EpicCredentials, posts $4 (success+finish) or $5 (failure) to UI thread
+#### Files touched
+- `EpicGame.smali`, `EpicCredentials.smali`, `EpicCredentialStore.smali`, `EpicTokenRefresh.smali` (new)
+- `EpicLoginActivity.smali`, `EpicLoginActivity$1–$5.smali` (new)
