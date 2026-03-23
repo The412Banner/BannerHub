@@ -372,11 +372,15 @@
     goto :finish
     :err_api
     sget v5, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
+    iget-object v8, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$appName:Ljava/lang/String;
     new-instance v6, Ljava/lang/StringBuilder;
     invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v7, "Install failed: manifest API HTTP "
+    const-string v7, "HTTP "
     invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v6, v5}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v7, " app="
+    invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v6, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
