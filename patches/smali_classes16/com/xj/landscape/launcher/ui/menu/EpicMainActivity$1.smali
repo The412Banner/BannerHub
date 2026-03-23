@@ -22,7 +22,7 @@
 #   v8  = response StringBuilder → JSON String
 #   v9  = line String (read loop)
 #  v10  = parse cursor (int pos, reused as start pos)
-#  v11  = marker string "\"appName\":\""
+#  v11  = marker string "\"appName\":"
 #  v12  = indexOf/length result (int temp, reused as end pos)
 #  v13  = extracted appName String
 #  v14  = boolean temp / $2 Runnable
@@ -135,18 +135,24 @@
     # add-int/lit8 adds a small integer literal (format 22b).
 
     const/4 v10, 0x0
-    const-string v11, "\"appName\":\""
+    const-string v11, "\"appName\":"
     const-string v3, "\""
 
     :parse_loop
     invoke-virtual {v8, v11, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v10            # v10 = idx of "appName":" or -1
+    move-result v10            # v10 = idx of "appName": or -1
     if-ltz v10, :sync_done     # not found → done
 
-    # advance past marker to start of value
+    # advance past marker
     invoke-virtual {v11}, Ljava/lang/String;->length()I
     move-result v12
-    add-int v10, v10, v12      # v10 = start of appName value
+    add-int v10, v10, v12
+
+    # find opening quote of value (skips optional whitespace after colon)
+    invoke-virtual {v8, v3, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v10            # v10 = position of opening '"', or -1
+    if-ltz v10, :sync_done
+    add-int/lit8 v10, v10, 0x1  # advance past opening '"'
 
     # find closing quote
     invoke-virtual {v8, v3, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
