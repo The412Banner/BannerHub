@@ -299,8 +299,17 @@
     if-nez v14, :title_done   # "" = fetch failed → v13 stays as library appName
     move-object v13, v9        # fetchTitle succeeded → v13 = display title
     :title_done
-    # v12 = library appName (for manifest URL)
-    # v13 = display title (if fetchTitle succeeded) or library appName (if not)
+    # Replace library UUID in v12 with catalog artifact appName when available.
+    # $6.lastAppName is set (and reset) inside fetchTitle for each call.
+    sget-object v9, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->lastAppName:Ljava/lang/String;
+    if-eqz v9, :keep_lib_appname
+    invoke-virtual {v9}, Ljava/lang/String;->isEmpty()Z
+    move-result v14
+    if-nez v14, :keep_lib_appname
+    move-object v12, v9   # v12 = catalog artifact appName (correct for manifest URL)
+    :keep_lib_appname
+    # v12 = artifact appName for manifest URL
+    # v13 = display title (or library UUID if fetchTitle failed)
 
     # Fetch cover art URL
     invoke-static {v0, v2, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->fetchCoverUrl(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;

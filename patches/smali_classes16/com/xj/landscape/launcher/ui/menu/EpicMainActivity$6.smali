@@ -1,6 +1,11 @@
 .class public Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;
 .super Ljava/lang/Object;
 
+# Stores the catalog "appName" (human-readable artifact name) extracted during
+# the most recent fetchTitle() call. Read by $1 to replace the library UUID
+# with the correct name for the manifest URL. Reset to "" at each fetchTitle start.
+.field public static lastAppName:Ljava/lang/String;
+
 # BannerHub: Static catalog title fetcher for EpicMainActivity.
 # fetchTitle(Context, String accessToken, String namespace, String catalogItemId)
 #   GETs the Epic catalog API for one item and parses the "title" field.
@@ -33,6 +38,10 @@
 
 .method public static fetchTitle(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     .locals 10
+
+    # Reset lastAppName so stale values never leak across calls
+    const-string v0, ""
+    sput-object v0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->lastAppName:Ljava/lang/String;
 
     # Short-circuit if namespace or catalogItemId is empty
     invoke-virtual {p2}, Ljava/lang/String;->isEmpty()Z
@@ -140,6 +149,31 @@
 
     :not_dlc
 
+    # ── Parse catalog "appName" → store in lastAppName for $1 to read ──────────
+    # The catalog API's "appName" is the human-readable artifact name (e.g.
+    # "Samorost3Game", "Fortnite") that the manifest URL requires.  The library
+    # API returns UUIDs for the same field, so we must get it from here instead.
+    const-string v8, "\"appName\""
+    const-string v9, "\""
+    const/4 v7, 0x0
+    invoke-virtual {v5, v8, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-ltz v7, :do_title_parse
+    invoke-virtual {v8}, Ljava/lang/String;->length()I
+    move-result v0
+    add-int v7, v7, v0
+    invoke-virtual {v5, v9, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7
+    if-ltz v7, :do_title_parse
+    add-int/lit8 v7, v7, 0x1
+    invoke-virtual {v5, v9, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v0
+    if-ltz v0, :do_title_parse
+    invoke-virtual {v5, v7, v0}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v0
+    sput-object v0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$6;->lastAppName:Ljava/lang/String;
+
+    :do_title_parse
     # ── Parse "title" value — format-agnostic (works with and without spaces) ──
     # Strategy: find "title" key, then seek to the NEXT '"' after it.
     # That '"' is the opening quote of the value regardless of ":" or " : " spacing.
