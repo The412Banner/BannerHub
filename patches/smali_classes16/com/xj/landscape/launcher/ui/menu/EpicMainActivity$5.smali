@@ -3,7 +3,7 @@
 .implements Landroid/view/View$OnClickListener;
 
 # BannerHub: Install-button OnClickListener for EpicMainActivity game cards.
-# Shows an AlertDialog confirming install path (/storage/emulated/0/Epic/{appName}).
+# Shows an AlertDialog confirming install path (getFilesDir()/epic_games/{appName}).
 # Positive "Install" → EpicMainActivity$9 → starts EpicMainActivity$7 (download thread).
 # Negative "Cancel" → dismiss.
 #
@@ -43,13 +43,15 @@
     iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$5;->val$namespace:Ljava/lang/String;
     iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$5;->val$catalogItemId:Ljava/lang/String;
 
-    # Build installDir = "/storage/emulated/0/Epic/" + appName → v5 (arg4 for $9 ctor)
-    new-instance v6, Ljava/lang/StringBuilder;
-    invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v7, "/storage/emulated/0/Epic/"
-    invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v6, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    # Build installDir = getFilesDir()/epic_games/{appName} → v5 (arg4 for $9 ctor)
+    invoke-virtual {v1}, Landroid/content/Context;->getFilesDir()Ljava/io/File;
+    move-result-object v6
+    const-string v7, "epic_games"
+    new-instance v5, Ljava/io/File;
+    invoke-direct {v5, v6, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    new-instance v6, Ljava/io/File;
+    invoke-direct {v6, v5, v2}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-virtual {v6}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
     move-result-object v5   # v5 = installDir
 
     # Create $9 in v0 — now v0..v5 are consecutive for range call
