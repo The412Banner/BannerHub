@@ -134,7 +134,7 @@
     invoke-virtual {v4}, Ljava/net/HttpURLConnection;->getOutputStream()Ljava/io/OutputStream;
     move-result-object v5
     const-string v6, "UTF-8"
-    invoke-virtual {v2}, Ljava/lang/String;->getBytes(Ljava/lang/String;)[B
+    invoke-virtual {v2, v6}, Ljava/lang/String;->getBytes(Ljava/lang/String;)[B
     move-result-object v6
     invoke-virtual {v5, v6}, Ljava/io/OutputStream;->write([B)V
     invoke-virtual {v5}, Ljava/io/OutputStream;->close()V
