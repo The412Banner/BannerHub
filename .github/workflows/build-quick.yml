@@ -204,9 +204,22 @@ jobs:
           fi
 
       - name: Upload release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          name: Bannerhub ${{ steps.tag.outputs.name }}
-          prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
-          files: BannerHub-*.apk
+        run: |
+          TAG="${{ steps.tag.outputs.name }}"
+          APK=$(ls BannerHub-*.apk | head -1)
+
+          # Delete any existing release for this tag (handles rolling retag)
+          gh release delete "$TAG" --yes 2>/dev/null || true
+
+          # Determine prerelease flag
+          PRERELEASE=""
+          if [[ "$TAG" == *"-"* ]]; then
+            PRERELEASE="--prerelease"
+          fi
+
+          gh release create "$TAG" \
+            --title "Bannerhub $TAG" \
+            $PRERELEASE \
+            "$APK"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
