@@ -2285,3 +2285,15 @@ Separated library appName from display title. appName flows to manifest URL ($5/
 - Mirrors GameNative EpicManager.kt filtering logic
 #### Files touched
 `EpicMainActivity$1.smali`
+
+---
+
+### [debug] — v2.7.1-pre-beta46 — File-based debug logging for Epic install thread (2026-03-24)
+**Commit:** `d4684d3`  |  **Tag:** v2.7.1-pre-beta46
+#### What changed
+- Added `writeDebug(Context, String)` static method — appends to `getExternalFilesDir/bh_epic_debug.txt`
+- Logs at every key step: appName, ns, catalogItemId, manifest URL, binary CDN URL, all error/success messages
+- `catch_all` now logs actual `exception.toString()` instead of generic message
+- File readable via file manager or `adb shell cat .../bh_epic_debug.txt`
+#### Files touched
+`EpicMainActivity$7.smali`
