@@ -63,6 +63,39 @@
 .end method
 
 
+# Append a line to getExternalFilesDir/bh_epic_debug.txt.
+# Silently swallows all exceptions so it never breaks the install flow.
+.method private static writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    .locals 4
+    :try_start
+    const/4 v0, 0x0
+    invoke-virtual {p0, v0}, Landroid/content/Context;->getExternalFilesDir(Ljava/lang/String;)Ljava/io/File;
+    move-result-object v0
+    if-eqz v0, :done
+    invoke-virtual {v0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+    move-result-object v0
+    new-instance v1, Ljava/lang/StringBuilder;
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v2, "/bh_epic_debug.txt"
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v0
+    new-instance v1, Ljava/io/FileWriter;
+    const/4 v2, 0x1
+    invoke-direct {v1, v0, v2}, Ljava/io/FileWriter;-><init>(Ljava/lang/String;Z)V
+    invoke-virtual {v1, p1}, Ljava/io/FileWriter;->write(Ljava/lang/String;)V
+    const-string v2, "\n"
+    invoke-virtual {v1, v2}, Ljava/io/FileWriter;->write(Ljava/lang/String;)V
+    invoke-virtual {v1}, Ljava/io/FileWriter;->close()V
+    :done
+    :try_end
+    .catch Ljava/lang/Exception; {:try_start .. :try_end} :skip
+    :skip
+    return-void
+.end method
+
+
 # Build a temporary chunk cache file path: tempDir/chunk_{chunkIdx}
 .method private static buildCachePath(Ljava/io/File;I)Ljava/lang/String;
     .locals 3
@@ -121,6 +154,22 @@
     invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+
+    # Write ns + catalogItemId to debug file
+    iget-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$namespace:Ljava/lang/String;
+    iget-object v6, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$catalogItemId:Ljava/lang/String;
+    new-instance v7, Ljava/lang/StringBuilder;
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v8, "ns="
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v8, " cat="
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v5
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
     # ── Step 3: Build manifest API URL ────────────────────────────────────
     iget-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$namespace:Ljava/lang/String;
@@ -142,9 +191,8 @@
     invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5   # v5 = manifest API URL
 
-    # DEBUG: log the exact manifest URL so we can verify the appName
-    const-string v9, "BH_EPIC_URL"
-    invoke-static {v9, v5}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+    # Write manifest URL to debug file
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
     # ── Step 4: Fetch manifest API response ───────────────────────────────
     invoke-static {v5, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->downloadBytes(Ljava/lang/String;Ljava/lang/String;)[B
@@ -174,9 +222,8 @@
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
 
     # ── Step 7: Download binary manifest ──────────────────────────────────
-    # DEBUG: log binary manifest URL
-    const-string v5, "BH_EPIC_BIN"
-    invoke-static {v5, v7}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+    # Write binary manifest URL to debug file
+    invoke-static {v0, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     const-string v5, ""
     invoke-static {v7, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->downloadBytes(Ljava/lang/String;Ljava/lang/String;)[B
     move-result-object v5   # v5 = manifestBytes (v7 free)
@@ -378,11 +425,13 @@
     :all_done
     const-string v5, "Install complete!"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     goto :finish
 
     :err_creds
     const-string v5, "Install failed: not logged in"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     goto :finish
     :err_api
     sget v5, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
@@ -398,9 +447,9 @@
     invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     goto :finish
     :err_manifest
-    # Show HTTP status so we know if it's a network error or auth error
     sget v6, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
     new-instance v5, Ljava/lang/StringBuilder;
     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
@@ -410,16 +459,21 @@
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     goto :finish
     :err_parse
     const-string v5, "Install failed: manifest parse error"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
     :try_end
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :catch_all
     :catch_all
-    const-string v5, "Install failed: unexpected error"
+    move-exception v5
+    invoke-virtual {v5}, Ljava/lang/Throwable;->toString()Ljava/lang/String;
+    move-result-object v5
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
     :finish
     return-void
