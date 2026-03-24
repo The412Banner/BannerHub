@@ -3776,7 +3776,7 @@ The last visible checkpoint in the next debug log will identify the crashing sta
 ---
 
 ### Entry #46 — v2.7.1-beta48 — fix: parseFileList OOM — FFileChunkPart Offset/Size are uint64 not uint32 (2026-03-24)
-**Commit:** TBD  |  **Tag:** `v2.7.1-beta48`  |  **CI:** pending
+**Commit:** `056f804`  |  **Tag:** `v2.7.1-beta48`  |  **CI:** ✅ run 23493180073 (3m35s)
 
 ### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
@@ -3797,4 +3797,4 @@ and discard high 32 bits into v13 (already used as temp scratch at this point in
 No `.locals` change needed; no downstream changes to $7 (packed string format unchanged).
 
 ### CI result
-→ (pending)
+→ ✅ — run 23493180073

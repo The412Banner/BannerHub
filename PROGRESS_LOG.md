@@ -6,7 +6,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ## [epic-beta] — v2.7.1-beta48 — fix: parseFileList OOM — uint64 chunk offset/size read as uint32 (2026-03-24)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta48
-**Commit:** TBD
+**Commit:** `056f804`
 **What changed:** `EpicInstallHelper.parseFileList` read `FFileChunkPart.Offset` and `FFileChunkPart.Size` with `getInt()` (4 bytes) but the Epic binary manifest format stores them as `uint64` (8 bytes each). Each chunk part under-read the buffer by 8 bytes. For games with many files and chunk parts the buffer position drifted far off; `readFString` then read a partial chunk-offset value as the FString length → `OutOfMemoryError: Failed to allocate a 1952531472 byte allocation`. Fix: after reading each low 32-bit word, issue a second `getInt()`/`move-result v13` (discard) to consume the full 8 bytes without changing the register layout (v8=offset, v9=size preserved).
 **Root cause (from logcat 2026-03-24):** `java.lang.OutOfMemoryError: Failed to allocate a 1952531472 byte allocation` at `EpicInstallHelper.readFString(Unknown Source:8)` ← `new-array v1, v0, [B` where v0=1952531472, called from `parseFileList(Unknown Source:53)`.
 **Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
