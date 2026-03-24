@@ -3697,3 +3697,27 @@ The catalog API (already fetched by `$6.fetchTitle`) returns the correct artifac
 - `$1.smali`: After `:title_done`, `sget-object` `$6.lastAppName`; if non-empty,
   `move-object v12, v9` to replace library UUID with catalog artifact appName before
   it flows into `$2`→`$5`→`$9`→`$7` and ultimately the manifest URL.
+
+---
+
+### Entry #43 — v2.7.1-beta45 — debug: split manifest download vs parseBody errors (2026-03-24)
+**Commit:** `d4180b5`  |  **Tag:** `v2.7.1-beta45`  |  **CI:** pending
+
+**Files touched:**
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$7.smali`
+
+**Root-cause analysis:**
+Both step 7 (binary manifest download null) and step 8 (parseBody returns null) jumped to
+`:err_manifest` producing identical "Manifest DL err HTTP 0" output. With `lastHttpStatus=0`
+and no `lastError`, it was impossible to tell if the download succeeded but parseBody rejected
+the bytes (wrong format / short header) or if the download itself silently returned null.
+
+**Fix:**
+- Step 7 null → `:err_manifest` (existing, shows HTTP status) — unchanged
+- Step 8 null → `:err_parsebody` (new label) → "parseBody failed (bad header/magic?)"
+- Added byte count debug write after step 7 succeeds: "manifest bytes: N"
+- Added first-byte debug write: "manifest[0]: B" (12 = binary magic byte 0, 123 = '{' JSON)
+- These two lines will show in `bh_epic_debug.txt` only when the download succeeds
+
+### CI result
+→ pending

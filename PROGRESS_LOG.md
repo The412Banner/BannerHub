@@ -2318,3 +2318,15 @@ VerifyError crash: `move-exception` in `:catch_all` was reachable via fall-throu
 - `$7` `:err_api` and `:err_manifest` write `lastError` to `bh_epic_debug.txt` if set
 #### Files touched
 `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
+
+---
+
+### [debug] — v2.7.1-beta45 — Split manifest download vs parseBody error paths (2026-03-24)
+**Commit:** `d4180b5`  |  **Tag:** v2.7.1-beta45
+#### What changed
+- Step 7 (download) null → `:err_manifest` (shows HTTP status) — unchanged
+- Step 8 (parseBody) null → `:err_parsebody` → "parseBody failed (bad header/magic?)"
+- Debug writes after step 7 success: "manifest bytes: N" and "manifest[0]: B"
+  (first byte 12 = binary magic, 123 = '{' = JSON format)
+#### Files touched
+`EpicMainActivity$7.smali`
