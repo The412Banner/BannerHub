@@ -465,6 +465,7 @@
     const-string v5, "Install failed: manifest parse error"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    goto :finish   # must not fall through to move-exception in :catch_all
 
     :try_end
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :catch_all
