@@ -5,7 +5,10 @@
 # All methods are static — no instance needed.
 
 # Stores the last non-200 HTTP status code from downloadBytes for UI diagnostics.
+# -1 means an exception was thrown (see lastError for the message).
 .field public static lastHttpStatus:I
+# Stores the last exception message from downloadBytes. "" if no exception.
+.field public static lastError:Ljava/lang/String;
 #
 # Methods:
 #   readAllStream(InputStream) → byte[]
@@ -58,6 +61,9 @@
 # auth = "Bearer {token}" or "" for no auth header
 .method public static downloadBytes(Ljava/lang/String;Ljava/lang/String;)[B
     .locals 4
+    # Clear lastError at start of each call so stale messages don't persist
+    const-string v0, ""
+    sput-object v0, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastError:Ljava/lang/String;
     :try_start
     new-instance v0, Ljava/net/URL;
     invoke-direct {v0, p0}, Ljava/net/URL;-><init>(Ljava/lang/String;)V
@@ -94,8 +100,19 @@
     sput v0, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
     invoke-virtual {v1}, Ljava/net/HttpURLConnection;->disconnect()V
     :try_end
-    .catch Ljava/lang/Exception; {:try_start .. :try_end} :fail
-    :fail
+    .catch Ljava/lang/Exception; {:try_start .. :try_end} :catch_ex
+    # fall-through from :bad — non-200 response, return null
+    const/4 v0, 0x0
+    return-object v0
+
+    :catch_ex
+    # Capture exception message into lastError; set lastHttpStatus=-1 to distinguish from HTTP 0
+    move-exception v0
+    invoke-virtual {v0}, Ljava/lang/Throwable;->toString()Ljava/lang/String;
+    move-result-object v0
+    sput-object v0, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastError:Ljava/lang/String;
+    const/16 v0, -1
+    sput v0, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
     const/4 v0, 0x0
     return-object v0
 .end method

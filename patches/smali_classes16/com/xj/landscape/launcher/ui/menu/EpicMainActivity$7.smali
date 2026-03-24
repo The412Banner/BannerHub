@@ -448,6 +448,13 @@
     move-result-object v5
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    sget-object v5, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastError:Ljava/lang/String;
+    if-eqz v5, :api_err_done
+    invoke-virtual {v5}, Ljava/lang/String;->isEmpty()Z
+    move-result v6
+    if-nez v6, :api_err_done
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    :api_err_done
     goto :finish
     :err_manifest
     sget v6, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
@@ -460,6 +467,13 @@
     move-result-object v5
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    sget-object v5, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastError:Ljava/lang/String;
+    if-eqz v5, :manifest_err_done
+    invoke-virtual {v5}, Ljava/lang/String;->isEmpty()Z
+    move-result v6
+    if-nez v6, :manifest_err_done
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    :manifest_err_done
     goto :finish
     :err_parse
     const-string v5, "Install failed: manifest parse error"
