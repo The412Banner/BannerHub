@@ -3802,7 +3802,7 @@ No `.locals` change needed; no downstream changes to $7 (packed string format un
 ---
 
 ### Entry #47 — v2.7.1-beta49 — fix: parseFileList OOM — missing DataSizeSerialised read per FChunkPart (2026-03-24)
-**Commit:** TBD  |  **Tag:** `v2.7.1-beta49`  |  **CI:** pending
+**Commit:** `cab2b49`  |  **Tag:** `v2.7.1-beta49`  |  **CI:** ✅ run 23493801046 (3m35s)
 
 ### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
@@ -3825,4 +3825,4 @@ Fix: revert beta48 end-of-part discards; add single getInt()/move-result v13 at 
 each part iteration to consume DataSizeSerialised. Total per part = 4+16+4+4 = 28 bytes. ✓
 
 ### CI result
-→ (pending)
+→ ✅ — run 23493801046 (3m35s)
