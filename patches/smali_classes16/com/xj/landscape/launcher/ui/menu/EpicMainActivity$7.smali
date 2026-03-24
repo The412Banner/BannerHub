@@ -250,7 +250,18 @@
     move-result-object v7
     invoke-static {v0, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
-    # ── Step 8: Parse header + decompress body ────────────────────────────
+    # ── Step 8: Detect JSON manifest (not yet supported) ─────────────────
+    const/4 v6, 0x0
+    aget-byte v6, v5, v6
+    const/16 v7, 0x7B   # '{' = 123
+    if-ne v6, v7, :not_json
+    const-string v5, "JSON manifest not yet supported"
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    goto :finish
+    :not_json
+
+    # ── Step 8b: Parse binary header + decompress body ────────────────────
     invoke-static {v5, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->parseBody([BLcom/xj/landscape/launcher/ui/menu/EpicManifestData;)Ljava/nio/ByteBuffer;
     move-result-object v5   # v5 = bodyBuf (also fills data.manifestVersion + chunkDir)
     if-eqz v5, :err_parsebody

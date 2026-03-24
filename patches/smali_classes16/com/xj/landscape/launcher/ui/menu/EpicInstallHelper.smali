@@ -466,9 +466,9 @@
     invoke-virtual {v0}, Ljava/nio/ByteBuffer;->getInt()I
     move-result v2   # headerSize
     invoke-virtual {v0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v3   # sizeCompressed
-    invoke-virtual {v0}, Ljava/nio/ByteBuffer;->getInt()I   # sizeUncompressed
-    move-result v4
+    move-result v4   # offset 8 = DataSizeUncompressed (not needed for alloc)
+    invoke-virtual {v0}, Ljava/nio/ByteBuffer;->getInt()I
+    move-result v3   # offset 12 = DataSizeCompressed (used for new-array below)
 
     # Seek to stored_as byte at offset 36 (skip SHA1: 20 bytes from pos 16)
     const/16 v5, 0x24   # 36
