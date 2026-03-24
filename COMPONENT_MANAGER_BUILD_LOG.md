@@ -3752,3 +3752,23 @@ confusing "parseBody failed (bad header/magic?)" message.
 
 ### CI result
 → ✅ — Normal APK built successfully
+
+---
+
+### Entry #45 — v2.7.1-beta47 — debug: crash checkpoint writes (2026-03-24)
+**Commit:** `3431ab7`  |  **Tag:** `v2.7.1-beta47`  |  **CI:** ✅
+
+**Files touched:**
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$7.smali`
+
+**Root-cause analysis:**
+App crashed to dashboard after "manifest[0]: 12" with no further output. Crash = uncaught Error
+(OOM or similar — not caught by catch(Exception) blocks). Need to determine which stage throws it:
+parseBody/decompressZlib, skipManifestMeta, parseChunkList, or parseFileList.
+
+**Fix:**
+Added writeDebug calls after each stage: "parseBody ok", "meta skipped", "chunks: N", "files: N".
+The last visible checkpoint in the next debug log will identify the crashing stage.
+
+### CI result
+→ ✅

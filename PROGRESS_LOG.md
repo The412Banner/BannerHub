@@ -2340,3 +2340,13 @@ VerifyError crash: `move-exception` in `:catch_all` was reachable via fall-throu
 - `$7`: detect JSON manifest (manifest[0] == '{') before calling parseBody → "JSON manifest not yet supported"
 #### Files touched
 `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
+
+---
+
+### [debug] — v2.7.1-beta47 — Checkpoint debug writes to find crash location (2026-03-24)
+**Commit:** `3431ab7`  |  **Tag:** v2.7.1-beta47
+#### What changed
+Added writeDebug after each pipeline stage: "parseBody ok", "meta skipped", "chunks: N", "files: N"
+These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
+#### Files touched
+`EpicMainActivity$7.smali`
