@@ -2330,3 +2330,13 @@ VerifyError crash: `move-exception` in `:catch_all` was reachable via fall-throu
   (first byte 12 = binary magic, 123 = '{' = JSON format)
 #### Files touched
 `EpicMainActivity$7.smali`
+
+---
+
+### [fix] — v2.7.1-beta46 — Fix binary manifest parseBody (swapped sizes) + JSON detection (2026-03-24)
+**Commit:** `bf902ce`  |  **Tag:** v2.7.1-beta46
+#### What changed
+- `parseBody`: swapped v3/v4 assignments — offset 8 = DataSizeUncompressed (v4, unused), offset 12 = DataSizeCompressed (v3, used for array alloc). Old code allocated sizeUncompressed bytes but buffer only had sizeCompressed bytes → BufferUnderflowException → null
+- `$7`: detect JSON manifest (manifest[0] == '{') before calling parseBody → "JSON manifest not yet supported"
+#### Files touched
+`EpicInstallHelper.smali`, `EpicMainActivity$7.smali`

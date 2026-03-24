@@ -3721,3 +3721,34 @@ the bytes (wrong format / short header) or if the download itself silently retur
 
 ### CI result
 → ✅ — Normal APK built successfully (3m36s)
+
+---
+
+### Entry #44 — v2.7.1-beta46 — fix: binary manifest parseBody swapped sizes (2026-03-24)
+**Commit:** `bf902ce`  |  **Tag:** `v2.7.1-beta46`  |  **CI:** ✅
+
+**Files touched:**
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$7.smali`
+
+**Root-cause analysis:**
+Debug log (beta45) showed `manifest[0]: 12` (binary magic) followed by "parseBody failed"
+for Fortnite and another game. Root cause: Epic manifest header layout is
+  offset 8  = DataSizeUncompressed
+  offset 12 = DataSizeCompressed
+but `parseBody` read them into opposite registers (v3=sizeCompressed, v4=sizeUncompressed).
+Since `new-array v7, v3, [B` used v3 for allocation, it tried to allocate+read
+DataSizeUncompressed bytes from a buffer that only contained DataSizeCompressed bytes
+→ `BufferUnderflowException` → caught by try/catch → return null.
+
+**Fix:**
+Swap the `move-result` assignments: v4 gets DataSizeUncompressed (discarded), v3 gets
+DataSizeCompressed (used for `new-array`). v4 is not used downstream in parseBody.
+
+**Also:**
+Added JSON manifest detection in `$7` before calling parseBody: if `manifest[0] == '{'`
+(ASCII 123), skip parseBody and show "JSON manifest not yet supported" instead of the
+confusing "parseBody failed (bad header/magic?)" message.
+
+### CI result
+→ ✅ — Normal APK built successfully
