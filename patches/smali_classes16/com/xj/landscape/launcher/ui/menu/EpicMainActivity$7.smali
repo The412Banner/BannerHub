@@ -229,10 +229,31 @@
     move-result-object v5   # v5 = manifestBytes (v7 free)
     if-eqz v5, :err_manifest
 
+    # Debug: log byte count + first byte (12=binary magic, 123='{' JSON)
+    array-length v6, v5
+    new-instance v7, Ljava/lang/StringBuilder;
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v8, "manifest bytes: "
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v7
+    invoke-static {v0, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    const/4 v6, 0x0
+    aget-byte v6, v5, v6
+    new-instance v7, Ljava/lang/StringBuilder;
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v8, "manifest[0]: "
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v7
+    invoke-static {v0, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+
     # ── Step 8: Parse header + decompress body ────────────────────────────
     invoke-static {v5, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->parseBody([BLcom/xj/landscape/launcher/ui/menu/EpicManifestData;)Ljava/nio/ByteBuffer;
     move-result-object v5   # v5 = bodyBuf (also fills data.manifestVersion + chunkDir)
-    if-eqz v5, :err_manifest
+    if-eqz v5, :err_parsebody
 
     # ── Step 9: Skip ManifestMeta section ────────────────────────────────
     invoke-static {v5}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->skipManifestMeta(Ljava/nio/ByteBuffer;)V
@@ -474,6 +495,11 @@
     if-nez v6, :manifest_err_done
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     :manifest_err_done
+    goto :finish
+    :err_parsebody
+    const-string v5, "parseBody failed (bad header/magic?)"
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     goto :finish
     :err_parse
     const-string v5, "Install failed: manifest parse error"
