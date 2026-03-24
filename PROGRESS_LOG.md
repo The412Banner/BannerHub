@@ -2306,3 +2306,15 @@ Separated library appName from display title. appName flows to manifest URL ($5/
 VerifyError crash: `move-exception` in `:catch_all` was reachable via fall-through from `:err_parse`. Added `goto :finish` to block the path. Verifier requires `move-exception` to only be reachable as exception handler entry point.
 #### Files touched
 `EpicMainActivity$7.smali`
+
+---
+
+### [debug] — v2.7.1-pre-beta48 — Capture exception in downloadBytes (2026-03-24)
+**Commit:** `92e9db1`  |  **Tag:** v2.7.1-pre-beta48
+#### What changed
+- Added `EpicInstallHelper.lastError` static String field — stores `exception.toString()` when `downloadBytes` throws
+- `lastHttpStatus` now -1 on exception (was 0), distinguishable from real HTTP 0
+- Separated `:catch_ex` handler from `:bad` fall-through (same move-exception VerifyError pattern)
+- `$7` `:err_api` and `:err_manifest` write `lastError` to `bh_epic_debug.txt` if set
+#### Files touched
+`EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
