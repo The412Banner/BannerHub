@@ -2273,3 +2273,15 @@ Restored space in appName marker (beta37 regression). Changed namespace/catalogI
 Separated library appName from display title. appName flows to manifest URL ($5/$9/$7), displayTitle shown on card. Fixes 404 for Samorost 3 and similar games where technical appName ≠ display title.
 #### Files touched
 `EpicMainActivity$1.smali`, `EpicMainActivity$2.smali`, `EpicMainActivity$5.smali`
+
+---
+
+### [feat] — v2.7.1-pre-beta45 — Epic library sync: namespace + platform filters (2026-03-24)
+**Commit:** `ec8347a`  |  **Tag:** v2.7.1-pre-beta45
+#### What changed
+- Skip records where `namespace == "ue"` (Unreal Engine tools)
+- Skip records where `platform` field exists but contains neither `"Windows"` nor `"Win32"` (Android/iOS-only entries)
+- Platform search bounded to current record fragment to avoid false matches
+- Mirrors GameNative EpicManager.kt filtering logic
+#### Files touched
+`EpicMainActivity$1.smali`
