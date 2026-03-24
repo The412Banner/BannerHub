@@ -2297,3 +2297,12 @@ Separated library appName from display title. appName flows to manifest URL ($5/
 - File readable via file manager or `adb shell cat .../bh_epic_debug.txt`
 #### Files touched
 `EpicMainActivity$7.smali`
+
+---
+
+### [fix] — v2.7.1-pre-beta47 — Fix VerifyError on Install (2026-03-24)
+**Commit:** `7df4b67`  |  **Tag:** v2.7.1-pre-beta47
+#### What changed
+VerifyError crash: `move-exception` in `:catch_all` was reachable via fall-through from `:err_parse`. Added `goto :finish` to block the path. Verifier requires `move-exception` to only be reachable as exception handler entry point.
+#### Files touched
+`EpicMainActivity$7.smali`
