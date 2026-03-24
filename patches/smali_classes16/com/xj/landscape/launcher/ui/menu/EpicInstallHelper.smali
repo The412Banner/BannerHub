@@ -830,10 +830,16 @@
     move-result-object v4   # v4 = guidHex
 
     # Read chunkOffset → v8, partSize → v9 (GUID words v8-v11 are now free)
+    # FFileChunkPart.Offset and .Size are uint64 (8 bytes each); read low word first,
+    # then read and discard the high word to advance the buffer by the full 8 bytes.
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v8   # chunkOffset
+    move-result v8   # chunkOffset (low 32 bits)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v9   # partSize
+    move-result v13  # chunkOffset high 32 bits (discard; consume full uint64)
+    invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
+    move-result v9   # partSize (low 32 bits)
+    invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
+    move-result v13  # partSize high 32 bits (discard; consume full uint64)
 
     # Find chunkIdx: v10=searchIdx, v11=chunkCount, v13=element/bool
     const/4 v10, 0x0

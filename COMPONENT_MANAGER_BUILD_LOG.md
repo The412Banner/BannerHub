@@ -3772,3 +3772,29 @@ The last visible checkpoint in the next debug log will identify the crashing sta
 
 ### CI result
 → ✅
+
+---
+
+### Entry #46 — v2.7.1-beta48 — fix: parseFileList OOM — FFileChunkPart Offset/Size are uint64 not uint32 (2026-03-24)
+**Commit:** TBD  |  **Tag:** `v2.7.1-beta48`  |  **CI:** pending
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+
+### Methods changed
+- `parseFileList(ByteBuffer, EpicManifestData) → boolean` — chunk part loop, lines 832-836: added 2 extra `getInt()`/`move-result v13` calls to consume high 32-bit words of Offset and Size fields
+
+### Root-cause analysis
+`FFileChunkPart.Offset` and `FFileChunkPart.Size` are `uint64` (8 bytes each) in the Epic binary
+manifest format. The code read each with `getInt()` (4 bytes), under-reading by 4 bytes per field =
+8 bytes per chunk part. For a game with many files × many parts per file the buffer drifted far off.
+Eventually `readFString` read a chunk-offset value as the FString length → 1952531472 bytes allocation
+→ `OutOfMemoryError: Failed to allocate a 1952531472 byte allocation`.
+Confirmed by logcat 2026-03-24: crash at `readFString(Unknown Source:8)` ← `parseFileList(Unknown Source:53)`.
+
+Fix: read low 32 bits normally (preserves v8=chunkOffset, v9=partSize register layout), then read
+and discard high 32 bits into v13 (already used as temp scratch at this point in the method).
+No `.locals` change needed; no downstream changes to $7 (packed string format unchanged).
+
+### CI result
+→ (pending)
