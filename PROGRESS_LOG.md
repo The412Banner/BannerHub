@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-beta49 — fix: parseFileList OOM — missing DataSizeSerialised read per FChunkPart (2026-03-24)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta49
+**Commit:** TBD
+**What changed:** `EpicInstallHelper.parseFileList` chunk part loop was still OOMing after beta48 — different allocation size (1632043024 vs 1952531472) but same crash point. Root cause: each `FChunkPart` record in the Epic binary manifest begins with a `uint32 DataSizeSerialised` (4 bytes, always = 28 including itself) BEFORE the GUID. The code skipped it entirely, under-reading 4 bytes/part. Beta48 wrongly "fixed" this by adding two uint64-high-word discards at the end (+8 bytes/part), net +4 bytes over-read instead of -4 under-read — same drift magnitude, opposite direction. Beta49: revert beta48's extra discards; add single `getInt()`/`move-result v13` at the start of each part loop to consume DataSizeSerialised. Total per-part: 4+16+4+4 = 28 bytes. ✓
+**Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+
+---
+
 ## [epic-beta] — v2.7.1-beta48 — fix: parseFileList OOM — uint64 chunk offset/size read as uint32 (2026-03-24)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta48
 **Commit:** `056f804`

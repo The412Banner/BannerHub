@@ -801,6 +801,15 @@
     :part_loop
     if-ge v7, v6, :part_done
 
+    # Each FChunkPart record is 28 bytes:
+    #   uint32 DataSizeSerialised  (4 bytes — always 28; includes itself)
+    #   FGuid  Guid                (16 bytes)
+    #   uint32 Offset              (4 bytes)
+    #   uint32 Size                (4 bytes)
+    # Read and discard DataSizeSerialised first.
+    invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
+    move-result v13  # DataSizeSerialised (discard)
+
     # Read GUID (4 × uint32)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
     move-result v8
@@ -830,16 +839,10 @@
     move-result-object v4   # v4 = guidHex
 
     # Read chunkOffset → v8, partSize → v9 (GUID words v8-v11 are now free)
-    # FFileChunkPart.Offset and .Size are uint64 (8 bytes each); read low word first,
-    # then read and discard the high word to advance the buffer by the full 8 bytes.
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v8   # chunkOffset (low 32 bits)
+    move-result v8   # chunkOffset (uint32)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v13  # chunkOffset high 32 bits (discard; consume full uint64)
-    invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v9   # partSize (low 32 bits)
-    invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v13  # partSize high 32 bits (discard; consume full uint64)
+    move-result v9   # partSize (uint32)
 
     # Find chunkIdx: v10=searchIdx, v11=chunkCount, v13=element/bool
     const/4 v10, 0x0

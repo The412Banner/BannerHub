@@ -3798,3 +3798,31 @@ No `.locals` change needed; no downstream changes to $7 (packed string format un
 
 ### CI result
 → ✅ — run 23493180073
+
+---
+
+### Entry #47 — v2.7.1-beta49 — fix: parseFileList OOM — missing DataSizeSerialised read per FChunkPart (2026-03-24)
+**Commit:** TBD  |  **Tag:** `v2.7.1-beta49`  |  **CI:** pending
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+
+### Root-cause analysis
+Beta48 still OOMed: `readFString(Unknown Source:8)` from `parseFileList(Unknown Source:53)`,
+allocation 1632043024 (was 1952531472). Same crash site, different drift.
+
+Each FChunkPart record in the Epic binary manifest is 28 bytes:
+  uint32 DataSizeSerialised  // 4 bytes (= 28, includes itself) — was never read
+  FGuid  Guid                // 16 bytes
+  uint32 Offset              // 4 bytes (NOT uint64)
+  uint32 Size                // 4 bytes (NOT uint64)
+
+Original code read 24 bytes/part (skipped DataSizeSerialised). Net: -4 bytes/part.
+Beta48 added two uint64-high-word discards at END: +8 bytes, net +4 bytes/part over-read.
+Same drift magnitude, opposite direction — both crash, just with different OOM sizes.
+
+Fix: revert beta48 end-of-part discards; add single getInt()/move-result v13 at START of
+each part iteration to consume DataSizeSerialised. Total per part = 4+16+4+4 = 28 bytes. ✓
+
+### CI result
+→ (pending)
