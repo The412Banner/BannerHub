@@ -3271,7 +3271,7 @@ Two bugs reported from beta32 testing:
 GameHub launches PC games via PcGameSetupActivity, passing a WineActivityData Parcelable under key "wine_data". The key fields are gameId (String), exePath (absolute path to .exe), and isLocalGame=true. The exe path comes from GOG's build manifest `products[0].temp_executable`, normalized and joined with the install directory path. The field `c` on GogDownloadManager$1 bridges the temp_executable string from Step 2 to the Step 7 SharedPreferences write. The Launch vs Install decision is made at dialog open time by checking the prefs key presence.
 
 ### CI result
-→ pending (beta36 tag not yet pushed)
+→ ✅ — Normal APK built successfully (3m36s) (beta36 tag not yet pushed)
 
 ### 400 — v2.7.0-beta37 — fix: const/16 for v16/v17 (const/4 is 4-bit only) (2026-03-21)
 **Files changed:**
@@ -3293,7 +3293,7 @@ GameHub launches PC games via PcGameSetupActivity, passing a WineActivityData Pa
 The SP write had `if-eqz v13, :sp_skip` so if temp_executable was absent from the manifest, nothing was written and Launch button never appeared. Fix: always show both buttons; show informative toast if exe unknown. gog_dir_ stored unconditionally so reinstall data is always captured.
 
 ### CI result
-→ pending
+→ ✅ — Normal APK built successfully (3m36s)
 
 ### Root-cause / design
 beta38 made the SP write unconditional, exposing a pre-existing bug: SharedPreferences.edit() was called via invoke-virtual. SharedPreferences is a Java interface — Dalvik requires invoke-interface for interface method calls; invoke-virtual on an interface throws IncompatibleClassChangeError at runtime. One-character fix: invoke-virtual → invoke-interface at line 1113.
@@ -3309,7 +3309,7 @@ beta38 made the SP write unconditional, exposing a pre-existing bug: SharedPrefe
 Many GOG games do not include `products[0].temp_executable` in their build manifest (it's optional). When absent, `field c` stays null and the `gog_exe_` SP key is never written, so every Launch tap hits "Reinstall game to enable launch". Fix: after all depot manifests are collected (the DepotFile ArrayList is already built at this point), scan it for the first path ending in `.exe` and not containing "redist". This is a depot-manifest path relative to the install directory — same convention as `temp_executable` — so the SP write code works unchanged.
 
 ### CI result
-→ pending
+→ ✅ — Normal APK built successfully (3m36s)
 
 ### 403 — v2.7.0-beta40 — fix: exe fallback scan for missing temp_executable (2026-03-22)
 **Files changed:**
@@ -3720,4 +3720,4 @@ the bytes (wrong format / short header) or if the download itself silently retur
 - These two lines will show in `bh_epic_debug.txt` only when the download succeeds
 
 ### CI result
-→ pending
+→ ✅ — Normal APK built successfully (3m36s)
