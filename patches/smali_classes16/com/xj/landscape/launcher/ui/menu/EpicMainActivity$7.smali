@@ -265,19 +265,42 @@
     invoke-static {v5, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->parseBody([BLcom/xj/landscape/launcher/ui/menu/EpicManifestData;)Ljava/nio/ByteBuffer;
     move-result-object v5   # v5 = bodyBuf (also fills data.manifestVersion + chunkDir)
     if-eqz v5, :err_parsebody
+    const-string v6, "parseBody ok"
+    invoke-static {v0, v6}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
     # ── Step 9: Skip ManifestMeta section ────────────────────────────────
     invoke-static {v5}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->skipManifestMeta(Ljava/nio/ByteBuffer;)V
+    const-string v6, "meta skipped"
+    invoke-static {v0, v6}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
     # ── Step 10: Parse ChunkDataList ──────────────────────────────────────
     invoke-static {v5, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->parseChunkList(Ljava/nio/ByteBuffer;Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;)Z
     move-result v6
     if-eqz v6, :err_parse
+    iget v6, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->chunkCount:I
+    new-instance v7, Ljava/lang/StringBuilder;
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v8, "chunks: "
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v7
+    invoke-static {v0, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
     # ── Step 11: Parse FileManifestList ───────────────────────────────────
     invoke-static {v5, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->parseFileList(Ljava/nio/ByteBuffer;Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;)Z
     move-result v6
     if-eqz v6, :err_parse
+    iget-object v6, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->fileNames:[Ljava/lang/String;
+    array-length v6, v6
+    new-instance v7, Ljava/lang/StringBuilder;
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v8, "files: "
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v7
+    invoke-static {v0, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     # v5 (bodyBuf) no longer needed — free it logically
 
     # ── Step 12: Create install dir + temp dir ────────────────────────────
