@@ -41,18 +41,20 @@ Download the APK that matches your existing GameHub package name from the [lates
 | APK | Package | App Label |
 |-----|---------|-----------|
 | `BannerHub-vX.Y.Z-Normal.apk` | `banner.hub` | BannerHub |
+| `BannerHub-vX.Y.Z-Normal(GHL).apk` | `gamehub.lite` | BannerHub |
 | `BannerHub-vX.Y.Z-PuBG.apk` | `com.tencent.ig` | BannerHub PuBG |
 | `BannerHub-vX.Y.Z-AnTuTu.apk` | `com.antutu.ABenchMark` | BannerHub AnTuTu |
 | `BannerHub-vX.Y.Z-alt-AnTuTu.apk` | `com.antutu.benchmark.full` | BannerHub AnTuTu |
+| `BannerHub-vX.Y.Z-PuBG-CrossFire.apk` | `com.tencent.tmgp.cf` | BannerHub PuBG CrossFire |
 | `BannerHub-vX.Y.Z-Ludashi.apk` | `com.ludashi.aibench` | BannerHub Ludashi |
 | `BannerHub-vX.Y.Z-Genshin.apk` | `com.mihoyo.genshinimpact` | BannerHub Genshin |
 | `BannerHub-vX.Y.Z-Original.apk` | `com.xiaoji.egggame` | BannerHub Original |
 
 **Which APK do I need?**
 
-If you do not already have any GameHub variant installed, use the **Normal APK** (`banner.hub`). It installs as a completely separate app alongside the original GameHub — both can coexist. If you use a specific GameHub variant for a particular game (e.g. PuBG or Genshin), pick the matching APK so BannerHub replaces that variant's slot.
+If you do not already have any GameHub variant installed, use the **Normal APK** (`banner.hub`). It installs as a completely separate app alongside the official GameHub Lite — both can coexist. If you already have the official GameHub Lite (`gamehub.lite`) installed and want BannerHub to replace it, use **Normal(GHL)**. If you use a specific GameHub variant for a particular game (e.g. PuBG or Genshin), pick the matching APK so BannerHub replaces that variant's slot.
 
-All 7 variants can be installed simultaneously. All APKs are signed with AOSP testkey (v1/v2/v3).
+All 9 variants can be installed simultaneously. All APKs are signed with AOSP testkey (v1/v2/v3).
 
 > **Note:** You must uninstall your existing BannerHub build before installing a new release if the signing certificate changed. Data is not preserved across uninstall.
 
@@ -369,7 +371,7 @@ The description is read from `profile.json`'s `"description"` field (WCP files) 
 2. CI downloads the base APK, decompiles it with apktool, and overlays everything in the `patches/` directory — new smali classes, modified smali files, new resource files, and layout edits.
 3. apktool rebuilds the APK from the merged source tree.
 4. The rebuilt APK is zipaligned and signed with AOSP testkey (v1 + v2 + v3 signatures).
-5. The CI matrix builds all 7 package variants in parallel and uploads them to the GitHub Release.
+5. The CI matrix builds all 9 package variants in parallel and uploads them to the GitHub Release.
 
 All new BannerHub code lives in `smali_classes16/`. Existing GameHub smali files that needed modification are patched in place. No external dex files are injected — GameHub's own bundled `commons-compress`, `zstd-jni`, and `tukaani xz` libraries are used at runtime.
 
@@ -385,7 +387,7 @@ Most features work without root. The only features that require root are the two
 
 **Q: Will this replace my existing GameHub install?**
 
-Only if you choose a matching package APK. The **Normal APK** (`banner.hub`) installs as a completely separate app. If you pick a variant APK with the same package name as your existing GameHub install, it will replace it (you will need to uninstall first).
+Only if you choose a matching package APK. The **Normal APK** (`banner.hub`) installs as a completely separate app alongside the official GameHub Lite. The **Normal(GHL) APK** (`gamehub.lite`) will replace the official GameHub Lite slot — uninstall it first. All other variant APKs replace their respective GameHub variant slots.
 
 **Q: Can I use BCI (BannersComponentInjector) with BannerHub?**
 
