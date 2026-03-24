@@ -25,9 +25,9 @@
 #   v9  = line String (read loop)
 #  v10  = parse cursor (int pos, reused as start pos)
 #  v11  = marker string "\"appName\":"
-#  v12  = indexOf/length result (int temp, reused as end pos)
+#  v12  = indexOf/length result (int temp, reused as end pos / platform bound)
 #  v13  = extracted appName String
-#  v14  = boolean temp / $2 Runnable
+#  v14  = boolean temp / $2 Runnable / platform check result
 #  p0   = v15 = this (EpicMainActivity$1)
 #
 # Key idioms:
@@ -254,6 +254,12 @@
     move-result-object v6
     :ns_done
 
+    # Skip namespace "ue" (Unreal Engine tools — not installable games)
+    const-string v9, "ue"
+    invoke-virtual {v6, v9}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    move-result v14
+    if-nez v14, :parse_loop
+
     # ── Extract catalogItemId (forward search from cursor) ────────────────────
     const-string v7, ""
     invoke-virtual {v8, v5, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
@@ -273,8 +279,41 @@
     move-result-object v7
     :cat_done
 
+    # ── Platform filter: skip non-Windows entries ─────────────────────────────
+    # Extract this record's JSON fragment: from v10 to the next "appName" marker.
+    # This bounds the search to the current record, avoiding false matches.
+    # v12 = next record start (or string length if this is the last record)
+    # v9  = record fragment string
+    invoke-virtual {v8, v11, v10}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v12
+    if-gez v12, :plat_have_bound
+    invoke-virtual {v8}, Ljava/lang/String;->length()I
+    move-result v12
+    :plat_have_bound
+    invoke-virtual {v8, v10, v12}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v9   # v9 = current record JSON fragment
+
+    const-string v12, "\"platform\""
+    invoke-virtual {v9, v12}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    move-result v14
+    if-eqz v14, :plat_ok   # no platform field → keep (assume Windows-compatible)
+
+    const-string v12, "Windows"
+    invoke-virtual {v9, v12}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    move-result v14
+    if-nez v14, :plat_ok
+
+    const-string v12, "Win32"
+    invoke-virtual {v9, v12}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    move-result v14
+    if-nez v14, :plat_ok
+
+    goto :parse_loop   # platform field exists but no Windows/Win32 → skip
+
+    :plat_ok
+
     # Save library appName (v13) before fetchTitle might overwrite it.
-    # v12 is free here (was temp position in cat extraction).
+    # v12 is free here (was temp position in platform check).
     # v12 = library appName (for manifest URL); v13 = display title (for card UI).
     move-object v12, v13
 
