@@ -233,9 +233,7 @@
     const-string v5, ""
     iput-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->queryString:Ljava/lang/String;
     :after_qs
-    # Chunk downloads never use CDN auth tokens (tokens are path-scoped to manifest file only)
-    const-string v5, ""
-    iput-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->queryString:Ljava/lang/String;
+    # queryString (e.g. ?f_token=...) is preserved — Fastly requires same token for chunks
     # Debug: log cdnBase, cloudDir, queryString so we can verify chunk URL construction
     invoke-static {v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     iget-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->cloudDir:Ljava/lang/String;
