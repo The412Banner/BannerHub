@@ -27,10 +27,10 @@
     .locals 1
 
     .prologue
-    .line 70
+    .line 73
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
-    .line 71
+    .line 74
     const/4 v0, 0x4
 
     new-array v0, v0, [I
@@ -54,7 +54,7 @@
 
     const/4 v3, 0x0
 
-    .line 76
+    .line 79
     const-string v0, "%08X%08X%08X%08X"
 
     const/4 v1, 0x4

@@ -2,6 +2,9 @@ package com.xj.landscape.launcher.ui.menu;
 
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -14,7 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -388,9 +391,9 @@ public class EpicDownloader {
             // ── Header (41 bytes) ────────────────────────────────────────────
             int magic = buf.getInt();          // offset 0
             if (magic != 0x44BEC00C) {
-                // JSON manifest — not yet supported
-                Log.w(TAG, "Non-binary manifest magic=0x" + Integer.toHexString(magic));
-                return null;
+                // JSON manifest
+                Log.w(TAG, "Non-binary manifest, trying JSON parser");
+                return parseJsonManifest(bytes);
             }
             int headerSize       = buf.getInt();   // offset 4
             int sizeUncompressed = buf.getInt();   // offset 8
@@ -538,7 +541,10 @@ public class EpicDownloader {
         String chunkPath = chunk.getPath(chunkDir);
 
         for (CdnUrl cdn : cdnUrls) {
-            String url = cdn.baseUrl + cdn.cloudDir + "/" + chunkPath + cdn.authParams;
+            // authParams (f_token/cf_token) are path-scoped to the manifest URI — DO NOT append to chunk URLs.
+            // Fastly will 403 if the token's signed path doesn't match the chunk path.
+            // Fastly/Akamai chunks are publicly accessible; download.epicgames.com is the token-gated fallback.
+            String url = cdn.baseUrl + cdn.cloudDir + "/" + chunkPath;
             try {
                 byte[] raw = downloadBytes(url, null);
                 if (raw == null) continue;
@@ -591,20 +597,18 @@ public class EpicDownloader {
             System.arraycopy(raw, headerSize, data, 0, compressedSize);
 
             if ((storedAs & 1) != 0) {
-                // Zlib compressed
+                // Zlib compressed — inflate into dynamic buffer (handles any chunk size)
                 Inflater inflater = new Inflater();
                 inflater.setInput(data);
-                byte[] result = new byte[expectedSize];
-                int got = inflater.inflate(result);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream(
+                        expectedSize > 0 ? expectedSize : 1048576);
+                byte[] ibuf = new byte[65536];
+                int n;
+                while ((n = inflater.inflate(ibuf)) > 0) baos.write(ibuf, 0, n);
                 inflater.end();
-                if (got != expectedSize) {
-                    Log.w(TAG, "Chunk decomp size mismatch: expected=" + expectedSize + " got=" + got);
-                    // Return what we got rather than failing completely
-                    if (got > 0) {
-                        byte[] trimmed = new byte[got];
-                        System.arraycopy(result, 0, trimmed, 0, got);
-                        return trimmed;
-                    }
+                byte[] result = baos.toByteArray();
+                if (result.length == 0) {
+                    Log.e(TAG, "Chunk inflate produced 0 bytes");
                     return null;
                 }
                 return result;
@@ -613,6 +617,122 @@ public class EpicDownloader {
             return data;
         } catch (Exception e) {
             Log.e(TAG, "decompressChunk error: " + e.getMessage());
+            return null;
+        }
+    }
+
+    // ── JSON manifest ─────────────────────────────────────────────────────────
+
+    /**
+     * Parse an Epic JSON-format manifest.
+     * Fields: ManifestFileVersion, ChunkHashList, DataGroupList, ChunkFilesizeList,
+     * FileManifestList[].{Filename, FileChunkParts[].{Guid, Offset, Size}}
+     */
+    private static ParsedManifest parseJsonManifest(byte[] bytes) {
+        try {
+            String jsonStr = new String(bytes, StandardCharsets.UTF_8);
+            JSONObject root = new JSONObject(jsonStr);
+
+            // Manifest version → chunk directory name
+            int manifestVersion = 0;
+            try { manifestVersion = Integer.parseInt(root.optString("ManifestFileVersion", "0")); }
+            catch (NumberFormatException e) { manifestVersion = 0; }
+            String chunkDir;
+            if      (manifestVersion >= 15) chunkDir = "ChunksV4";
+            else if (manifestVersion >= 6)  chunkDir = "ChunksV3";
+            else if (manifestVersion >= 3)  chunkDir = "ChunksV2";
+            else                            chunkDir = "ChunksV4"; // default for modern games
+
+            JSONObject chunkHashList     = root.optJSONObject("ChunkHashList");
+            JSONObject dataGroupList     = root.optJSONObject("DataGroupList");
+            JSONObject chunkFilesizeList = root.optJSONObject("ChunkFilesizeList");
+
+            if (chunkHashList == null) {
+                Log.e(TAG, "JSON manifest: no ChunkHashList");
+                return null;
+            }
+
+            // Build ChunkInfo map keyed by GUID hex (32 uppercase chars)
+            Map<String, ChunkInfo> chunkMap = new LinkedHashMap<>();
+            Iterator<String> keys = chunkHashList.keys();
+            while (keys.hasNext()) {
+                String guidHex = keys.next();
+                if (guidHex.length() < 32) continue;
+                String hashHex = chunkHashList.getString(guidHex);
+
+                ChunkInfo c = new ChunkInfo();
+                c.guid[0] = (int) Long.parseLong(guidHex.substring(0, 8), 16);
+                c.guid[1] = (int) Long.parseLong(guidHex.substring(8, 16), 16);
+                c.guid[2] = (int) Long.parseLong(guidHex.substring(16, 24), 16);
+                c.guid[3] = (int) Long.parseLong(guidHex.substring(24, 32), 16);
+
+                // Hash is 16 hex chars = uint64; may exceed Long.MAX_VALUE → parse unsigned
+                if (hashHex != null && hashHex.length() >= 16) {
+                    try {
+                        c.hash = Long.parseUnsignedLong(hashHex.substring(0, 16), 16);
+                    } catch (Exception e) { c.hash = 0; }
+                }
+
+                if (dataGroupList != null) {
+                    try { c.groupNum = Integer.parseInt(dataGroupList.optString(guidHex, "0")); }
+                    catch (NumberFormatException e) { c.groupNum = 0; }
+                }
+                if (chunkFilesizeList != null) {
+                    try { c.fileSize = Long.parseLong(chunkFilesizeList.optString(guidHex, "0")); }
+                    catch (NumberFormatException e) { c.fileSize = 0; }
+                }
+                // windowSize unknown in JSON format — set 0 to trigger dynamic inflate
+                c.windowSize = 0;
+
+                chunkMap.put(guidHex, c);
+            }
+
+            // Parse FileManifestList
+            JSONArray fileList = root.optJSONArray("FileManifestList");
+            if (fileList == null) {
+                Log.e(TAG, "JSON manifest: no FileManifestList");
+                return null;
+            }
+
+            List<FileInfo> files = new ArrayList<>(fileList.length());
+            for (int i = 0; i < fileList.length(); i++) {
+                JSONObject fileObj = fileList.getJSONObject(i);
+                FileInfo fi = new FileInfo();
+                fi.filename = fileObj.optString("Filename", "");
+
+                JSONArray chunkParts = fileObj.optJSONArray("FileChunkParts");
+                if (chunkParts != null) {
+                    for (int j = 0; j < chunkParts.length(); j++) {
+                        JSONObject partObj = chunkParts.getJSONObject(j);
+                        ChunkPart part = new ChunkPart();
+                        String partGuid = partObj.optString("Guid", "");
+                        if (partGuid.length() >= 32) {
+                            part.guid[0] = (int) Long.parseLong(partGuid.substring(0, 8), 16);
+                            part.guid[1] = (int) Long.parseLong(partGuid.substring(8, 16), 16);
+                            part.guid[2] = (int) Long.parseLong(partGuid.substring(16, 24), 16);
+                            part.guid[3] = (int) Long.parseLong(partGuid.substring(24, 32), 16);
+                        }
+                        try { part.offset = Integer.parseInt(partObj.optString("Offset", "0")); }
+                        catch (NumberFormatException e) { part.offset = 0; }
+                        try { part.size = Integer.parseInt(partObj.optString("Size", "0")); }
+                        catch (NumberFormatException e) { part.size = 0; }
+                        fi.parts.add(part);
+                    }
+                }
+                files.add(fi);
+            }
+
+            ParsedManifest result = new ParsedManifest();
+            result.chunkDir     = chunkDir;
+            result.uniqueChunks = new ArrayList<>(chunkMap.values());
+            result.files        = files;
+            Log.i(TAG, "JSON manifest: chunkDir=" + chunkDir
+                    + " chunks=" + result.uniqueChunks.size()
+                    + " files=" + files.size());
+            return result;
+
+        } catch (Exception e) {
+            Log.e(TAG, "parseJsonManifest error: " + e.getMessage(), e);
             return null;
         }
     }
