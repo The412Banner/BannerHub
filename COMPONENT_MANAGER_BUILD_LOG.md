@@ -3887,4 +3887,4 @@ Register v14 = sectionEndPos, computed at top before reading section header.
 mul-int/lit8 v4, v0, 0x15 used for the SHA1+flags bulk skip (21 = 0x15 in signed 8-bit).
 
 ### CI result
-→ pending
+→ ✅ — run 23539309670 (3m28s)
