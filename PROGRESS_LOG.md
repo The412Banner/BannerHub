@@ -2444,3 +2444,22 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 **Root cause:** beta59 parseCdnBase returned `download.epicgames.com` (first non-cloudflare.epicgamescdn.com entry). Deus Ex manifests array has download.epicgames.com first → 403 on all chunks. GameNative rotates CDNs, picks Fastly/Akamai which are public.
 **Fix:** two-tier preference: PREFERRED = first CDN not containing `epicgames.com` (Fastly/Akamai); FALLBACK = first CDN not containing `cloudflare.epicgamescdn.com`. One-pass scan with v8 as fallback register.
 **Files:** `EpicInstallHelper.smali`
+
+### [fix] — v2.7.1-beta61 — chunk subfolder decimal format (groupNum "%02d" not hex) (2026-03-25)
+**Commit:** `635c30e` | **Tag:** `v2.7.1-beta61`
+**Root cause:** `buildChunkUrl` used `toHex2(groupNum)` producing lowercase hex subfolder (e.g. "5e" for groupNum=94). GameNative uses `"%02d".format(groupNum)` — decimal (e.g. "94"). Samorost 3 appeared to work because all its chunks are in group 0 ("00" is identical in hex and decimal). Deus Ex has chunks in group 94 → wrong "5e" URL → 404 on Fastly CDN.
+**Fix:** Added `toDec2(I)String` helper (same structure as `toHex2` but uses `Integer.toString` for decimal). Changed `buildChunkUrl` to call `toDec2` instead of `toHex2`. GUID order unchanged (reversed Legendary format confirmed correct by Samorost 3 test).
+**Files:** `EpicInstallHelper.smali`
+
+### [fix] — v2.7.1-beta62 — parseCdnBase VerifyError (crash on download) (2026-03-25)
+**Commit:** `37f4c19` | **Tag:** `v2.7.1-beta62`
+**Root cause:** `const-string v8, ""` (fallback CDN init) was inside the try block, below the early-exit branches at lines 440/445 that jump to `:end_scan`. `:end_scan` does `return-object v8` but v8 is uninitialized on those paths → ART VerifyError at offset 0x60 → crash on any download.
+**Fix:** Moved `const-string v8, ""` to before `:try_start_cdn` so v8 is defined on all code paths reaching `:end_scan`.
+**Files:** `EpicInstallHelper.smali`
+
+### [fix] — v2.7.1-beta63 — pass CDN auth token to chunk downloads (2026-03-25)
+**Commit:** `7c8a7f1` | **Tag:** `v2.7.1-beta63`
+**Root cause:** beta62 debug showed Fastly returning 403 on chunks. The manifest URL contained `?f_token=...` which was correctly extracted into `queryString`, but then unconditionally overwritten with `""` (lines 236-238 of $7.smali) based on wrong assumption that tokens are path-scoped to manifest only. buildChunkUrl already appends queryString — the override was the bug.
+**Fix:** Remove the 3-line `queryString = ""` override at :after_qs. The f_token extracted from the manifest URL is preserved and appended to all chunk URLs.
+**Files:** `EpicMainActivity$7.smali`, `EpicInstallHelper.smali` (comment update)
+**CI:** pending

@@ -4165,3 +4165,9 @@ Chunks on Fastly/Akamai are accessible without auth tokens (GameNative confirmed
 
 ### CI result
 → pending
+
+### beta63 — pass CDN auth token to chunk downloads — 2026-03-25
+**Files:** `EpicMainActivity$7.smali`, `EpicInstallHelper.smali`
+**Root cause:** Fastly CDN returns 403 on chunk downloads. The `f_token` from the manifest URL was being extracted correctly into `queryString` then immediately overwritten with `""` — a 3-line block based on wrong assumption (tokens are not path-scoped to manifest only; Fastly uses them for the whole build directory).
+**Fix:** Removed the `queryString = ""` override. `buildChunkUrl` already appends `queryString` to chunk URLs — no other changes needed.
+**CI:** pending
