@@ -43,9 +43,13 @@
     iget-object v3, v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$addBtn:Landroid/widget/Button;
     invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
 
-    # checkTV → VISIBLE
+    # checkTV → VISIBLE (expanded section)
     iget-object v3, v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$checkTV:Landroid/widget/TextView;
     const/4 v4, 0x0
+    invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
+
+    # collapsedCheckTV → VISIBLE (header row ✓ indicator)
+    iget-object v3, v1, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$collapsedCheckTV:Landroid/widget/TextView;
     invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
 
     # launchBtn → VISIBLE + enabled

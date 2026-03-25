@@ -12,6 +12,8 @@
 
 .field public gameList:Landroid/widget/LinearLayout;
 .field public syncText:Landroid/widget/TextView;
+.field public expandedSection:Landroid/widget/LinearLayout;
+.field public expandedArrow:Landroid/widget/TextView;
 
 
 .method public constructor <init>()V
