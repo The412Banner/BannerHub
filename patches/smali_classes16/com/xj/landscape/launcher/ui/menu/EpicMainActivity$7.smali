@@ -219,6 +219,21 @@
     # ── Step 5: Parse cloud directory from manifest URL ───────────────────
     invoke-static {v7, v3, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->parseCloudDir(Ljava/lang/String;Ljava/lang/String;Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;)V
 
+    # Extract query string from manifest URL (e.g. "?cf_token=...") for chunk CDN auth
+    const-string v5, "?"
+    const/4 v6, 0x0
+    invoke-virtual {v7, v5, v6}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v5
+    if-ltz v5, :no_qs
+    invoke-virtual {v7, v5}, Ljava/lang/String;->substring(I)Ljava/lang/String;
+    move-result-object v5
+    iput-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->queryString:Ljava/lang/String;
+    goto :after_qs
+    :no_qs
+    const-string v5, ""
+    iput-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->queryString:Ljava/lang/String;
+    :after_qs
+
     # ── Step 6: Post progress ─────────────────────────────────────────────
     const-string v5, "Downloading manifest..."
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V

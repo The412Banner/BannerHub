@@ -20,6 +20,7 @@
 .field public manifestVersion:I   # feature level from header
 .field public cloudDir:Ljava/lang/String;   # "/Builds/Game/CloudDir/" (trailing slash)
 .field public chunkDir:Ljava/lang/String;   # "Chunks", "ChunksV2", "ChunksV3", "ChunksV4"
+.field public queryString:Ljava/lang/String;   # "?cf_token=..." query from manifest URL; appended to chunk URLs for CDN auth
 
 
 .method public constructor <init>()V
@@ -28,5 +29,6 @@
     const-string v0, ""
     iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->cloudDir:Ljava/lang/String;
     iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->chunkDir:Ljava/lang/String;
+    iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->queryString:Ljava/lang/String;
     return-void
 .end method
