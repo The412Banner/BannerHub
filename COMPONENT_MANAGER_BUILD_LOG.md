@@ -43,7 +43,7 @@ Each entry covers one logical change unit (commit or closely related set of comm
 User logcat `log_2026_03_25_09_31_14` confirmed `PcGameSettingsActivity` was launched (dialog opened correctly) but no exe was selected — only the install directory path was passed. `EditImportedGameInfoDialog.c()` accepts a `String path` argument that can be either a file or directory; when a directory is passed the dialog shows it without selecting any exe. Fix: scan `installDir` for the first `.exe` that is not a redistributable and pass its absolute path instead.
 
 ### CI result
-**Pending** — tag v2.7.1-beta53 not yet pushed
+**CI ✅ PASS** — run 23543940148, build-quick.yml, 3m36s — APK uploaded to v2.7.1-beta53 release
 
 ---
 
