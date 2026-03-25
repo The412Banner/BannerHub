@@ -4092,7 +4092,7 @@ Fix: store the manifest URL query string in `EpicManifestData.queryString` and `
 it onto every chunk URL in `buildChunkUrl`.
 
 ### CI result
-→ pending
+→ CI ✅ (run 23565556476, 3m40s)
 
 ### Entry #55 — v2.7.1-beta58 — fix: rewrite parseCdnBase/parseCloudDir for v2 API + clear queryString for public CDN (2026-03-25)
 **Commit:** `5b207dbcc8c17bc62550934036db197c8ed7c157`  |  **Tag:** `v2.7.1-beta58`  |  **CI:** ✅
@@ -4118,7 +4118,7 @@ Fix chain:
 - Chunk URL = `"https://epicgames-download1.akamaized.net" + "/Builds/Org/.../default/" + "ChunksV4/XX/HASH_GUID.chunk"` — no query params → should succeed
 
 ### CI result
-→ pending
+→ CI ✅ (run 23565556476, 3m40s)
 
 ### Entry #56 — v2.7.1-beta59 — fix: align parseCdnBase with GameNative (filter cloudflare.epicgamescdn.com, use first other CDN) (2026-03-25)
 **Commit:** `9fa5819e8b48db069c6d6e512b148555da5c1bd5`  |  **Tag:** `v2.7.1-beta59`  |  **CI:** ✅
@@ -4143,7 +4143,7 @@ New parseCdnBase: same filter. baseUrl = `uri.substringBefore("/Builds")`.
 queryString always cleared — tokens are path-scoped to manifest file URI, invalid for ChunksV4 paths.
 
 ### CI result
-→ pending
+→ CI ✅ (run 23565556476, 3m40s)
 
 ### Entry #57 — v2.7.1-beta60 — fix: parseCdnBase two-pass CDN preference (Fastly/Akamai over download.epicgames.com) (2026-03-25)
 **Commit:** `257db47603ab870a939ea0a96b8e0b058ebfd6d9`  |  **Tag:** `v2.7.1-beta60`  |  **CI:** ✅
@@ -4164,13 +4164,13 @@ For Deus Ex: manifests array has `download.epicgames.com` first, then Fastly or 
 Chunks on Fastly/Akamai are accessible without auth tokens (GameNative confirmed: no auth on chunk URLs, works in production).
 
 ### CI result
-→ pending
+→ CI ✅ (run 23565556476, 3m40s)
 
 ### beta63 — pass CDN auth token to chunk downloads — 2026-03-25
 **Files:** `EpicMainActivity$7.smali`, `EpicInstallHelper.smali`
 **Root cause:** Fastly CDN returns 403 on chunk downloads. The `f_token` from the manifest URL was being extracted correctly into `queryString` then immediately overwritten with `""` — a 3-line block based on wrong assumption (tokens are not path-scoped to manifest only; Fastly uses them for the whole build directory).
 **Fix:** Removed the `queryString = ""` override. `buildChunkUrl` already appends `queryString` to chunk URLs — no other changes needed.
-**CI:** pending
+**CI:** CI ✅ (run 23565556476, 3m40s)
 
 ## Entry 82 — v2.7.1-beta64 — feat: port Epic download pipeline to Java (2026-03-25)
 
@@ -4211,4 +4211,4 @@ Two compounding bugs in the old hand-written smali install loop:
 `javac --release 8 -classpath java_stubs:/data/data/com.termux/files/usr/share/aapt/android.jar -d java_classes java_src/**/*.java` → `dx --dex --output epic_downloader.dex java_classes/` → `cp epic_downloader.dex classes.dex && zip epic_downloader.zip classes.dex` → `java -jar ~/apktool.jar d -o epic_ds epic_downloader.zip` → smali files from `epic_ds/smali/` copied to patches
 
 ### CI result
-→ pending
+→ CI ✅ (run 23565556476, 3m40s)
