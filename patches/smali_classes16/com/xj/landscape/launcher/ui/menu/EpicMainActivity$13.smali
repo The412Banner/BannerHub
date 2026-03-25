@@ -2,10 +2,10 @@
 .super Ljava/lang/Object;
 .implements Landroid/view/View$OnClickListener;
 
-# BannerHub: Launch button OnClickListener for Epic game cards.
-# Reads epic_installed_{appName} from bh_epic_prefs → installDir.
-# Casts context to LandscapeLauncherMainActivity and calls B3(installDir)
-# to open the built-in Import Game dialog (EditImportedGameInfoDialog).
+# BannerHub: Add button OnClickListener for Epic game cards (post-install).
+# Reads epic_installed_{appName} from bh_epic_prefs → installDir (fallback: default path).
+# Scans installDir for first non-redist .exe, then shows EditImportedGameInfoDialog
+# directly (EpicMainActivity extends FragmentActivity).
 
 .field final synthetic this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
 .field final synthetic val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
@@ -88,12 +88,46 @@
     invoke-virtual {v3, v4, v5}, Ljava/lang/String;->replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
     move-result-object v3
 
+    # Scan installDir for a .exe file (skip "redist" in name).
+    # v1/v2 are free here (card and appName no longer needed).
+    # v3 = installDir; update to exe path if found.
+    new-instance v1, Ljava/io/File;
+    invoke-direct {v1, v3}, Ljava/io/File;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v1}, Ljava/io/File;->listFiles()[Ljava/io/File;
+    move-result-object v2       # v2 = File[] (may be null)
+    if-eqz v2, :exe_scan_done
+    array-length v4, v2         # v4 = length
+    const/4 v5, 0x0             # v5 = index
+    :exe_scan_loop
+    if-ge v5, v4, :exe_scan_done
+    aget-object v6, v2, v5      # v6 = File
+    invoke-virtual {v6}, Ljava/io/File;->getName()Ljava/lang/String;
+    move-result-object v1       # v1 = name
+    invoke-virtual {v1}, Ljava/lang/String;->toLowerCase()Ljava/lang/String;
+    move-result-object v1
+    const-string v6, "redist"
+    invoke-virtual {v1, v6}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    move-result v6
+    if-nez v6, :exe_skip        # skip redistributables
+    const-string v6, ".exe"
+    invoke-virtual {v1, v6}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+    move-result v6
+    if-eqz v6, :exe_skip
+    aget-object v1, v2, v5      # reload File (v1 was overwritten with name)
+    invoke-virtual {v1}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+    move-result-object v3       # v3 = exe path
+    goto :exe_scan_done
+    :exe_skip
+    add-int/lit8 v5, v5, 0x1
+    goto :exe_scan_loop
+    :exe_scan_done
+
     # Show EditImportedGameInfoDialog directly — EpicMainActivity is now a FragmentActivity,
     # so it can host the dialog without needing to cast to LandscapeLauncherMainActivity.
     # Equivalent to what B3(installDir) does in LandscapeLauncherMainActivity.
     sget-object v1, Lcom/xj/winemu/ui/dialog/EditImportedGameInfoDialog;->s:Lcom/xj/winemu/ui/dialog/EditImportedGameInfoDialog$Companion;
     move-object v2, v0    # v2 = EpicMainActivity (FragmentActivity)
-    # v3 = installDir path
+    # v3 = exe path (or installDir if no exe found)
     const/4 v4, 0x0       # null Function1 callback
     const/4 v5, 0x4       # default-args mask (makes callback default to null)
     const/4 v6, 0x0       # null Object (DefaultConstructorMarker)
