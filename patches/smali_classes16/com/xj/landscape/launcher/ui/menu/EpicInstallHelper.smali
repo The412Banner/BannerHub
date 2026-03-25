@@ -723,34 +723,43 @@
 
 
 # ── parseFileList ──────────────────────────────────────────────────────────────
-# Parse the FileManifestList section.
-# For each file, reads filename + chunk parts, stores packed part data.
+# Parse the FileManifestList section — columnar format (same as ChunkDataList).
+# ALL filenames come first, then ALL symlinks, then ALL sha1+flags, then ALL
+# install-tags, then ALL chunk-parts.  Reading interleaved (row-by-row) drifts
+# the buffer and causes OOM on large manifests (e.g. Deus Ex, 54 k chunks).
 # filePartData[f] = "chunkIdx:chunkOffset:partSize[;...]"
 # Returns true on success.
 #
-# Register map (.locals 14):
-# p0=v14 (ByteBuffer), p1=v15 (EpicManifestData) — both ≤ v15
+# Register map (.locals 15):
+# p0 (ByteBuffer), p1 (EpicManifestData)
 #   v0  = fileCount
-#   v1  = f (file loop index)
+#   v1  = outer loop index
 #   v2  = fileNames String[]
 #   v3  = filePartData String[]
-#   v4  = guidHex (String after GUID build)
-#   v5  = part data StringBuilder
-#   v6  = partCount / tagCount
-#   v7  = p (part loop index)
-#   v8,v9,v10,v11 = GUID ints g1-g4; reused as chunkOffset, partSize, searchIdx, chunkCount
-#   v12 = chunkGuidHex[] array
-#   v13 = temp (pos seek, GUID hex temps, search element/bool)
+#   v4  = temp string / GUID StringBuilder → guidHex
+#   v5  = file-parts StringBuilder (parts pass only)
+#   v6  = inner count (tagCount / partCount)
+#   v7  = inner loop index
+#   v8-v11 = GUID ints g1-g4 (parts pass)
+#   v12 = chunkGuidHex[] for GUID lookup
+#   v13 = temp (arithmetic, string temps, search bool)
+#   v14 = sectionEndPos (startPos + sectionSize) for bounds-check at end
 .method public static parseFileList(Ljava/nio/ByteBuffer;Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;)Z
-    .locals 14
+    .locals 15
     :try_start
-    # Read section size + data version + file count
+
+    # Save section start position, compute end position
+    invoke-virtual {p0}, Ljava/nio/ByteBuffer;->position()I
+    move-result v14
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v12   # section size, discard
+    move-result v13   # sectionSize
+    add-int v14, v14, v13   # v14 = sectionEndPos
+
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->get()B
-    move-result v12   # data version, discard
+    move-result v13   # data version, discard
+
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v0   # fileCount
+    move-result v0    # fileCount
 
     iput v0, p1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->fileCount:I
     new-array v2, v0, [Ljava/lang/String;
@@ -759,40 +768,59 @@
     iput-object v3, p1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->filePartData:[Ljava/lang/String;
 
     iget-object v12, p1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->chunkGuidHex:[Ljava/lang/String;
-    # v12 = chunkGuidHex array for GUID lookup
 
+    # ── PASS 1: Read all filenames ──
     const/4 v1, 0x0
-    :file_loop
-    if-ge v1, v0, :file_done
-
-    # filename (FString)
+    :fname_loop
+    if-ge v1, v0, :fname_done
     invoke-static {p0}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->readFString(Ljava/nio/ByteBuffer;)Ljava/lang/String;
     move-result-object v4
     aput-object v4, v2, v1
+    add-int/lit8 v1, v1, 0x1
+    goto :fname_loop
+    :fname_done
 
-    # symlink_target (FString, discard)
+    # ── PASS 2: Skip all symlink targets ──
+    const/4 v1, 0x0
+    :symlink_loop
+    if-ge v1, v0, :symlink_done
     invoke-static {p0}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->readFString(Ljava/nio/ByteBuffer;)Ljava/lang/String;
     move-result-object v4   # discard
+    add-int/lit8 v1, v1, 0x1
+    goto :symlink_loop
+    :symlink_done
 
-    # Skip file_hash (20 bytes) + flags (1 byte)
+    # ── PASS 3: Skip SHA1 column (fileCount*20) + flags column (fileCount*1) ──
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->position()I
     move-result v13
-    add-int/lit8 v13, v13, 0x15   # 20 + 1 = 21 (0x15)
+    mul-int/lit8 v4, v0, 0x15   # fileCount * 21
+    add-int v13, v13, v4
     invoke-virtual {p0, v13}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
 
-    # Install tags array (count + FStrings, skip)
+    # ── PASS 4: Skip all install-tags ──
+    const/4 v1, 0x0
+    :tags_outer
+    if-ge v1, v0, :tags_outer_done
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
     move-result v6   # tagCount
     const/4 v7, 0x0
-    :tag_loop
-    if-ge v7, v6, :tag_done
+    :tags_inner
+    if-ge v7, v6, :tags_inner_done
     invoke-static {p0}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->readFString(Ljava/nio/ByteBuffer;)Ljava/lang/String;
     move-result-object v4   # discard
     add-int/lit8 v7, v7, 0x1
-    goto :tag_loop
-    :tag_done
+    goto :tags_inner
+    :tags_inner_done
+    add-int/lit8 v1, v1, 0x1
+    goto :tags_outer
+    :tags_outer_done
 
-    # Chunk parts
+    # ── PASS 5: Read all chunk-parts ──
+    # FChunkPart: DataSizeSerialised(4) + FGuid(16) + Offset(4) + Size(4) = 28 bytes
+    const/4 v1, 0x0
+    :parts_outer
+    if-ge v1, v0, :parts_outer_done
+
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
     move-result v6   # partCount
 
@@ -800,30 +828,22 @@
     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
     const/4 v7, 0x0
 
-    :part_loop
-    if-ge v7, v6, :part_done
+    :parts_inner
+    if-ge v7, v6, :parts_inner_done
 
-    # Each FChunkPart record is 28 bytes:
-    #   uint32 DataSizeSerialised  (4 bytes — always 28; includes itself)
-    #   FGuid  Guid                (16 bytes)
-    #   uint32 Offset              (4 bytes)
-    #   uint32 Size                (4 bytes)
-    # Read and discard DataSizeSerialised first.
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v13  # DataSizeSerialised (discard)
+    move-result v13   # DataSizeSerialised, discard
 
-    # Read GUID (4 × uint32)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v8
+    move-result v8    # g1
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v9
+    move-result v9    # g2
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v10
+    move-result v10   # g3
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v11
+    move-result v11   # g4
 
-    # Build guidHex for lookup — REVERSED order (g4+g3+g2+g1)
-    # Must match parseChunkList key format AND Epic CDN filename format
+    # Build guidHex into v4 — reversed order (g4+g3+g2+g1)
     new-instance v4, Ljava/lang/StringBuilder;
     invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
     invoke-static {v11}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
@@ -841,13 +861,12 @@
     invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v4   # v4 = guidHex
 
-    # Read chunkOffset → v8, partSize → v9 (GUID words v8-v11 are now free)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
     move-result v8   # chunkOffset (uint32)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
     move-result v9   # partSize (uint32)
 
-    # Find chunkIdx: v10=searchIdx, v11=chunkCount, v13=element/bool
+    # Linear search for chunkIdx in chunkGuidHex[]
     const/4 v10, 0x0
     array-length v11, v12
     :search_loop
@@ -859,13 +878,12 @@
     add-int/lit8 v10, v10, 0x1
     goto :search_loop
     :search_done
-    # v10 = chunkIdx (or array-length if not found)
     array-length v11, v12
     if-ne v10, v11, :idx_ok
-    const/4 v10, -0x1   # not found
+    const/4 v10, -0x1   # not found → -1
     :idx_ok
 
-    # Append ";chunkIdx:chunkOffset:partSize" — v10=idx, v8=offset, v9=size, v11=tmp
+    # Append ";chunkIdx:chunkOffset:partSize" to v5
     if-eqz v7, :first_part
     const-string v11, ";"
     invoke-virtual {v5, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
@@ -885,17 +903,20 @@
     invoke-virtual {v5, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     add-int/lit8 v7, v7, 0x1
-    goto :part_loop
+    goto :parts_inner
+    :parts_inner_done
 
-    :part_done
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v4
     aput-object v4, v3, v1
 
     add-int/lit8 v1, v1, 0x1
-    goto :file_loop
+    goto :parts_outer
+    :parts_outer_done
 
-    :file_done
+    # Skip version≥1 (MD5+MIME) and version≥2 (SHA256) columns via section end
+    invoke-virtual {p0, v14}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
+
     const/4 v0, 0x1
     return v0
     :try_end
