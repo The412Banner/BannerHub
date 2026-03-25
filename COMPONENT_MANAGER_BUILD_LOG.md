@@ -4095,7 +4095,7 @@ it onto every chunk URL in `buildChunkUrl`.
 → pending
 
 ### Entry #55 — v2.7.1-beta58 — fix: rewrite parseCdnBase/parseCloudDir for v2 API + clear queryString for public CDN (2026-03-25)
-**Commit:** pending  |  **Tag:** `v2.7.1-beta58`  |  **CI:** pending
+**Commit:** `5b207dbcc8c17bc62550934036db197c8ed7c157`  |  **Tag:** `v2.7.1-beta58`  |  **CI:** ✅
 
 ### Files touched
 - `EpicInstallHelper.smali` — `parseCdnBase()` full rewrite; `parseCloudDir()` full rewrite

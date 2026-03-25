@@ -2428,7 +2428,7 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 **Files:** `EpicManifestData.smali`, `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
 
 ### [fix] — v2.7.1-beta58 — rewrite parseCdnBase/parseCloudDir (fix 403 on chunks) (2026-03-25)
-**Commit:** pending | **Tag:** `v2.7.1-beta58`
+**Commit:** `5b207dbcc8c17bc62550934036db197c8ed7c157` | **Tag:** `v2.7.1-beta58`
 **Root cause (from beta57 debug):** `parseCdnBase` searched for `"cdnList"` (absent in v2 API, key is `"manifests"`) → returned "" → `parseCloudDir` stripped 0 chars → cloudDir = full URL. The `f_token` in Fastly manifest URL is path-scoped → 403 on ChunksV4 paths.
 **Fix:** `parseCdnBase` now scans `"manifests"` array for empty `queryParams` entry (Akamai public CDN) → returns scheme+host. `parseCloudDir` now extracts path by skipping `"://"` + host. In `$7.smali`: if cdnBase non-empty, clear queryString (no token needed for Akamai).
 **Files:** `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
