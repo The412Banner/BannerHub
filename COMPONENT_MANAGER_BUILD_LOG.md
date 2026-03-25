@@ -30,6 +30,35 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 102 — feat: Epic game cards GOG-style UI — Add/ProgressBar/checkmark/Launch (v2.7.1-beta52, epic-integration)
+**Date:** 2026-03-25
+**Branch:** epic-integration  |  **Tag:** v2.7.1-beta52
+**Commit:** `0871fe4`
+
+### Changes
+
+**`EpicMainActivity$2.smali`** [MODIFIED] — card ViewHolder class. Added 5 new public fields: `val$progressBar`, `val$statusTV`, `val$checkTV`, `val$addBtn`, `val$launchBtn`. `run()` rewritten: Install button renamed→Add; ProgressBar (HORIZONTAL, max=100, GONE), status TextView (#888888 10sp, GONE), checkmark TextView ✓ (#4CAF50 20sp, GONE), Launch button (GONE) all added. After adding card: checks `bh_epic_prefs` `epic_installed_{appName}` — if set, addBtn GONE, checkTV VISIBLE, launchBtn VISIBLE+enabled. `$5` wired with `(activity, p0)`, `$13` wired with `(activity, p0)`.
+
+**`EpicMainActivity$5.smali`** [MODIFIED] — Add button OnClickListener. Reduced from 4 fields to 2 (`this$0`, `val$card`). `onClick()`: reads appName/ns/catId from card fields; hides addBtn, shows progressBar+statusTV ("Starting..."); builds `installDir = getFilesDir()/epic_games/{appName}`; creates `$9(activity, appName, ns, catId, installDir, card)` via `invoke-direct/range {v0..v6}`; shows AlertDialog.
+
+**`EpicMainActivity$9.smali`** [MODIFIED] — AlertDialog positive-button listener. Added `val$card` field. Constructor updated to 6-arg `<init>(Activity, String, String, String, String, EpicMainActivity$2)`. `onClick()`: creates `$7` via `invoke-direct/range {v0..v6}` with card as 6th arg.
+
+**`EpicMainActivity$7.smali`** [MODIFIED] — install background Runnable. Added `val$card` field. Constructor updated to 6-arg `<init>(Activity, String, String, String, String, EpicMainActivity$2)`. On success (`:all_done`): posts `$11(activity, card, installDir)` via `runOnUiThread`. On all error paths (`:err_creds`, `:api_err_done`, `:manifest_err_done`, `:err_parsebody`, `:err_parse`, `:catch_all`, JSON not-supported): posts `$12(card)` via `runOnUiThread`. Uses v3/v4 as scratch for card+runnable refs at each error site.
+
+**`EpicMainActivity$11.smali`** [NEW] — success UI Runnable. Fields: `this$0`, `val$card`, `val$installDir`. `run()`: progressBar→GONE, statusTV→GONE, addBtn→GONE, checkTV→VISIBLE, launchBtn→VISIBLE+setEnabled(true). Saves `bh_epic_prefs` `epic_installed_{appName}=installDir`.
+
+**`EpicMainActivity$12.smali`** [NEW] — error UI Runnable. Field: `val$card`. `run()`: progressBar→GONE, statusTV→GONE, addBtn→VISIBLE (restores pre-install state).
+
+**`EpicMainActivity$13.smali`** [NEW] — Launch button OnClickListener. Fields: `this$0`, `val$card`. `onClick()`: reads `bh_epic_prefs` `epic_installed_{appName}` → installDir; if empty shows Toast "Reinstall game to enable launch"; else normalizes backslashes, check-casts to `LandscapeLauncherMainActivity`, calls `B3(installDir)`.
+
+### Root-cause analysis
+Previous card had only a static Install button with no state tracking. After a successful install, the button remained visible/enabled and there was no visual confirmation. Modeled after `GogGamesFragment$2` pattern: card holds widget refs as public fields, passed through listener chain via `val$card`, UI callbacks posted via `runOnUiThread`.
+
+### CI result
+**Pending** — v2.7.1-beta52 tag pushed; build-quick.yml triggered
+
+---
+
 ## Entry 101 — feat: Task #6 Gen 2 GOG download pipeline (v2.7.0-beta30, gog-beta)
 **Date:** 2026-03-21
 **Branch:** gog-beta  |  **Tag:** v2.7.0-beta30

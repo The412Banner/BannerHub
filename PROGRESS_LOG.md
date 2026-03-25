@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-beta52 — feat: Epic game cards GOG-style UI (Add, ProgressBar, checkmark, Launch) (2026-03-25)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta52
+**Commit:** `0871fe4`
+**What changed:** Complete GOG-style game card UI for Epic. Renamed Install→Add button. Added ProgressBar (GONE), status TextView (GONE), green checkmark ✓ (GONE), Launch button (GONE) to each card. Card checks `bh_epic_prefs` `epic_installed_{appName}` on creation to restore installed state. On Add click: hides addBtn, shows progressBar+statusTV. On install success ($11): progressBar/statusTV GONE, addBtn GONE, checkTV/launchBtn VISIBLE, prefs saved. On any error ($12): progressBar/statusTV GONE, addBtn restored VISIBLE. Launch button ($13) reads installDir from prefs, normalizes path, calls `LandscapeLauncherMainActivity.B3()` → EditImportedGameInfoDialog.
+**Files touched:** `EpicMainActivity$2.smali` (rewrite), `EpicMainActivity$5.smali` (rewrite), `EpicMainActivity$7.smali` (val$card + $11/$12 callbacks), `EpicMainActivity$9.smali` (6-arg constructor + val$card), `EpicMainActivity$11.smali` (NEW — success UI), `EpicMainActivity$12.smali` (NEW — error UI), `EpicMainActivity$13.smali` (NEW — Launch click)
+
+---
+
 ## [epic-beta] — v2.7.1-beta49 — fix: parseFileList OOM — missing DataSizeSerialised read per FChunkPart (2026-03-24)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta49
 **Commit:** `cab2b49`
