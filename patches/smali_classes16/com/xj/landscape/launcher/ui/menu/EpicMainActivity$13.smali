@@ -88,9 +88,16 @@
     invoke-virtual {v3, v4, v5}, Ljava/lang/String;->replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
     move-result-object v3
 
-    # Cast to LandscapeLauncherMainActivity and call B3(installDir)
-    check-cast v0, Lcom/xj/landscape/launcher/ui/main/LandscapeLauncherMainActivity;
-    invoke-virtual {v0, v3}, Lcom/xj/landscape/launcher/ui/main/LandscapeLauncherMainActivity;->B3(Ljava/lang/String;)V
+    # Show EditImportedGameInfoDialog directly — EpicMainActivity is now a FragmentActivity,
+    # so it can host the dialog without needing to cast to LandscapeLauncherMainActivity.
+    # Equivalent to what B3(installDir) does in LandscapeLauncherMainActivity.
+    sget-object v1, Lcom/xj/winemu/ui/dialog/EditImportedGameInfoDialog;->s:Lcom/xj/winemu/ui/dialog/EditImportedGameInfoDialog$Companion;
+    move-object v2, v0    # v2 = EpicMainActivity (FragmentActivity)
+    # v3 = installDir path
+    const/4 v4, 0x0       # null Function1 callback
+    const/4 v5, 0x4       # default-args mask (makes callback default to null)
+    const/4 v6, 0x0       # null Object (DefaultConstructorMarker)
+    invoke-static/range {v1 .. v6}, Lcom/xj/winemu/ui/dialog/EditImportedGameInfoDialog$Companion;->c(Lcom/xj/winemu/ui/dialog/EditImportedGameInfoDialog$Companion;Landroidx/fragment/app/FragmentActivity;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/xj/winemu/ui/dialog/EditImportedGameInfoDialog;
 
     :launch_done
     return-void

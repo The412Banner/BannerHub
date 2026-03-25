@@ -1,5 +1,5 @@
 .class public Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
-.super Landroid/app/Activity;
+.super Landroidx/fragment/app/FragmentActivity;
 
 # BannerHub: Epic Games library activity.
 # If no stored credentials → starts EpicLoginActivity and finishes.
@@ -16,7 +16,7 @@
 
 .method public constructor <init>()V
     .locals 0
-    invoke-direct {p0}, Landroid/app/Activity;-><init>()V
+    invoke-direct {p0}, Landroidx/fragment/app/FragmentActivity;-><init>()V
     return-void
 .end method
 
@@ -24,7 +24,7 @@
 .method protected onCreate(Landroid/os/Bundle;)V
     .locals 5
 
-    invoke-super {p0, p1}, Landroid/app/Activity;->onCreate(Landroid/os/Bundle;)V
+    invoke-super {p0, p1}, Landroidx/fragment/app/FragmentActivity;->onCreate(Landroid/os/Bundle;)V
 
     # ── Check stored credentials ───────────────────────────────────────────────
     invoke-static {p0}, Lcom/xj/landscape/launcher/ui/menu/EpicCredentialStore;->load(Landroid/content/Context;)Lcom/xj/landscape/launcher/ui/menu/EpicCredentials;
