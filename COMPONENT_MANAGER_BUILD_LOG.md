@@ -30,6 +30,32 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 105 — feat: Epic cards — collapsible capsules, detail dialog, uninstall (v2.7.1-beta55, epic-integration)
+**Date:** 2026-03-25
+**Branch:** epic-integration  |  **Tag:** v2.7.1-beta55
+**Commit:** `486450e`
+
+### Changes
+
+**`EpicMainActivity.smali`** [MODIFIED] — Added `expandedSection:LinearLayout` and `expandedArrow:TextView` instance fields for cross-card expand/collapse tracking.
+
+**`EpicMainActivity$2.smali`** [MODIFIED — full rewrite] — Replaced flat layout with two-section card: `topRow` (always visible: coverIV 60dp + titleArea[titleRow[titleTV + collapsedCheckTV ✓ + spacer]] + arrowTV ▼) and `expandSection` (GONE by default: subtitle "Epic Games" + checkTV + progressBar + statusTV + addBtn + launchBtn). New field `val$collapsedCheckTV` (TextView). `.locals 15`. Wires $14 to card click, $15 to arrow click. Installed check done once (pref + dir fallback) → v10 boolean used for collapsedCheckTV, checkTV, addBtn, launchBtn visibility throughout run().
+
+**`EpicMainActivity$11.smali`** [MODIFIED] — Added `val$collapsedCheckTV → VISIBLE` after existing `val$checkTV → VISIBLE` on install success.
+
+**`EpicMainActivity$14.smali`** [NEW] — Card click OnClickListener. Fields: this$0, val$card, val$expandSection, val$arrowTV. `.locals 10`. onClick: if collapsed → collapse prev expanded card + expand this card + update arrows; if expanded → build AlertDialog (title=displayTitle, message="Platform: Epic Games"[+"\n\n✓ Installed"], Close=null, Uninstall=$16 only if installed).
+
+**`EpicMainActivity$15.smali`** [NEW] — Arrow click OnClickListener. Fields: this$0, val$expandSection, val$arrowTV. `.locals 4`. onClick: expandSection→GONE, arrowTV→"▼", clear EpicMainActivity.expandedSection/expandedArrow.
+
+**`EpicMainActivity$16.smali`** [NEW] — Uninstall handler. Implements DialogInterface$OnClickListener + Runnable (dual). Fields: this$0, val$appName, val$card. onClick(): new Thread(this).start(). run(): builds installDir path, calls static deleteDir(File), removes bh_epic_prefs key, posts $17 via runOnUiThread. Static `deleteDir(File)` recursive method included.
+
+**`EpicMainActivity$17.smali`** [NEW] — Post-uninstall UI Runnable. Fields: this$0, val$card. run(): checkTV/collapsedCheckTV/launchBtn → GONE, addBtn → VISIBLE, statusTV → GONE, Toast "Game uninstalled".
+
+### CI result
+**CI ✅ PASS** — run 23546099289, build-quick.yml, ~3m36s — APK uploaded to v2.7.1-beta55 release
+
+---
+
 ## Entry 104 — fix: Epic card UI — cancel bug, error feedback, card spacing (v2.7.1-beta54, epic-integration)
 **Date:** 2026-03-25
 **Branch:** epic-integration  |  **Tag:** v2.7.1-beta54

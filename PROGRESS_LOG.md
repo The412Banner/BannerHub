@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-beta55 — feat: Epic game cards — collapsible capsules with detail dialog + uninstall (2026-03-25)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta55
+**Commit:** `486450e`
+**What changed:** Complete card UI redesign to GOG-style collapsible capsules. Collapsed: cover + title + ✓ + ▼. Tap to expand (collapses any other open card). Tap expanded → detail dialog with Close + Uninstall (if installed). Arrow tap always collapses. New inner classes: $14 (card click/dialog), $15 (arrow collapse), $16 (uninstall DialogInterface+Runnable dual, recursive deleteDir), $17 (UI reset post-uninstall). EpicMainActivity gets expandedSection/expandedArrow fields. $11 updated to show collapsedCheckTV on install success.
+**Files touched:** `EpicMainActivity.smali`, `$2.smali` (full rewrite), `$11.smali`, `$14.smali` (new), `$15.smali` (new), `$16.smali` (new), `$17.smali` (new)
+
+---
+
 ## [epic-beta] — v2.7.1-beta54 — fix: Epic card UI — cancel bug, error feedback, card spacing (2026-03-25)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta54
 **Commit:** `0873c62`
