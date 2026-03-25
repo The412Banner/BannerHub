@@ -4144,3 +4144,24 @@ queryString always cleared — tokens are path-scoped to manifest file URI, inva
 
 ### CI result
 → pending
+
+### Entry #57 — v2.7.1-beta60 — fix: parseCdnBase two-pass CDN preference (Fastly/Akamai over download.epicgames.com) (2026-03-25)
+**Commit:** pending  |  **Tag:** `v2.7.1-beta60`  |  **CI:** pending
+
+### Files touched
+- `EpicInstallHelper.smali` — `parseCdnBase()` rewrite with two-tier CDN preference
+
+### Methods changed
+- `parseCdnBase(String json)` — was: returned first non-`cloudflare.epicgamescdn.com` CDN → picked `download.epicgames.com` first for Deus Ex → 403. Now: two-tier preference — PREFERRED: first CDN where `!baseUrl.contains("epicgames.com")` (Fastly `egdownload.fastly-edge.com`, Akamai `epicgames-download1.akamaized.net`); FALLBACK: first CDN where `!baseUrl.contains("cloudflare.epicgamescdn.com")` (i.e. `download.epicgames.com`). Scans entire manifests array in one pass using v8 as fallback register.
+
+### Root-cause analysis
+GameNative (EpicDownloadManager) loops over ALL CDNs per chunk and tries each until one succeeds. If `download.epicgames.com` gives 403, it rotates to the next CDN (Fastly or Akamai). Our code picks ONE CDN for all chunks.
+
+For Deus Ex: manifests array has `download.epicgames.com` first, then Fastly or Akamai.
+- beta59 parseCdnBase picked `download.epicgames.com` → 403 on all 54062 chunks → silent fail for entire game
+- beta60 parseCdnBase scans all entries: if Fastly/Akamai found → return it immediately (ideal); if only `download.epicgames.com` → return it as fallback (last resort)
+
+Chunks on Fastly/Akamai are accessible without auth tokens (GameNative confirmed: no auth on chunk URLs, works in production).
+
+### CI result
+→ pending

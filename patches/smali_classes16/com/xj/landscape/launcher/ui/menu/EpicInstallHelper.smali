@@ -398,69 +398,83 @@
 
 # ── parseCdnBase ───────────────────────────────────────────────
 # Scan "manifests" array in v2 API response.
-# Returns scheme+host of first non-Cloudflare CDN entry (e.g. Fastly or Akamai).
-# Mirrors GameNative EpicDownloadManager: filter cloudflare.epicgamescdn.com, use first other.
-# baseUrl extracted as URI.substringBefore("/Builds").
-# Returns "" if no suitable CDN found.
+# PREFERRED: returns first CDN whose baseUrl does NOT contain "epicgames.com"
+#   (i.e. Fastly egdownload.fastly-edge.com, Akamai epicgames-download1.akamaized.net)
+#   These CDNs serve chunks publicly without auth tokens.
+# FALLBACK: first CDN not containing "cloudflare.epicgamescdn.com"
+#   (i.e. download.epicgames.com — gated but better than nothing)
+# v8 = fallback baseUrl (download.epicgames.com), "" if none found
+# baseUrl = uri.substringBefore("/Builds"), mirrors GameNative EpicDownloadManager.
 .method public static parseCdnBase(Ljava/lang/String;)Ljava/lang/String;
-    .locals 8
+    .locals 9
     :try_start_cdn
     # Find "manifests" key
     const-string v0, "\"manifests\""
     const/4 v1, 0x0
     invoke-virtual {p0, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v1
-    if-ltz v1, :fail
+    if-ltz v1, :end_scan
     # Find opening [ of manifests array
     const-string v0, "["
     invoke-virtual {p0, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v1
-    if-ltz v1, :fail
+    if-ltz v1, :end_scan
     add-int/lit8 v1, v1, 0x1   # cursor past [
     const-string v3, "\"uri\""
     const-string v4, "/Builds"
     const-string v5, "\""
+    const-string v8, ""          # v8 = fallback CDN (empty = none yet)
     :uri_loop
     # Find next "uri" key from cursor
     invoke-virtual {p0, v3, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v2
-    if-ltz v2, :fail
-    # Advance past "uri" key
+    if-ltz v2, :end_scan         # no more "uri" entries → return fallback
+    # Advance past "uri" key length
     invoke-virtual {v3}, Ljava/lang/String;->length()I
     move-result v0
     add-int v2, v2, v0
     # Find opening quote of uri value
     invoke-virtual {p0, v5, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v2
-    if-ltz v2, :fail
-    add-int/lit8 v2, v2, 0x1   # past opening quote
+    if-ltz v2, :end_scan
+    add-int/lit8 v2, v2, 0x1    # past opening quote
     # Find closing quote of uri value
     invoke-virtual {p0, v5, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v0
-    if-ltz v0, :fail
+    if-ltz v0, :end_scan
     invoke-virtual {p0, v2, v0}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v6   # v6 = full URI string
-    add-int/lit8 v1, v0, 0x1   # advance cursor past this URI
+    move-result-object v6        # v6 = full URI string
+    add-int/lit8 v1, v0, 0x1    # advance cursor past this URI
     # Extract baseUrl = URI.substring(0, indexOf("/Builds"))
     const/4 v2, 0x0
     invoke-virtual {v6, v4, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v2
-    if-ltz v2, :uri_loop   # no "/Builds" in this URI → skip
+    if-ltz v2, :uri_loop         # no "/Builds" → skip
     const/4 v0, 0x0
     invoke-virtual {v6, v0, v2}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v7   # v7 = baseUrl (scheme+host)
-    # Skip Cloudflare CDN (causes issues per GameNative source)
+    move-result-object v7        # v7 = baseUrl (scheme+host)
+    # PREFERRED: Fastly or Akamai — does NOT contain "epicgames.com"
+    const-string v0, "epicgames.com"
+    invoke-virtual {v7, v0}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    move-result v0
+    if-eqz v0, :ideal_cdn       # no "epicgames.com" in host → ideal (Fastly/Akamai)
+    # Contains "epicgames.com" — check if cloudflare.epicgamescdn.com (always skip)
     const-string v0, "cloudflare.epicgamescdn.com"
     invoke-virtual {v7, v0}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
     move-result v0
-    if-nez v0, :uri_loop   # is Cloudflare → skip
-    # Use this baseUrl
-    return-object v7
+    if-nez v0, :uri_loop         # is cloudflare.epicgamescdn.com → skip entirely
+    # Is download.epicgames.com — store as fallback if none yet
+    invoke-virtual {v8}, Ljava/lang/String;->isEmpty()Z
+    move-result v0
+    if-eqz v0, :uri_loop         # already have a fallback → keep looking for ideal
+    move-object v8, v7
+    goto :uri_loop
+    :ideal_cdn
+    return-object v7             # ideal CDN found (Fastly/Akamai) → return immediately
     :try_end_cdn
-    .catch Ljava/lang/Exception; {:try_start_cdn .. :try_end_cdn} :fail
-    :fail
-    const-string v0, ""
-    return-object v0
+    .catch Ljava/lang/Exception; {:try_start_cdn .. :try_end_cdn} :end_scan
+    :end_scan
+    return-object v8             # return fallback (download.epicgames.com) or ""
 .end method
 
 

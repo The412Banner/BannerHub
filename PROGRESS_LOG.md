@@ -2438,3 +2438,9 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 **Root cause:** parseCdnBase required empty queryParams (Akamai-only) — most games only have Fastly/Cloudflare entries → always returned "" → MalformedURLException on chunk URLs.
 **Fix:** filter only `cloudflare.epicgamescdn.com`; use first other CDN. baseUrl = `uri.substringBefore("/Builds")`. queryString always cleared (tokens never used on chunks per GameNative).
 **Files:** `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
+
+### [fix] — v2.7.1-beta60 — parseCdnBase prefer Fastly/Akamai over download.epicgames.com (2026-03-25)
+**Commit:** pending | **Tag:** `v2.7.1-beta60`
+**Root cause:** beta59 parseCdnBase returned `download.epicgames.com` (first non-cloudflare.epicgamescdn.com entry). Deus Ex manifests array has download.epicgames.com first → 403 on all chunks. GameNative rotates CDNs, picks Fastly/Akamai which are public.
+**Fix:** two-tier preference: PREFERRED = first CDN not containing `epicgames.com` (Fastly/Akamai); FALLBACK = first CDN not containing `cloudflare.epicgamescdn.com`. One-pass scan with v8 as fallback register.
+**Files:** `EpicInstallHelper.smali`
