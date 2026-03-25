@@ -3826,3 +3826,22 @@ each part iteration to consume DataSizeSerialised. Total per part = 4+16+4+4 = 2
 
 ### CI result
 → ✅ — run 23493801046 (3m35s)
+
+---
+
+### Entry #48 — v2.7.1-beta50 — fix: chunk flags byte offset + GUID byte order (2026-03-25)
+**Commit:** TBD  |  **Tag:** `v2.7.1-beta50`  |  **CI:** pending
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+
+### Methods changed
+- `downloadAndDecompressChunk` — seek changed from `0x3D` (61) to `0x3C` (60): the flags byte is at offset 61, hash_type is at 60. Old code seeked to 61 (flags position), read "hash_type" there (was actually flags), then read "flags" at 62 (first byte of compressed data). Result: the compressed flag was always the first byte of the payload, not the actual flags byte → zlib chunks were never decompressed → all chunk data was raw compressed bytes written as-is to output files → corrupted game files.
+- `parseChunkList` GUID build — reversed toHex8 call order from `g1+g2+g3+g4` to `g4+g3+g2+g1`. Legendary's guid_num = g1|(g2<<32)|(g3<<64)|(g4<<96), formatted as big-endian hex = `{g4:08X}{g3:08X}{g2:08X}{g1:08X}`. Epic CDN chunk filenames use this reversed format. Old code used forward order → wrong chunk URL → 404 on every chunk download.
+- `parseFileList` GUID build — same reversal applied (g4+g3+g2+g1) to maintain consistent lookup keys with parseChunkList. Since both now use the same reversed format, GUID lookups (parseFileList → parseChunkList array) still work correctly.
+
+### Root-cause analysis
+Two independent bugs that together would cause all chunk downloads to either 404 (wrong URL) or produce corrupted output (wrong decompression). Neither would have been caught until actually attempting a full install past the parsing phase, which only became reachable after beta49 fixed the OOM.
+
+### CI result
+→ pending

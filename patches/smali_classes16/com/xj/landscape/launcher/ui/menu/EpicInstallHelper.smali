@@ -643,19 +643,21 @@
     move-result v7
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
     move-result v8
-    # Build 32-char uppercase hex string from 4 ints
+    # Build 32-char uppercase hex string from 4 ints — REVERSED order (g4+g3+g2+g1)
+    # Matches Legendary/Epic CDN format: guid_num = g1|(g2<<32)|(g3<<64)|(g4<<96)
+    # formatted as big-endian hex = {g4:08X}{g3:08X}{g2:08X}{g1:08X}
     new-instance v9, Ljava/lang/StringBuilder;
     invoke-direct {v9}, Ljava/lang/StringBuilder;-><init>()V
-    invoke-static {v5}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
-    move-result-object v11
-    invoke-virtual {v9, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-static {v6}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
+    invoke-static {v8}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
     move-result-object v11
     invoke-virtual {v9, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-static {v7}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
     move-result-object v11
     invoke-virtual {v9, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-static {v8}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
+    invoke-static {v6}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
+    move-result-object v11
+    invoke-virtual {v9, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-static {v5}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
     move-result-object v11
     invoke-virtual {v9, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v9}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
@@ -820,19 +822,20 @@
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
     move-result v11
 
-    # Build guidHex for lookup
+    # Build guidHex for lookup — REVERSED order (g4+g3+g2+g1)
+    # Must match parseChunkList key format AND Epic CDN filename format
     new-instance v4, Ljava/lang/StringBuilder;
     invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
-    invoke-static {v8}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
-    move-result-object v13
-    invoke-virtual {v4, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-static {v9}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
+    invoke-static {v11}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
     move-result-object v13
     invoke-virtual {v4, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-static {v10}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
     move-result-object v13
     invoke-virtual {v4, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-static {v11}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
+    invoke-static {v9}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
+    move-result-object v13
+    invoke-virtual {v4, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-static {v8}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex8(I)Ljava/lang/String;
     move-result-object v13
     invoke-virtual {v4, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
@@ -974,13 +977,13 @@
     move-result v3
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I   # dataSize (uncompressed)
     move-result v4
-    # Seek to flags byte at offset 61
-    const/16 v5, 0x3D   # 61
+    # Seek to hash_type byte at offset 60; flags follows at offset 61
+    const/16 v5, 0x3C   # 60 = hash_type position
     invoke-virtual {v1, v5}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->get()B
-    move-result v2   # hash_type, ignore
+    move-result v2   # hash_type (offset 60), ignore
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->get()B
-    move-result v5   # flags
+    move-result v5   # flags (offset 61) — bit 0 = zlib compressed
     shl-int/lit8 v5, v5, 0x18
     ushr-int/lit8 v5, v5, 0x18   # zero-extend byte → flags (0-255)
     # Seek to data start (at headerSize) and extract
