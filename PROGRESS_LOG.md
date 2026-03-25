@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-beta53 — fix: scan installDir for first .exe (non-redist) in Add button handler (2026-03-25)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta53
+**Commit:** `3e85af4`
+**What changed:** `EpicMainActivity$13` (Add button OnClickListener) was passing the install *directory* to `EditImportedGameInfoDialog` instead of an actual exe path. The dialog then opened with just the folder selected, not the game executable. Fixed by adding a flat `File.listFiles()` scan at `:path_ready`: iterates files in installDir, skips any whose lowercase name contains "redist", takes the first `.exe` found and passes its absolute path to the dialog. Also normalizes backslashes to forward slashes before scanning. Falls back to installDir if no exe is found (safe for non-Windows games or edge cases).
+**Files touched:** `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$13.smali`
+
+---
+
 ## [epic-beta] — v2.7.1-beta52 — feat: Epic game cards GOG-style UI (Add, ProgressBar, checkmark, Launch) (2026-03-25)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta52
 **Commit:** `0871fe4`

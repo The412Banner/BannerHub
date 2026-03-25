@@ -30,6 +30,23 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 103 — fix: $13 Add button — scan installDir for first .exe (skip redist) (v2.7.1-beta53, epic-integration)
+**Date:** 2026-03-25
+**Branch:** epic-integration  |  **Tag:** v2.7.1-beta53
+**Commit:** `3e85af4`
+
+### Changes
+
+**`EpicMainActivity$13.smali`** [MODIFIED] — Add button OnClickListener. Rewrote `:path_ready` block to perform a flat exe scan before opening the dialog. After normalizing backslashes, creates `new File(installDir)`, calls `listFiles()` → v2. Iterates array: for each entry calls `getName()` → `toLowerCase()` → `contains("redist")` (skip if true) → `endsWith(".exe")` (skip if false); on first match: `getAbsolutePath()` → v3, `goto :exe_scan_done`. If no exe found, v3 remains as installDir (safe fallback). Dialog call unchanged (v3 passed as path arg to `EditImportedGameInfoDialog$Companion.c()`).
+
+### Root-cause analysis
+User logcat `log_2026_03_25_09_31_14` confirmed `PcGameSettingsActivity` was launched (dialog opened correctly) but no exe was selected — only the install directory path was passed. `EditImportedGameInfoDialog.c()` accepts a `String path` argument that can be either a file or directory; when a directory is passed the dialog shows it without selecting any exe. Fix: scan `installDir` for the first `.exe` that is not a redistributable and pass its absolute path instead.
+
+### CI result
+**Pending** — tag v2.7.1-beta53 not yet pushed
+
+---
+
 ## Entry 102 — feat: Epic game cards GOG-style UI — Add/ProgressBar/checkmark/Launch (v2.7.1-beta52, epic-integration)
 **Date:** 2026-03-25
 **Branch:** epic-integration  |  **Tag:** v2.7.1-beta52
