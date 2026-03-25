@@ -233,6 +233,12 @@
     const-string v5, ""
     iput-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->queryString:Ljava/lang/String;
     :after_qs
+    # Debug: log cdnBase, cloudDir, queryString so we can verify chunk URL construction
+    invoke-static {v0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    iget-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->cloudDir:Ljava/lang/String;
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    iget-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->queryString:Ljava/lang/String;
+    invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
 
     # ── Step 6: Post progress ─────────────────────────────────────────────
     const-string v5, "Downloading manifest..."
@@ -469,9 +475,25 @@
 
     :download_chunk
     # Cache miss: download + decompress
+    # Log first chunk URL for diagnostics
+    if-nez v5, :no_chunk_url_log
+    if-nez v8, :no_chunk_url_log
+    invoke-static {v0, v14}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    :no_chunk_url_log
     invoke-static {v14, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->downloadAndDecompressChunk(Ljava/lang/String;Ljava/lang/String;)[B
     move-result-object v14   # v14 = chunkData
-    if-eqz v14, :next_part   # download failed → skip part
+    if-nez v14, :chunk_ok
+    # Download failed. Log HTTP status + error for first chunk.
+    if-nez v5, :next_part
+    if-nez v8, :next_part
+    sget v9, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
+    invoke-static {v9}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+    move-result-object v9
+    invoke-static {v0, v9}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    sget-object v9, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastError:Ljava/lang/String;
+    invoke-static {v0, v9}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    goto :next_part
+    :chunk_ok
     # Write to cache
     new-instance v9, Ljava/io/FileOutputStream;
     invoke-direct {v9, v10}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
