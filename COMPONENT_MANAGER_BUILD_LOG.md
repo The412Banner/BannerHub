@@ -4146,7 +4146,7 @@ queryString always cleared — tokens are path-scoped to manifest file URI, inva
 → pending
 
 ### Entry #57 — v2.7.1-beta60 — fix: parseCdnBase two-pass CDN preference (Fastly/Akamai over download.epicgames.com) (2026-03-25)
-**Commit:** pending  |  **Tag:** `v2.7.1-beta60`  |  **CI:** pending
+**Commit:** `257db47603ab870a939ea0a96b8e0b058ebfd6d9`  |  **Tag:** `v2.7.1-beta60`  |  **CI:** ✅
 
 ### Files touched
 - `EpicInstallHelper.smali` — `parseCdnBase()` rewrite with two-tier CDN preference
