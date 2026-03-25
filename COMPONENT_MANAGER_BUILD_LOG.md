@@ -30,6 +30,29 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 104 — fix: Epic card UI — cancel bug, error feedback, card spacing (v2.7.1-beta54, epic-integration)
+**Date:** 2026-03-25
+**Branch:** epic-integration  |  **Tag:** v2.7.1-beta54
+**Commit:** `0873c62`
+
+### Changes
+
+**`EpicMainActivity$5.smali`** [MODIFIED] — Removed pre-dialog visibility changes (hide addBtn, show progressBar+statusTV). Moved to $9. `.locals 10` unchanged (v7/v8 now used for StringBuilder/Builder). Updated header comment.
+
+**`EpicMainActivity$9.smali`** [MODIFIED] — Added card "installing" state transition at start of `onClick()`: hides addBtn (GONE), shows progressBar (VISIBLE), shows statusTV+setText("Starting...") (VISIBLE). Bumped `.locals 8`→`9`; uses v7 as view scratch, v8 as int/string scratch. These 3 registers are then reused for Thread at the end.
+
+**`EpicMainActivity$12.smali`** [MODIFIED] — Error Runnable. Changed statusTV handling: instead of GONE, sets text to "Install failed", color to red `0xFFF44336`, visibility VISIBLE. addBtn restored to VISIBLE as before. User now sees the error and can retry.
+
+**`EpicMainActivity$2.smali`** [MODIFIED] — Card addView changed from `addView(View)` to `addView(View, LayoutParams)`. New LP: `LinearLayout$LayoutParams(-1, -2)` (MATCH_PARENT × WRAP_CONTENT) with `MarginLayoutParams.bottomMargin = 8dp`. Uses v12/v13/v14 (all free at this point in run()).
+
+### Root-cause analysis
+Three distinct UX bugs: (1) $5 changed card state before user confirmed → Cancel left card broken. (2) $12 hid error silently → user saw no feedback. (3) No card margin → list looked cramped.
+
+### CI result
+**CI ✅ PASS** — run 23544748862, build-quick.yml, 3m39s — APK uploaded to v2.7.1-beta54 release
+
+---
+
 ## Entry 103 — fix: $13 Add button — scan installDir for first .exe (skip redist) (v2.7.1-beta53, epic-integration)
 **Date:** 2026-03-25
 **Branch:** epic-integration  |  **Tag:** v2.7.1-beta53

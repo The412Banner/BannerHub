@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [epic-beta] — v2.7.1-beta54 — fix: Epic card UI — cancel bug, error feedback, card spacing (2026-03-25)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta54
+**Commit:** `0873c62`
+**What changed:** Three card UI fixes. (1) Cancel bug: `$5.onClick()` was showing the progress bar and hiding the Install button *before* the confirmation dialog opened — if the user cancelled, the card stayed stuck in loading state. Fixed by moving those visibility changes to `$9.onClick()` (after user confirms). (2) Error feedback: `$12.run()` now sets statusTV to "Install failed" (red #F44336, VISIBLE) instead of hiding it silently — user can see something went wrong and retry. (3) Card spacing: each game card now gets an 8dp bottom margin (`MarginLayoutParams.bottomMargin`) so cards are separated visually.
+**Files touched:** `EpicMainActivity$2.smali`, `EpicMainActivity$5.smali`, `EpicMainActivity$9.smali`, `EpicMainActivity$12.smali`
+
+---
+
 ## [epic-beta] — v2.7.1-beta53 — fix: scan installDir for first .exe (non-redist) in Add button handler (2026-03-25)
 **Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta53
 **Commit:** `3e85af4`
