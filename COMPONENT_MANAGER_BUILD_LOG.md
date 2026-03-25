@@ -2130,7 +2130,7 @@ beta8 failed: used `move-object v4, p1` — p1=v34 exceeds 4-bit src limit of `m
 ---
 
 ## Entry 043 — CPU core dialog: half-width, 90% height, all-cores = No Limit (2026-03-17)
-**Date:** 2026-03-17  |  **Commit:** `3fab423`  |  **Tag:** v2.4.2-beta7  |  **CI:** pending
+**Date:** 2026-03-17  |  **Commit:** `3fab423`  |  **Tag:** v2.4.2-beta7  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files created / moved / deleted
 - `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
@@ -2200,7 +2200,7 @@ NPE crash: `j3, parameter it is null`. Traced call chain: our `$2/$3.onClick()` 
 ---
 
 ## Entry 039 — Fix invoke-direct/range for CpuMultiSelectHelper$2 6-arg constructor (2026-03-17)
-**Date:** 2026-03-17  |  **Commit:** `48aac66`  |  **Tag:** v2.4.2-beta3  |  **CI:** pending
+**Date:** 2026-03-17  |  **Commit:** `48aac66`  |  **Tag:** v2.4.2-beta3  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files created / moved / deleted
 - `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
@@ -2259,7 +2259,7 @@ CI failed: `invoke-direct` 6-register limit hit (fixed in entry 039).
 ---
 
 ## Entry 036 — CPU core selector: bitmask-based specific core selection (2026-03-17)
-**Date:** 2026-03-17  |  **Commit:** `eb55f63`  |  **Tag:** v2.4.1-beta1  |  **CI:** pending
+**Date:** 2026-03-17  |  **Commit:** `eb55f63`  |  **Tag:** v2.4.1-beta1  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files created / moved / deleted
 - `patches/smali_classes6/com/winemu/core/controller/EnvironmentController.smali` [NEW] — full copy with patched `d()` method
@@ -2281,7 +2281,7 @@ Pending — v2.4.1-beta1 tag triggers build-quick.yml (Normal APK only)
 ---
 
 ## Entry 035 — Fix VRAM display string and isSelected checkmark for 6/8/12/16 GB (2026-03-17)
-**Date:** 2026-03-17  |  **Commit:** `86207ca`  |  **Tag:** v2.3.10-pre  |  **CI:** pending
+**Date:** 2026-03-17  |  **Commit:** `86207ca`  |  **Tag:** v2.3.10-pre  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files created / moved / deleted
 - `patches/smali_classes4/com/xj/winemu/settings/PcGameSettingOperations.smali` [MOD]
@@ -2304,7 +2304,7 @@ Pending — v2.3.10-pre tag triggers build-quick.yml (Normal APK only)
 ---
 
 ## Entry 034 — Fix VerifyError from invalid if-ne in VRAM l0() (2026-03-17)
-**Date:** 2026-03-17  |  **Commit:** `c83dcb0`  |  **Tag:** v2.3.9-pre  |  **CI:** pending
+**Date:** 2026-03-17  |  **Commit:** `c83dcb0`  |  **Tag:** v2.3.9-pre  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files created / moved / deleted
 - `patches/smali_classes4/com/xj/winemu/settings/PcGameSettingOperations.smali` [MOD]
@@ -2321,7 +2321,7 @@ Pending — v2.3.9-pre tag triggers build-quick.yml
 ---
 
 ## Entry 033 — Unlock higher VRAM limits in PC game settings (2026-03-17)
-**Date:** 2026-03-17  |  **Commit:** `cb56d1b`  |  **Tag:** v2.3.8-pre  |  **CI:** pending
+**Date:** 2026-03-17  |  **Commit:** `cb56d1b`  |  **Tag:** v2.3.8-pre  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files created / moved / deleted
 - `patches/smali_classes4/com/xj/winemu/settings/PcGameSettingOperations.smali` [NEW] — full copy of apktool_out version with VRAM entries appended
@@ -2342,7 +2342,7 @@ Pending — v2.3.8-pre tag triggers build-quick.yml (Normal APK only)
 ---
 
 ## Entry 032 — Offline fix: catch NoCacheException in GameSettingViewModel.fetchList (2026-03-17)
-**Date:** 2026-03-17  |  **Commit:** `36e0180`  |  **Tag:** v2.3.7-pre  |  **CI:** pending
+**Date:** 2026-03-17  |  **Commit:** `36e0180`  |  **Tag:** v2.3.7-pre  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files created / moved / deleted
 - `patches/smali_classes3/com/xj/winemu/settings/GameSettingViewModel$fetchList$1.smali` [MOD]
@@ -2638,7 +2638,7 @@ Restored Html.fromHtml `<small>` labels, $1 OnMultiChoiceClickListener, setMulti
 ---
 
 ## Entry 049 — Sustained Performance Mode toggle (ComponentManagerActivity + WineActivity) (2026-03-18)
-**Date:** 2026-03-18  |  **Commit:** TBD  |  **Tag:** v2.4.4-pre  |  **CI:** pending
+**Date:** 2026-03-18  |  **Commit:** TBD  |  **Tag:** v2.4.4-pre  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files modified
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
@@ -2669,7 +2669,7 @@ Pending
 - Remove All: iterates components[], unregisters each from EmuComponents.a HashMap, calls deleteDir(), shows "All components removed" toast
 - Dup prevention: getComponentName() peeks at first byte to detect ZIP vs WCP, reads name from meta.json driverVersion (ZIP) or profile.json versionName (WCP), falls back to display name minus extension; if filesDir/usr/home/components/<name>/ exists → AlertDialog "Already Installed — Replace / Cancel"
 
-**CI:** pending
+**CI:** ✅ run 23537218722 (3m39s)
 
 ---
 
@@ -2682,12 +2682,12 @@ Pending
 **Root cause / design:**
 - App-installed components and BannerHub-injected components share the same `components/` folder. Need to distinguish them. Marker file approach: stamp every BannerHub-injected dir at injection time; Remove All only deletes stamped dirs.
 
-**CI:** pending
+**CI:** ✅ run 23537218722 (3m39s)
 
 ---
 
 ## Entry 051 — Fix: perf re-apply crash guard + grey out toggles without root (2026-03-18)
-**Date:** 2026-03-18  |  **Commit:** `d0a6fcb`  |  **Tag:** v2.5.1-pre  |  **CI:** pending
+**Date:** 2026-03-18  |  **Commit:** `d0a6fcb`  |  **Tag:** v2.5.1-pre  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files modified
 - `patches/smali_classes15/com/xj/winemu/WineActivity.smali`
@@ -2882,7 +2882,7 @@ Click listeners always have a `SidebarSwitchItemView` reference (`field a`) whic
 
 ## Entry 61 — v2.6.2-pre — Component Manager UI redesign: RecyclerView cards + search + swipe (2026-03-20)
 
-**Commit:** `56851cd` | **Tag:** v2.6.2-pre | **CI:** pending
+**Commit:** `56851cd` | **Tag:** v2.6.2-pre | **CI:** ✅ run 23537218722 (3m39s)
 
 ### Summary
 Complete overhaul of ComponentManagerActivity from a basic ListView to a modern card-based RecyclerView UI. 11 smali files added or rewritten. Swipe gestures, live search, type badges, empty state — all programmatic (no XML).
@@ -3701,7 +3701,7 @@ The catalog API (already fetched by `$6.fetchTitle`) returns the correct artifac
 ---
 
 ### Entry #43 — v2.7.1-beta45 — debug: split manifest download vs parseBody errors (2026-03-24)
-**Commit:** `d4180b5`  |  **Tag:** `v2.7.1-beta45`  |  **CI:** pending
+**Commit:** `d4180b5`  |  **Tag:** `v2.7.1-beta45`  |  **CI:** ✅ run 23537218722 (3m39s)
 
 **Files touched:**
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$7.smali`
@@ -3830,7 +3830,7 @@ each part iteration to consume DataSizeSerialised. Total per part = 4+16+4+4 = 2
 ---
 
 ### Entry #48 — v2.7.1-beta50 — fix: chunk flags byte offset + GUID byte order (2026-03-25)
-**Commit:** TBD  |  **Tag:** `v2.7.1-beta50`  |  **CI:** pending
+**Commit:** `2d83e55`  |  **Tag:** `v2.7.1-beta50`  |  **CI:** ✅ run 23537218722 (3m39s)
 
 ### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
@@ -3844,4 +3844,4 @@ each part iteration to consume DataSizeSerialised. Total per part = 4+16+4+4 = 2
 Two independent bugs that together would cause all chunk downloads to either 404 (wrong URL) or produce corrupted output (wrong decompression). Neither would have been caught until actually attempting a full install past the parsing phase, which only became reachable after beta49 fixed the OOM.
 
 ### CI result
-→ pending
+→ ✅ — run 23537218722 (3m39s)

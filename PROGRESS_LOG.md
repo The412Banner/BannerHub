@@ -2371,7 +2371,7 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 ---
 
 ### [fix] — v2.7.1-beta50 — Fix chunk flags offset + GUID byte order (2026-03-25)
-**Commit:** TBD  |  **Tag:** v2.7.1-beta50
+**Commit:** `2d83e55`  |  **Tag:** v2.7.1-beta50
 #### What changed
 - `downloadAndDecompressChunk`: seek changed from `0x3D` (61) to `0x3C` (60). Flags byte is at offset 61 = seeked-to position, so old code read it as "hash_type" and then read the first byte of the compressed payload as "flags". Fix: seek to 60, read hash_type, read flags at 61.
 - `parseChunkList` + `parseFileList`: GUID hex component order reversed from `g1+g2+g3+g4` to `g4+g3+g2+g1`. Matches Legendary/Epic CDN chunk filename format `{guid_num:032X}` where guid_num treats g1 as LSW. Both sites reversed together so GUID lookups remain consistent.
