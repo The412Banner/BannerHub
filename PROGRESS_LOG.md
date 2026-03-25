@@ -2471,3 +2471,12 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 **Files touched:** `EpicDownloader.smali` (new, 7 class files total), `EpicMainActivity$7.smali` (310-line pipeline replaced), `java_src/EpicDownloader.java` (source), `java_stubs/android/util/Log.java`
 
 ---
+
+## [epic-beta] — v2.7.1-beta65 — fix: chunk 403 + JSON manifest support (2026-03-25)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta65
+**Commit:** `644795f`
+**What changed:** (1) Chunk 403 fix: Fastly f_token is path-scoped to the manifest file URI — using it on ChunksV4/* caused Fastly to reject every chunk with 403 (signature mismatch for wrong path). Fix: removed cdn.authParams from downloadChunk() URL. Fastly/Akamai chunks are publicly accessible. (2) JSON manifest support: added parseJsonManifest() — parses ChunkHashList/DataGroupList/ChunkFilesizeList maps + FileManifestList array using org.json.JSONObject; org.json stubs added for compilation. (3) decompressChunk() now uses ByteArrayOutputStream inflate loop — handles any chunk size and works for JSON manifest chunks where windowSize=0 (unknown upfront).
+**Files touched:** `EpicDownloader.java` (3 fixes), `java_stubs/org/json/*.java` (new stubs), `EpicDownloader*.smali` (recompiled)
+**CI:** ✅ run 23566051125, 3m35s
+
+---

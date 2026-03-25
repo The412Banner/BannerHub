@@ -4212,3 +4212,34 @@ Two compounding bugs in the old hand-written smali install loop:
 
 ### CI result
 → CI ✅ (run 23565556476, 3m40s)
+
+## Entry 83 — v2.7.1-beta65 — fix: chunk 403 + JSON manifest support (2026-03-25)
+
+**Commit:** `644795f`  |  **Tag:** `v2.7.1-beta65`  |  **Branch:** `epic-integration`
+
+### Files modified
+- `[MOD] java_src/com/xj/landscape/launcher/ui/menu/EpicDownloader.java` — 3 fixes
+- `[NEW] java_stubs/org/json/JSONObject.java` — stub for compilation
+- `[NEW] java_stubs/org/json/JSONArray.java` — stub for compilation
+- `[NEW] java_stubs/org/json/JSONException.java` — stub for compilation
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader.smali` — recompiled
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader$*.smali` — recompiled
+
+### Root-cause analysis (chunk 403)
+**Evidence from bh_epic_debug.txt:** chunk URL showed f_token appended → HTTP 403 from Fastly. Manifest download with the same f_token SUCCEEDED (1.6MB, 3.8MB returned). The difference: manifest URL path matches the token's signed path exactly; chunk URL path (`ChunksV4/94/...`) does NOT match → Fastly signature verification fails → 403. GameNative never uses authParams on chunk URLs. Fastly/Akamai serve chunks publicly.
+
+**Fix:** `downloadChunk()` — removed `+ cdn.authParams` from URL construction.
+
+### Root-cause analysis (JSON manifest)
+**Evidence from bh_epic_debug.txt:** game `a922e114...` downloaded 1,612,266 byte manifest; `manifest[0]=123` = `{` (JSON). `parseManifest()` returned null → "JSON manifest not yet supported" → install failed. Added `parseJsonManifest(byte[])` using `org.json.JSONObject` (built into Android). `org.json.*` stubs added for javac compilation (real classes at runtime).
+
+### Methods added
+- `EpicDownloader.parseJsonManifest(byte[]) → ParsedManifest` — parses Epic JSON manifest format
+
+### Methods changed
+- `EpicDownloader.downloadChunk()` — removed `cdn.authParams` from chunk URL
+- `EpicDownloader.decompressChunk()` — ByteArrayOutputStream inflate loop (dynamic buffer)
+- `EpicDownloader.parseManifest()` — fallback to parseJsonManifest on non-binary magic
+
+### CI result
+→ CI ✅ (run 23566051125, 3m35s)
