@@ -55,7 +55,7 @@ Each entry covers one logical change unit (commit or closely related set of comm
 Previous card had only a static Install button with no state tracking. After a successful install, the button remained visible/enabled and there was no visual confirmation. Modeled after `GogGamesFragment$2` pattern: card holds widget refs as public fields, passed through listener chain via `val$card`, UI callbacks posted via `runOnUiThread`.
 
 ### CI result
-**Pending** — v2.7.1-beta52 tag pushed; build-quick.yml triggered
+**CI ✅ PASS** — run 23540720830, build-quick.yml, 3m32s — APK uploaded to v2.7.1-beta52 release
 
 ---
 
