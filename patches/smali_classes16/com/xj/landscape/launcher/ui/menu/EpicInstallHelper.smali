@@ -431,6 +431,7 @@
 # baseUrl = uri.substringBefore("/Builds"), mirrors GameNative EpicDownloadManager.
 .method public static parseCdnBase(Ljava/lang/String;)Ljava/lang/String;
     .locals 9
+    const-string v8, ""          # v8 = fallback CDN — init before try so all paths to :end_scan see it defined
     :try_start_cdn
     # Find "manifests" key
     const-string v0, "\"manifests\""
@@ -447,7 +448,6 @@
     const-string v3, "\"uri\""
     const-string v4, "/Builds"
     const-string v5, "\""
-    const-string v8, ""          # v8 = fallback CDN (empty = none yet)
     :uri_loop
     # Find next "uri" key from cursor
     invoke-virtual {p0, v3, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
