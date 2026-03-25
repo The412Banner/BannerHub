@@ -730,7 +730,7 @@
 # filePartData[f] = "chunkIdx:chunkOffset:partSize[;...]"
 # Returns true on success.
 #
-# Register map (.locals 15):
+# Register map (.locals 14):
 # p0 (ByteBuffer), p1 (EpicManifestData)
 #   v0  = fileCount
 #   v1  = outer loop index
@@ -743,17 +743,15 @@
 #   v8-v11 = GUID ints g1-g4 (parts pass)
 #   v12 = chunkGuidHex[] for GUID lookup
 #   v13 = temp (arithmetic, string temps, search bool)
-#   v14 = sectionEndPos (startPos + sectionSize) for bounds-check at end
+# Note: body buffer is not used after parseFileList returns, so no section-end
+# seek needed; sectionSize and version are read and discarded.
 .method public static parseFileList(Ljava/nio/ByteBuffer;Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;)Z
-    .locals 15
+    .locals 14
     :try_start
 
-    # Save section start position, compute end position
-    invoke-virtual {p0}, Ljava/nio/ByteBuffer;->position()I
-    move-result v14
+    # Read section header: sectionSize + version + fileCount (size/version discarded)
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
-    move-result v13   # sectionSize
-    add-int v14, v14, v13   # v14 = sectionEndPos
+    move-result v13   # sectionSize, discard
 
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->get()B
     move-result v13   # data version, discard
@@ -913,9 +911,6 @@
     add-int/lit8 v1, v1, 0x1
     goto :parts_outer
     :parts_outer_done
-
-    # Skip version≥1 (MD5+MIME) and version≥2 (SHA256) columns via section end
-    invoke-virtual {p0, v14}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/ByteBuffer;
 
     const/4 v0, 0x1
     return v0
