@@ -209,7 +209,7 @@
     # v6 = manifestApiJson, v2 = bearerToken, install to val$installDir
     iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$installDir:Ljava/lang/String;
     const/4 v4, 0x0   # null ProgressCallback
-    invoke-static {v6, v2, v3, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->install(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ProgressCallback;)Z
+    invoke-static {v6, v2, v3, v4, v0}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->install(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ProgressCallback;Landroid/content/Context;)Z
     move-result v4
     if-nez v4, :all_done
 

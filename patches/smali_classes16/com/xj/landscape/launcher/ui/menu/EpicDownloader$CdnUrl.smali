@@ -27,18 +27,18 @@
     .locals 0
 
     .prologue
-    .line 44
+    .line 47
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
-    .line 45
+    .line 48
     iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;->baseUrl:Ljava/lang/String;
 
-    .line 46
+    .line 49
     iput-object p2, p0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;->cloudDir:Ljava/lang/String;
 
-    .line 47
+    .line 50
     iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;->authParams:Ljava/lang/String;
 
-    .line 48
+    .line 51
     return-void
 .end method

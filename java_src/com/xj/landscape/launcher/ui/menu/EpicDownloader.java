@@ -2,6 +2,8 @@ package com.xj.landscape.launcher.ui.menu;
 
 import android.util.Log;
 
+import android.content.Context;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -10,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -108,45 +111,52 @@ public class EpicDownloader {
             String manifestApiJson,
             String bearerToken,
             String installDirPath,
-            ProgressCallback progressCallback) {
+            ProgressCallback progressCallback,
+            Context ctx) {
         try {
+            dbg(ctx, "install() entered");
             progress(progressCallback, "Parsing CDN URLs...");
 
             // 1. Parse all CDN entries from the API response.
-            //    Each entry has baseUrl + cloudDir + authParams (token for that CDN).
-            //    We skip cloudflare.epicgamescdn.com (broken) — all others are kept in order.
             List<CdnUrl> cdnUrls = parseCdnUrls(manifestApiJson);
+            dbg(ctx, "parseCdnUrls: " + cdnUrls.size() + " CDNs");
             if (cdnUrls.isEmpty()) {
+                dbg(ctx, "ERROR: no CDN URLs in API response");
                 Log.e(TAG, "No CDN URLs in manifest API response");
                 return false;
             }
-            Log.i(TAG, "CDN URLs found: " + cdnUrls.size());
             for (CdnUrl c : cdnUrls) {
+                dbg(ctx, "  CDN: " + c.baseUrl);
                 Log.i(TAG, "  CDN: " + c.baseUrl + "  auth: " + (c.authParams.isEmpty() ? "(none)" : "YES"));
             }
 
-            // 2. Download manifest binary from the first working CDN (token included).
+            // 2. Download manifest binary.
             progress(progressCallback, "Downloading manifest...");
             byte[] manifestBytes = downloadManifest(manifestApiJson, bearerToken, cdnUrls);
             if (manifestBytes == null) {
+                dbg(ctx, "ERROR: manifest download failed");
                 Log.e(TAG, "Failed to download manifest binary");
                 return false;
             }
+            dbg(ctx, "manifest bytes: " + manifestBytes.length + " first=" + (manifestBytes[0] & 0xFF));
             Log.i(TAG, "Manifest bytes: " + manifestBytes.length);
 
-            // 3. Parse binary manifest → chunk list + file list.
+            // 3. Parse manifest → chunk list + file list.
             progress(progressCallback, "Parsing manifest...");
             ParsedManifest manifest = parseManifest(manifestBytes);
             if (manifest == null) {
+                dbg(ctx, "ERROR: manifest parse failed");
                 Log.e(TAG, "Failed to parse manifest");
                 return false;
             }
+            dbg(ctx, "manifest parsed: chunkDir=" + manifest.chunkDir
+                    + " chunks=" + manifest.uniqueChunks.size()
+                    + " files=" + manifest.files.size());
             Log.i(TAG, "Manifest: chunkDir=" + manifest.chunkDir
                     + " chunks=" + manifest.uniqueChunks.size()
                     + " files=" + manifest.files.size());
 
             // 4. Download unique chunks to .chunks/ cache directory.
-            //    For each chunk: try each CDN in order (with its authParams appended).
             File installDir = new File(installDirPath);
             installDir.mkdirs();
             File chunkCacheDir = new File(installDir, ".chunks");
@@ -157,7 +167,14 @@ public class EpicDownloader {
             for (ChunkInfo chunk : manifest.uniqueChunks) {
                 File cachedFile = new File(chunkCacheDir, chunk.guidStr());
                 if (!cachedFile.exists()) {
+                    if (doneChunks == 0) {
+                        // Log first chunk URL for diagnosis
+                        String firstChunkPath = chunk.getPath(manifest.chunkDir);
+                        String firstCdnBase = cdnUrls.get(0).baseUrl + cdnUrls.get(0).cloudDir;
+                        dbg(ctx, "first chunk: " + firstCdnBase + "/" + firstChunkPath);
+                    }
                     if (!downloadChunk(chunk, manifest.chunkDir, cdnUrls, cachedFile)) {
+                        dbg(ctx, "ERROR: chunk download failed: " + chunk.guidStr());
                         Log.e(TAG, "Failed to download chunk " + chunk.guidStr());
                         return false;
                     }
@@ -821,6 +838,20 @@ public class EpicDownloader {
             }
         }
         dir.delete();
+    }
+
+    /** Append a line to the app's bh_epic_debug.txt for diagnosis. */
+    static void dbg(Context ctx, String msg) {
+        Log.i(TAG, "[DBG] " + msg);
+        if (ctx == null) return;
+        try {
+            File dir = ctx.getExternalFilesDir(null);
+            if (dir == null) return;
+            File f = new File(dir, "bh_epic_debug.txt");
+            FileWriter fw = new FileWriter(f, true);
+            fw.write(msg + "\n");
+            fw.close();
+        } catch (Exception e) { /* ignore */ }
     }
 
     private static void progress(ProgressCallback cb, String msg) {
