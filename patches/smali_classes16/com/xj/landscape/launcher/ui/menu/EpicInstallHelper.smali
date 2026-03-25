@@ -206,6 +206,30 @@
 .end method
 
 
+# ── toDec2 ─────────────────────────────────────────────────────────────────────
+# Format int as 2-char zero-padded decimal (for chunk group subfolder).
+# GameNative uses "%02d".format(groupNum) — decimal, not hex.
+# e.g. groupNum=94 → "94", groupNum=5 → "05"
+.method public static toDec2(I)Ljava/lang/String;
+    .locals 3
+    invoke-static {p0}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+    move-result-object v0
+    invoke-virtual {v0}, Ljava/lang/String;->length()I
+    move-result v1
+    const/4 v2, 0x2
+    if-ge v1, v2, :done
+    new-instance v1, Ljava/lang/StringBuilder;
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v2, "0"
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v0
+    :done
+    return-object v0
+.end method
+
+
 # ── readFString ────────────────────────────────────────────────────────────────
 # Read an Epic FString from a ByteBuffer (little-endian).
 # Positive length = ASCII bytes (includes null terminator).
@@ -974,7 +998,8 @@
 
 # ── buildChunkUrl ──────────────────────────────────────────────────────────────
 # Build the full CDN URL for chunk at index idx.
-# Format: {cdnBase}{cloudDir}{chunkDir}/{groupHex2}/{hash16}_{guid32}.chunk
+# Format: {cdnBase}{cloudDir}{chunkDir}/{groupDec2}/{hash16}_{guid32}.chunk
+# groupDec2 = zero-padded decimal (GameNative "%02d".format(groupNum)), NOT hex.
 .method public static buildChunkUrl(Ljava/lang/String;Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;I)Ljava/lang/String;
     .locals 9
     iget-object v0, p1, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->cloudDir:Ljava/lang/String;
@@ -985,8 +1010,8 @@
     aget v5, v2, p2           # groupNum
     aget-wide v6, v3, p2      # hash (wide)
     aget-object v8, v4, p2    # guidHex String
-    invoke-static {v5}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex2(I)Ljava/lang/String;
-    move-result-object v5     # groupHex2
+    invoke-static {v5}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toDec2(I)Ljava/lang/String;
+    move-result-object v5     # groupDec2 (decimal, e.g. "94" not "5e")
     invoke-static {v6, v7}, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->toHex16(J)Ljava/lang/String;
     move-result-object v6     # hash16
     new-instance v2, Ljava/lang/StringBuilder;
