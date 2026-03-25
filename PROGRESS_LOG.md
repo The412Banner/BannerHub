@@ -2432,3 +2432,9 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 **Root cause (from beta57 debug):** `parseCdnBase` searched for `"cdnList"` (absent in v2 API, key is `"manifests"`) → returned "" → `parseCloudDir` stripped 0 chars → cloudDir = full URL. The `f_token` in Fastly manifest URL is path-scoped → 403 on ChunksV4 paths.
 **Fix:** `parseCdnBase` now scans `"manifests"` array for empty `queryParams` entry (Akamai public CDN) → returns scheme+host. `parseCloudDir` now extracts path by skipping `"://"` + host. In `$7.smali`: if cdnBase non-empty, clear queryString (no token needed for Akamai).
 **Files:** `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
+
+### [fix] — v2.7.1-beta59 — align parseCdnBase with GameNative CDN filter (2026-03-25)
+**Commit:** pending | **Tag:** `v2.7.1-beta59`
+**Root cause:** parseCdnBase required empty queryParams (Akamai-only) — most games only have Fastly/Cloudflare entries → always returned "" → MalformedURLException on chunk URLs.
+**Fix:** filter only `cloudflare.epicgamescdn.com`; use first other CDN. baseUrl = `uri.substringBefore("/Builds")`. queryString always cleared (tokens never used on chunks per GameNative).
+**Files:** `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`

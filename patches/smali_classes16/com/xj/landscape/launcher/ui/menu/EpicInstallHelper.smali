@@ -397,11 +397,14 @@
 
 
 # ── parseCdnBase ───────────────────────────────────────────────
-# Scan "manifests" array in v2 API response for first entry with empty queryParams.
-# Those entries use a public CDN (no signed token required, e.g. Akamai).
-# Returns scheme+host (e.g. "https://epicgames-download1.akamaized.net"), or "" if none.
+# Scan "manifests" array in v2 API response.
+# Returns scheme+host of first non-Cloudflare CDN entry (e.g. Fastly or Akamai).
+# Mirrors GameNative EpicDownloadManager: filter cloudflare.epicgamescdn.com, use first other.
+# baseUrl extracted as URI.substringBefore("/Builds").
+# Returns "" if no suitable CDN found.
 .method public static parseCdnBase(Ljava/lang/String;)Ljava/lang/String;
-    .locals 9
+    .locals 8
+    :try_start_cdn
     # Find "manifests" key
     const-string v0, "\"manifests\""
     const/4 v1, 0x0
@@ -414,74 +417,47 @@
     move-result v1
     if-ltz v1, :fail
     add-int/lit8 v1, v1, 0x1   # cursor past [
-    const-string v4, "\"uri\""
-    const-string v5, "\"queryParams\""
-    const-string v3, "\""
+    const-string v3, "\"uri\""
+    const-string v4, "/Builds"
+    const-string v5, "\""
     :uri_loop
     # Find next "uri" key from cursor
-    invoke-virtual {p0, v4, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    invoke-virtual {p0, v3, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v2
     if-ltz v2, :fail
-    invoke-virtual {v4}, Ljava/lang/String;->length()I
+    # Advance past "uri" key
+    invoke-virtual {v3}, Ljava/lang/String;->length()I
     move-result v0
-    add-int v2, v2, v0   # advance past "uri" key
+    add-int v2, v2, v0
     # Find opening quote of uri value
-    invoke-virtual {p0, v3, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    invoke-virtual {p0, v5, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v2
     if-ltz v2, :fail
     add-int/lit8 v2, v2, 0x1   # past opening quote
     # Find closing quote of uri value
-    invoke-virtual {p0, v3, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v7   # v7 = end of uri value
-    if-ltz v7, :fail
-    invoke-virtual {p0, v2, v7}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v6   # v6 = uri string
-    add-int/lit8 v1, v7, 0x1   # cursor to after this uri value
-    # Find "queryParams" after this uri
-    invoke-virtual {p0, v5, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v8   # v8 = "queryParams" pos (-1 if absent)
-    if-ltz v8, :use_this_uri   # no queryParams key → public CDN
-    # Check if "queryParams" comes before next "uri"
-    invoke-virtual {p0, v4, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v2   # v2 = next "uri" pos
-    if-ltz v2, :check_qp       # no more uris → check this qp
-    if-lt v2, v8, :use_this_uri  # next "uri" before "queryParams" → current entry has no qp
-    :check_qp
-    # "queryParams" belongs to this entry. Check if array is empty.
-    const-string v0, "["
-    invoke-virtual {p0, v0, v8}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v8
-    if-ltz v8, :uri_loop
-    add-int/lit8 v8, v8, 0x1
-    const-string v0, "]"
-    invoke-virtual {p0, v0, v8}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v2
-    if-ltz v2, :uri_loop
-    invoke-virtual {p0, v8, v2}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v0
-    invoke-virtual {v0}, Ljava/lang/String;->trim()Ljava/lang/String;
-    move-result-object v0
-    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
-    move-result v8
-    if-eqz v8, :uri_loop   # not empty → has tokens → skip this entry
-    :use_this_uri
-    # Extract scheme+host from v6 by finding "/" after "://"
-    const-string v0, "://"
-    const/4 v1, 0x0
-    invoke-virtual {v6, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v1
-    if-ltz v1, :fail
-    invoke-virtual {v0}, Ljava/lang/String;->length()I
-    move-result v2
-    add-int v1, v1, v2   # past "://"
-    const-string v0, "/"
-    invoke-virtual {v6, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v1   # "/" starting the path
-    if-ltz v1, :fail
+    invoke-virtual {p0, v5, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v0
+    if-ltz v0, :fail
+    invoke-virtual {p0, v2, v0}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v6   # v6 = full URI string
+    add-int/lit8 v1, v0, 0x1   # advance cursor past this URI
+    # Extract baseUrl = URI.substring(0, indexOf("/Builds"))
     const/4 v2, 0x0
-    invoke-virtual {v6, v2, v1}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v0
-    return-object v0
+    invoke-virtual {v6, v4, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v2
+    if-ltz v2, :uri_loop   # no "/Builds" in this URI → skip
+    const/4 v0, 0x0
+    invoke-virtual {v6, v0, v2}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v7   # v7 = baseUrl (scheme+host)
+    # Skip Cloudflare CDN (causes issues per GameNative source)
+    const-string v0, "cloudflare.epicgamescdn.com"
+    invoke-virtual {v7, v0}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    move-result v0
+    if-nez v0, :uri_loop   # is Cloudflare → skip
+    # Use this baseUrl
+    return-object v7
+    :try_end_cdn
+    .catch Ljava/lang/Exception; {:try_start_cdn .. :try_end_cdn} :fail
     :fail
     const-string v0, ""
     return-object v0

@@ -4119,3 +4119,28 @@ Fix chain:
 
 ### CI result
 → pending
+
+### Entry #56 — v2.7.1-beta59 — fix: align parseCdnBase with GameNative (filter cloudflare.epicgamescdn.com, use first other CDN) (2026-03-25)
+**Commit:** pending  |  **Tag:** `v2.7.1-beta59`  |  **CI:** pending
+
+### Files touched
+- `EpicInstallHelper.smali` — `parseCdnBase()` rewrite
+- `EpicMainActivity$7.smali` — simplify queryString clearing: always clear (no condition)
+
+### Methods changed
+- `parseCdnBase(String json)` — was: required empty `queryParams: []` (Akamai only) → always returned "" when no Akamai entry. Now: finds first CDN where `baseUrl` does NOT contain `"cloudflare.epicgamescdn.com"`. `baseUrl` extracted as `uri.substringBefore("/Builds")`. Mirrors GameNative EpicDownloadManager exactly.
+- `$7.run()` — `:after_qs`: was conditional (only clear queryString if cdnBase non-empty). Now always clears queryString to "". Tokens are NEVER used on chunk downloads per GameNative source.
+
+### Root-cause analysis
+Samorost 3 and other games have manifests arrays with only Fastly (`egdownload.fastly-edge.com`) and/or Cloudflare (`download.epicgames.com`) CDN entries — NO Akamai entry. Old parseCdnBase required empty queryParams (= Akamai) → always returned "" → chunk URL had no scheme+host → `MalformedURLException: no protocol` → silent fail → 0-byte files.
+
+GameNative source (EpicDownloadManager.kt, confirmed from GitHub):
+- Filter: `!it.baseUrl.startsWith("https://cloudflare.epicgamescdn.com")`  
+- Use first non-filtered CDN (Fastly or others)
+- Chunk URL: `baseUrl + cloudDir + "/" + chunkPath` — NO query params ever
+
+New parseCdnBase: same filter. baseUrl = `uri.substringBefore("/Builds")`.
+queryString always cleared — tokens are path-scoped to manifest file URI, invalid for ChunksV4 paths.
+
+### CI result
+→ pending
