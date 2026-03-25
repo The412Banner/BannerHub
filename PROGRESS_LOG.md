@@ -2420,3 +2420,15 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 - Section end seek handles version≥1/2 extra columns (MD5, MIME, SHA256)
 #### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+
+### beta56 — fix: 0-byte Epic downloads (cf_token chunk URLs) (2026-03-25)
+**Commit:** `dddf0ee` | **Tag:** `v2.7.1-beta56`
+**Root cause:** `buildChunkUrl` built bare CDN URLs without `?cf_token=...` from the manifest URL. Epic's `download.epicgames.com` is Cloudflare-gated — manifest worked (signed URL), chunks got 403 → null → 0-byte files.
+**Fix:** Store query string in `EpicManifestData.queryString`; extract from manifest URL in `$7.smali` after `parseCloudDir`; `concat()` onto each chunk URL in `buildChunkUrl`.
+**Files:** `EpicManifestData.smali`, `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
+
+### [fix] — v2.7.1-beta58 — rewrite parseCdnBase/parseCloudDir (fix 403 on chunks) (2026-03-25)
+**Commit:** pending | **Tag:** `v2.7.1-beta58`
+**Root cause (from beta57 debug):** `parseCdnBase` searched for `"cdnList"` (absent in v2 API, key is `"manifests"`) → returned "" → `parseCloudDir` stripped 0 chars → cloudDir = full URL. The `f_token` in Fastly manifest URL is path-scoped → 403 on ChunksV4 paths.
+**Fix:** `parseCdnBase` now scans `"manifests"` array for empty `queryParams` entry (Akamai public CDN) → returns scheme+host. `parseCloudDir` now extracts path by skipping `"://"` + host. In `$7.smali`: if cdnBase non-empty, clear queryString (no token needed for Akamai).
+**Files:** `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`

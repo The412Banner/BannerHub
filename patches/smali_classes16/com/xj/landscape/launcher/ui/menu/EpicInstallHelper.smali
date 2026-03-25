@@ -396,43 +396,92 @@
 .end method
 
 
-# ── parseCdnBase ───────────────────────────────────────────────────────────────
-# Find first non-Cloudflare URL in cdnList array. Returns "" on failure.
+# ── parseCdnBase ───────────────────────────────────────────────
+# Scan "manifests" array in v2 API response for first entry with empty queryParams.
+# Those entries use a public CDN (no signed token required, e.g. Akamai).
+# Returns scheme+host (e.g. "https://epicgames-download1.akamaized.net"), or "" if none.
 .method public static parseCdnBase(Ljava/lang/String;)Ljava/lang/String;
-    .locals 8
-    const-string v0, "\"cdnList\""
+    .locals 9
+    # Find "manifests" key
+    const-string v0, "\"manifests\""
     const/4 v1, 0x0
     invoke-virtual {p0, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v1
     if-ltz v1, :fail
-    const-string v0, "]"
+    # Find opening [ of manifests array
+    const-string v0, "["
     invoke-virtual {p0, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v2   # end of cdnList array
+    move-result v1
+    if-ltz v1, :fail
+    add-int/lit8 v1, v1, 0x1   # cursor past [
+    const-string v4, "\"uri\""
+    const-string v5, "\"queryParams\""
+    const-string v3, "\""
+    :uri_loop
+    # Find next "uri" key from cursor
+    invoke-virtual {p0, v4, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v2
     if-ltz v2, :fail
-    const-string v3, "\"url\""
-    const-string v4, "\""
-    const-string v5, "cloudflare"
-    :url_loop
-    invoke-virtual {p0, v3, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v6
-    if-ltz v6, :fail
-    if-ge v6, v2, :fail
-    invoke-virtual {v3}, Ljava/lang/String;->length()I
-    move-result v7
-    add-int v6, v6, v7
-    invoke-virtual {p0, v4, v6}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v6
-    if-ltz v6, :fail
-    add-int/lit8 v6, v6, 0x1
-    invoke-virtual {p0, v4, v6}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
-    move-result v7
-    if-ltz v7, :fail
-    invoke-virtual {p0, v6, v7}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v6   # candidate URL
-    invoke-virtual {v6, v5}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    invoke-virtual {v4}, Ljava/lang/String;->length()I
     move-result v0
-    if-nez v0, :url_loop   # skip cloudflare
-    return-object v6
+    add-int v2, v2, v0   # advance past "uri" key
+    # Find opening quote of uri value
+    invoke-virtual {p0, v3, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v2
+    if-ltz v2, :fail
+    add-int/lit8 v2, v2, 0x1   # past opening quote
+    # Find closing quote of uri value
+    invoke-virtual {p0, v3, v2}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v7   # v7 = end of uri value
+    if-ltz v7, :fail
+    invoke-virtual {p0, v2, v7}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v6   # v6 = uri string
+    add-int/lit8 v1, v7, 0x1   # cursor to after this uri value
+    # Find "queryParams" after this uri
+    invoke-virtual {p0, v5, v7}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v8   # v8 = "queryParams" pos (-1 if absent)
+    if-ltz v8, :use_this_uri   # no queryParams key → public CDN
+    # Check if "queryParams" comes before next "uri"
+    invoke-virtual {p0, v4, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v2   # v2 = next "uri" pos
+    if-ltz v2, :check_qp       # no more uris → check this qp
+    if-lt v2, v8, :use_this_uri  # next "uri" before "queryParams" → current entry has no qp
+    :check_qp
+    # "queryParams" belongs to this entry. Check if array is empty.
+    const-string v0, "["
+    invoke-virtual {p0, v0, v8}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v8
+    if-ltz v8, :uri_loop
+    add-int/lit8 v8, v8, 0x1
+    const-string v0, "]"
+    invoke-virtual {p0, v0, v8}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v2
+    if-ltz v2, :uri_loop
+    invoke-virtual {p0, v8, v2}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v0
+    invoke-virtual {v0}, Ljava/lang/String;->trim()Ljava/lang/String;
+    move-result-object v0
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
+    move-result v8
+    if-eqz v8, :uri_loop   # not empty → has tokens → skip this entry
+    :use_this_uri
+    # Extract scheme+host from v6 by finding "/" after "://"
+    const-string v0, "://"
+    const/4 v1, 0x0
+    invoke-virtual {v6, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v1
+    if-ltz v1, :fail
+    invoke-virtual {v0}, Ljava/lang/String;->length()I
+    move-result v2
+    add-int v1, v1, v2   # past "://"
+    const-string v0, "/"
+    invoke-virtual {v6, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v1   # "/" starting the path
+    if-ltz v1, :fail
+    const/4 v2, 0x0
+    invoke-virtual {v6, v2, v1}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+    move-result-object v0
+    return-object v0
     :fail
     const-string v0, ""
     return-object v0
@@ -535,21 +584,30 @@
 .end method
 
 
-# ── parseCloudDir ──────────────────────────────────────────────────────────────
-# Extract cloud directory from manifest URL by stripping cdnBase and filename.
-# e.g. "https://cdn.net/Builds/Game/CloudDir/file.manifest?X=Y" + "https://cdn.net"
-#    → "/Builds/Game/CloudDir/"
+# ── parseCloudDir ──────────────────────────────────────────────
+# Extract cloud directory path from manifest URL, independent of cdnBase host.
+# Skips scheme+host by finding "/" after "://", then strips query params and filename.
+# e.g. "https://cdn.net/Builds/Game/Dir/file.manifest?X=Y" → "/Builds/Game/Dir/"
+# cdnBase param retained for API compatibility but no longer used.
 .method public static parseCloudDir(Ljava/lang/String;Ljava/lang/String;Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;)V
     .locals 4
-    # Strip cdnBase prefix from manifestUrl
-    invoke-virtual {p1}, Ljava/lang/String;->length()I
-    move-result v0   # cdnBase length
-    invoke-virtual {p0}, Ljava/lang/String;->length()I
+    :try_start
+    # Skip scheme+host: find "://" then find next "/" (start of path)
+    const-string v0, "://"
+    const/4 v1, 0x0
+    invoke-virtual {p0, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
     move-result v1
-    if-ge v0, v1, :fail
-    invoke-virtual {p0, v0}, Ljava/lang/String;->substring(I)Ljava/lang/String;
-    move-result-object v0   # path part: "/Builds/Game/CloudDir/file.manifest?..."
-    # Strip query params: find ? and cut
+    if-ltz v1, :fail
+    invoke-virtual {v0}, Ljava/lang/String;->length()I
+    move-result v2
+    add-int v1, v1, v2   # skip past "://"
+    const-string v0, "/"
+    invoke-virtual {p0, v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
+    move-result v1   # "/" starting the path
+    if-ltz v1, :fail
+    invoke-virtual {p0, v1}, Ljava/lang/String;->substring(I)Ljava/lang/String;
+    move-result-object v0   # "/Builds/.../file.manifest?token=..."
+    # Strip query params
     const-string v1, "?"
     invoke-virtual {v0, v1}, Ljava/lang/String;->indexOf(Ljava/lang/String;)I
     move-result v1
@@ -563,12 +621,14 @@
     invoke-virtual {v0, v1}, Ljava/lang/String;->lastIndexOf(Ljava/lang/String;)I
     move-result v1
     if-ltz v1, :fail
-    add-int/lit8 v1, v1, 0x1   # include the slash
+    add-int/lit8 v1, v1, 0x1
     const/4 v2, 0x0
     invoke-virtual {v0, v2, v1}, Ljava/lang/String;->substring(II)Ljava/lang/String;
-    move-result-object v0   # cloudDir = "/Builds/Game/CloudDir/"
+    move-result-object v0   # "/Builds/Game/Dir/"
     iput-object v0, p2, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->cloudDir:Ljava/lang/String;
     return-void
+    :try_end
+    .catch Ljava/lang/Exception; {:try_start .. :try_end} :fail
     :fail
     const-string v0, "/"
     iput-object v0, p2, Lcom/xj/landscape/launcher/ui/menu/EpicManifestData;->cloudDir:Ljava/lang/String;

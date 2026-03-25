@@ -3983,3 +3983,139 @@ mul-int/lit8 v4, v0, 0x15 used for the SHA1+flags bulk skip (21 = 0x15 in signed
 
 ### CI result
 → ✅ — run 23539309670 (3m28s)
+
+### Entry #50 — v2.7.1-beta52 — feat: GOG-style card UI (Install→Add, ProgressBar, checkmark, collapsedCheck) (2026-03-25)
+**Commit:** `88d01d7`  |  **Tag:** `v2.7.1-beta52`  |  **CI:** ✅
+
+### Files touched
+- `patches/smali_classes16/.../EpicMainActivity$2.smali` — card layout rewrite
+- `patches/smali_classes16/.../EpicMainActivity$11.smali` — success UI (checkmark)
+
+### Methods changed
+- `$2.run()` — card layout rewritten: progress bar + status TV + Add/Launch buttons; GOG-style
+- `$11.run()` — on install success: show checkmark, hide progress, enable launch
+
+### Root-cause analysis
+Beta51 used raw card layout without progress feedback or GOG visual style. Rewrote to match GOG card pattern.
+
+### CI result
+→ ✅
+
+---
+
+### Entry #51 — v2.7.1-beta53 — fix: exe scan in Add button ($13) (2026-03-25)
+**Commit:** `89f26e0`  |  **Tag:** `v2.7.1-beta53`  |  **CI:** ✅
+
+### Files touched
+- `patches/smali_classes16/.../EpicMainActivity$13.smali` — Add button onClick
+
+### Methods changed
+- `$13.onClick()` — added File.listFiles() scan at `:path_ready`; skips "redist", takes first .exe; falls back to installDir
+
+### Root-cause analysis
+Add button was passing installDir path directly without scanning for the actual .exe.
+
+### CI result
+→ ✅
+
+---
+
+### Entry #52 — v2.7.1-beta54 — fix: cancel bug, error feedback, card spacing (2026-03-25)
+**Commit:** `1e73034`  |  **Tag:** `v2.7.1-beta54`  |  **CI:** ✅
+
+### Files touched
+- `patches/smali_classes16/.../EpicMainActivity$5.smali` — removed pre-dialog visibility changes
+- `patches/smali_classes16/.../EpicMainActivity$9.smali` — moved visibility to post-confirm
+- `patches/smali_classes16/.../EpicMainActivity$12.smali` — show "Install failed" in red
+
+### Methods changed
+- `$5.onClick()` — no longer mutates card before dialog
+- `$9.onClick()` — now shows progressBar/statusTV after user confirms
+- `$12.run()` — statusTV text set to "Install failed" with #F44336 color, VISIBLE
+
+### Root-cause analysis
+1. Cancel left card in broken state because visibility was changed before dialog was shown.
+2. Silent failure: $12 hid statusTV on error so user saw nothing and couldn't retry.
+
+### CI result
+→ ✅
+
+---
+
+### Entry #53 — v2.7.1-beta55 — feat: GOG-style collapsible capsule cards with detail dialog + uninstall (2026-03-25)
+**Commit:** `0e67938`  |  **Tag:** `v2.7.1-beta55`  |  **CI:** ✅
+
+### Files touched
+- `EpicMainActivity.smali` — added expandedSection/expandedArrow instance fields
+- `EpicMainActivity$2.smali` — complete rewrite as collapsible capsule card
+- `EpicMainActivity$11.smali` — added collapsedCheckTV update on success
+- `EpicMainActivity$14.smali` — NEW: card click listener (expand/collapse + detail dialog)
+- `EpicMainActivity$15.smali` — NEW: arrow click listener (collapse)
+- `EpicMainActivity$16.smali` — NEW: uninstall handler (DialogInterface$OnClickListener + Runnable, recursive deleteDir)
+- `EpicMainActivity$17.smali` — NEW: post-uninstall UI Runnable
+
+### Methods changed
+- Full collapsible card architecture matching GOG pattern (topRow: cover+title+✓+arrow; expandSection: subtitle+progress+buttons)
+- Detail dialog: title + "Platform: Epic Games" + "✓ Installed" if installed; Close + Uninstall buttons
+- Uninstall: deletes filesDir/epic_games/{appName}, removes bh_epic_prefs key
+
+### Root-cause analysis
+Beta54 used a flat non-collapsible card. Rebuilt as capsule matching GogGamesActivity pattern.
+
+### CI result
+→ ✅
+
+---
+
+### Entry #54 — v2.7.1-beta56 — fix: append manifest query string to chunk URLs (fix 0-byte downloads) (2026-03-25)
+**Commit:** `dddf0ee`  |  **Tag:** `v2.7.1-beta56`  |  **CI:** pending
+
+### Files touched
+- `EpicManifestData.smali` — added `queryString` field, init "" in ctor
+- `EpicInstallHelper.smali` — `buildChunkUrl()` appends `data.queryString` via `String.concat()`
+- `EpicMainActivity$7.smali` — after `parseCloudDir`, extract `?` substring from manifest URL into `data.queryString`
+
+### Methods changed
+- `EpicManifestData.<init>()` — init queryString=""
+- `buildChunkUrl()` — append queryString at end of URL
+- `$7.run()` — steps 5→6: `indexOf("?")` on manifestUrl → `substring()` → `iput queryString`
+
+### Root-cause analysis
+`buildChunkUrl` constructed bare chunk URLs:
+  `https://download.epicgames.com/Builds/Org/{org}/{build}/default/ChunksV4/XX/HASH_GUID.chunk`
+Epic's CDN at `download.epicgames.com` is Cloudflare-gated. The manifest URL had
+`?cf_token=<signed>` which authorized the manifest download. Chunk URLs had no such token
+→ Cloudflare returned 403 → `downloadBytes` returned null → `if-eqz :next_part` skipped
+every write → all output files ended at 0 bytes → install "completed" with empty files.
+
+Fix: store the manifest URL query string in `EpicManifestData.queryString` and `concat()`
+it onto every chunk URL in `buildChunkUrl`.
+
+### CI result
+→ pending
+
+### Entry #55 — v2.7.1-beta58 — fix: rewrite parseCdnBase/parseCloudDir for v2 API + clear queryString for public CDN (2026-03-25)
+**Commit:** pending  |  **Tag:** `v2.7.1-beta58`  |  **CI:** pending
+
+### Files touched
+- `EpicInstallHelper.smali` — `parseCdnBase()` full rewrite; `parseCloudDir()` full rewrite
+- `EpicMainActivity$7.smali` — after `:after_qs`: if cdnBase non-empty, clear `data.queryString`
+
+### Methods changed
+- `parseCdnBase(String json)` — was: looked for non-existent `"cdnList"` key → always returned "". Now: scans `"manifests"` array for first entry with empty `"queryParams": []` (Akamai public CDN), extracts scheme+host from that URI → returns e.g. `"https://epicgames-download1.akamaized.net"`
+- `parseCloudDir(String, String, EpicManifestData)` — was: stripped `cdnBase.length()` chars from manifestUrl start (broke when cdnBase=""). Now: finds `"://"` in manifestUrl, skips past it, finds next `"/"` (start of path), substrings from there, strips `"?"` and filename via `lastIndexOf("/")`
+- `$7.run()` — after extracting queryString: if `cdnBase.isEmpty()` is false → `iput ""` into `data.queryString` (Akamai CDN requires no token on chunk URLs)
+
+### Root-cause analysis
+beta57 debug revealed three bugs:
+1. `parseCdnBase` scanned for `"cdnList"` — absent in v2 manifest API (key is `"manifests"`) → returned `""` always
+2. `parseCloudDir` stripped `cdnBase.length()` (= 0) chars from manifestUrl → cloudDir = full URL including `https://egdownload.fastly-edge.com/...` instead of just the path
+3. The `f_token` in the manifest URL is path-scoped to the `.manifest` file URL — NOT valid for `ChunksV4/` paths → all chunk requests returned 403 → 0-byte files
+
+Fix chain:
+- `parseCdnBase` now returns the Akamai public CDN base (no token needed)
+- `parseCloudDir` now correctly extracts just the path component
+- Chunk URL = `"https://epicgames-download1.akamaized.net" + "/Builds/Org/.../default/" + "ChunksV4/XX/HASH_GUID.chunk"` — no query params → should succeed
+
+### CI result
+→ pending
