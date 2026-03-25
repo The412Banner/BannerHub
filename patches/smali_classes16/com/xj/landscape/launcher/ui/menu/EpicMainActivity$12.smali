@@ -27,12 +27,17 @@
     const/16 v2, 0x8
     invoke-virtual {v1, v2}, Landroid/view/View;->setVisibility(I)V
 
-    # statusTV → GONE
-    iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$statusTV:Landroid/widget/TextView;
-    invoke-virtual {v1, v2}, Landroid/view/View;->setVisibility(I)V
-
     # addBtn → VISIBLE
     iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$addBtn:Landroid/widget/Button;
+    const/4 v2, 0x0
+    invoke-virtual {v1, v2}, Landroid/view/View;->setVisibility(I)V
+
+    # statusTV → "Install failed" (red) + VISIBLE so user sees the error
+    iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$statusTV:Landroid/widget/TextView;
+    const-string v2, "Install failed"
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    const v2, 0xFFF44336
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
     const/4 v2, 0x0
     invoke-virtual {v1, v2}, Landroid/view/View;->setVisibility(I)V
 

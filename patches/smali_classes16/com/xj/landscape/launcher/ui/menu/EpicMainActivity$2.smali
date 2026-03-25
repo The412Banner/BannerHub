@@ -251,8 +251,16 @@
     iput v14, v5, Landroid/widget/LinearLayout$LayoutParams;->gravity:I
     invoke-virtual {v8, v12, v5}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
-    # ── Add card to gameList ──────────────────────────────────────────────────
-    invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+    # ── Add card to gameList with 8dp bottom margin ───────────────────────────
+    const/high16 v14, 0x41000000   # 8.0f
+    mul-float v14, v2, v14
+    float-to-int v14, v14          # 8dp in px
+    const/4 v13, -0x1              # MATCH_PARENT
+    const/4 v12, -0x2              # WRAP_CONTENT
+    new-instance v5, Landroid/widget/LinearLayout$LayoutParams;
+    invoke-direct {v5, v13, v12}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    iput v14, v5, Landroid/view/ViewGroup$MarginLayoutParams;->bottomMargin:I
+    invoke-virtual {v3, v4, v5}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     # ── Check installed state → flip visibilities ─────────────────────────────
     # Build key "epic_installed_{appName}"

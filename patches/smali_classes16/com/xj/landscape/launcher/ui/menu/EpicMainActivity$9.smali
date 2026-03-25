@@ -28,7 +28,7 @@
 
 
 .method public onClick(Landroid/content/DialogInterface;I)V
-    .locals 8
+    .locals 9
 
     # v1-v6 = constructor args for $7: activity, appName, ns, catId, installDir, card
     iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$9;->this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
@@ -37,6 +37,20 @@
     iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$9;->val$catalogItemId:Ljava/lang/String;
     iget-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$9;->val$installDir:Ljava/lang/String;
     iget-object v6, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$9;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+
+    # Transition card to "installing" state now that user confirmed
+    iget-object v7, v6, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$addBtn:Landroid/widget/Button;
+    const/16 v8, 0x8
+    invoke-virtual {v7, v8}, Landroid/view/View;->setVisibility(I)V
+
+    iget-object v7, v6, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$progressBar:Landroid/widget/ProgressBar;
+    const/4 v8, 0x0
+    invoke-virtual {v7, v8}, Landroid/view/View;->setVisibility(I)V
+
+    iget-object v7, v6, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$statusTV:Landroid/widget/TextView;
+    invoke-virtual {v7, v8}, Landroid/view/View;->setVisibility(I)V
+    const-string v8, "Starting..."
+    invoke-virtual {v7, v8}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
     # v0 = $7 instance, invoke-direct/range {v0..v6}
     new-instance v0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;

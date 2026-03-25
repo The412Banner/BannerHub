@@ -2,10 +2,11 @@
 .super Ljava/lang/Object;
 .implements Landroid/view/View$OnClickListener;
 
-# BannerHub: "Add" button OnClickListener for Epic game cards.
+# BannerHub: "Install" button OnClickListener for Epic game cards.
 # Gets appName/ns/catId from the card ($2) instance.
-# On click: hides addBtn, shows progressBar + statusTV, shows install dialog.
-# Positive "Install" → $9 → $7 (download thread).
+# On click: builds installDir, shows AlertDialog.
+# Positive "Install" → $9 (transitions card to loading state) → $7 (download thread).
+# Cancel → no card state change.
 
 .field final synthetic this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
 .field final synthetic val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
@@ -31,22 +32,9 @@
     iget-object v3, v6, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->namespace:Ljava/lang/String;
     iget-object v4, v6, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->catalogItemId:Ljava/lang/String;
 
-    # Hide addBtn, show progressBar + statusTV
-    iget-object v7, v6, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$addBtn:Landroid/widget/Button;
-    const/16 v8, 0x8
-    invoke-virtual {v7, v8}, Landroid/view/View;->setVisibility(I)V
-
-    iget-object v7, v6, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$progressBar:Landroid/widget/ProgressBar;
-    const/4 v8, 0x0
-    invoke-virtual {v7, v8}, Landroid/view/View;->setVisibility(I)V
-
-    iget-object v7, v6, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$statusTV:Landroid/widget/TextView;
-    const/4 v8, 0x0
-    invoke-virtual {v7, v8}, Landroid/view/View;->setVisibility(I)V
-    const-string v8, "Starting..."
-    invoke-virtual {v7, v8}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-
     # Build installDir = getFilesDir()/epic_games/{appName}
+    # NOTE: visibility changes (hide addBtn, show progressBar+statusTV) moved to
+    # $9.onClick() so Cancel leaves the card unchanged.
     invoke-virtual {v1}, Landroid/content/Context;->getFilesDir()Ljava/io/File;
     move-result-object v7
     const-string v8, "epic_games"
