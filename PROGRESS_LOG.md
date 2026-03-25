@@ -2377,3 +2377,14 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 - `parseChunkList` + `parseFileList`: GUID hex component order reversed from `g1+g2+g3+g4` to `g4+g3+g2+g1`. Matches Legendary/Epic CDN chunk filename format `{guid_num:032X}` where guid_num treats g1 as LSW. Both sites reversed together so GUID lookups remain consistent.
 #### Files touched
 `EpicInstallHelper.smali`
+
+### [fix] — v2.7.1-beta51 — parseFileList columnar format fix (2026-03-25)
+**Commit:** `c589eac`  |  **Tag:** v2.7.1-beta51
+#### What changed
+- `EpicInstallHelper.parseFileList` restructured from row-by-row to columnar format
+- Root cause of OOM on Deus Ex: Epic FileManifestList is columnar (all filenames first, then all symlinks, then all SHA1s, then all flags, then all install tags, then all chunk parts) but old code read per-file, causing immediate buffer drift from file 1 onward → garbage FString length → OOM
+- Added v14 (sectionEndPos) register; bumped .locals 14 → 15
+- Pass 3 bulk-skips SHA1+flags with single seek (fileCount * 21 bytes)
+- Section end seek handles version≥1/2 extra columns (MD5, MIME, SHA256)
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`

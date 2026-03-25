@@ -3845,3 +3845,46 @@ Two independent bugs that together would cause all chunk downloads to either 404
 
 ### CI result
 → ✅ — run 23537218722 (3m39s)
+
+---
+
+### Entry #49 — v2.7.1-beta51 — fix: parseFileList columnar format (OOM on large manifests) (2026-03-25)
+**Commit:** `c589eac`  |  **Tag:** `v2.7.1-beta51`  |  **CI:** pending
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+
+### Methods changed
+- `parseFileList` — complete restructure from interleaved (row-by-row) to columnar (column-by-column) format. `.locals 14` → `.locals 15` (added v14 for sectionEndPos).
+
+### Root-cause analysis
+The Epic binary FileManifestList section uses columnar layout — identical to ChunkDataList:
+  1. ALL filenames      (fileCount × FString)
+  2. ALL symlink targets (fileCount × FString)
+  3. ALL SHA1 hashes    (fileCount × 20 bytes, contiguous)
+  4. ALL flags          (fileCount × 1 byte, contiguous)
+  5. ALL install tags   (fileCount × [int tagCount + FStrings])
+  6. ALL chunk parts    (fileCount × [int partCount + FChunkPart records])
+  7+. version≥1: MD5+MIME columns; version≥2: SHA256 column (skipped via sectionEndPos)
+
+Old code iterated per-file: read filename[0], then tried to read symlink[0] — but symlink[0]
+doesn't exist yet at that buffer position, because ALL filenames come first. So it read
+filename[1] as symlink[0], then tried to skip 21 bytes (sha1+flags) in the middle of
+filename[2], then read a garbage int as tagCount, etc. The buffer drifted immediately from
+the second file onward. On Deus Ex (54,062 chunks, ~thousands of files), eventually a
+garbage FString length of ~-800 MB triggered OutOfMemoryError in readFString before
+"files: N" was ever logged.
+
+Fix:
+- Pass 1: single loop reading ALL filenames
+- Pass 2: single loop discarding ALL symlink targets
+- Pass 3: single seek skip of fileCount*21 bytes (SHA1 + flags columns)
+- Pass 4: nested loop discarding ALL install tag strings
+- Pass 5: nested loop reading ALL chunk parts (GUID lookup + part string build)
+- End: seek to sectionEndPos (startPos + sectionSize) to skip any version-specific extras
+
+Register v14 = sectionEndPos, computed at top before reading section header.
+mul-int/lit8 v4, v0, 0x15 used for the SHA1+flags bulk skip (21 = 0x15 in signed 8-bit).
+
+### CI result
+→ pending
