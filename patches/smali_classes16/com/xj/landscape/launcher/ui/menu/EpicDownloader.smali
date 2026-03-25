@@ -37,7 +37,7 @@
     .locals 3
 
     .prologue
-    .line 845
+    .line 852
     const-string v0, "EpicDownloader"
 
     new-instance v1, Ljava/lang/StringBuilder;
@@ -60,15 +60,15 @@
 
     invoke-static {v0, v1}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 846
+    .line 853
     if-nez p0, :cond_1
 
-    .line 855
+    .line 862
     :cond_0
     :goto_0
     return-void
 
-    .line 848
+    .line 855
     :cond_1
     const/4 v0, 0x0
 
@@ -77,24 +77,24 @@
 
     move-result-object v0
 
-    .line 849
+    .line 856
     if-eqz v0, :cond_0
 
-    .line 850
+    .line 857
     new-instance v1, Ljava/io/File;
 
     const-string v2, "bh_epic_debug.txt"
 
     invoke-direct {v1, v0, v2}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 851
+    .line 858
     new-instance v0, Ljava/io/FileWriter;
 
     const/4 v2, 0x1
 
     invoke-direct {v0, v1, v2}, Ljava/io/FileWriter;-><init>(Ljava/io/File;Z)V
 
-    .line 852
+    .line 859
     new-instance v1, Ljava/lang/StringBuilder;
 
     invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
@@ -115,14 +115,14 @@
 
     invoke-virtual {v0, v1}, Ljava/io/FileWriter;->write(Ljava/lang/String;)V
 
-    .line 853
+    .line 860
     invoke-virtual {v0}, Ljava/io/FileWriter;->close()V
     :try_end_0
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
 
     goto :goto_0
 
-    .line 854
+    .line 861
     :catch_0
     move-exception v0
 
@@ -135,7 +135,7 @@
     .prologue
     const/4 v0, 0x0
 
-    .line 595
+    .line 602
     :try_start_0
     invoke-static {p0}, Ljava/nio/ByteBuffer;->wrap([B)Ljava/nio/ByteBuffer;
 
@@ -147,17 +147,17 @@
 
     move-result-object v1
 
-    .line 596
+    .line 603
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v2
 
-    .line 597
+    .line 604
     const v3, -0x4e01c55e
 
     if-eq v2, v3, :cond_0
 
-    .line 598
+    .line 605
     const-string v1, "EpicDownloader"
 
     new-instance v3, Ljava/lang/StringBuilder;
@@ -184,25 +184,25 @@
 
     invoke-static {v1, v2}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 637
+    .line 644
     :goto_0
     return-object v0
 
-    .line 601
+    .line 608
     :cond_0
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
-    .line 602
+    .line 609
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v2
 
-    .line 603
+    .line 610
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v3
 
-    .line 604
+    .line 611
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->position()I
 
     move-result v4
@@ -211,7 +211,7 @@
 
     invoke-virtual {v1, v4}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 605
+    .line 612
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->position()I
 
     move-result v4
@@ -220,21 +220,21 @@
 
     invoke-virtual {v1, v4}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 606
+    .line 613
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->get()B
 
     move-result v1
 
     and-int/lit16 v4, v1, 0xff
 
-    .line 609
+    .line 616
     if-ltz v2, :cond_1
 
     array-length v1, p0
 
     if-lt v2, v1, :cond_2
 
-    .line 610
+    .line 617
     :cond_1
     const-string v1, "EpicDownloader"
 
@@ -262,11 +262,11 @@
 
     goto :goto_0
 
-    .line 635
+    .line 642
     :catch_0
     move-exception v1
 
-    .line 636
+    .line 643
     const-string v2, "EpicDownloader"
 
     new-instance v3, Ljava/lang/StringBuilder;
@@ -295,44 +295,44 @@
 
     goto :goto_0
 
-    .line 613
+    .line 620
     :cond_2
     :try_start_1
     new-array v1, v3, [B
 
-    .line 614
+    .line 621
     const/4 v5, 0x0
 
     invoke-static {p0, v2, v1, v5, v3}, Ljava/lang/System;->arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V
 
-    .line 616
+    .line 623
     and-int/lit8 v2, v4, 0x1
 
     if-eqz v2, :cond_6
 
-    .line 618
+    .line 625
     new-instance v2, Ljava/util/zip/Inflater;
 
     invoke-direct {v2}, Ljava/util/zip/Inflater;-><init>()V
 
-    .line 619
+    .line 626
     invoke-virtual {v2, v1}, Ljava/util/zip/Inflater;->setInput([B)V
 
-    .line 620
+    .line 627
     new-instance v1, Ljava/io/ByteArrayOutputStream;
 
-    .line 621
+    .line 628
     if-lez p1, :cond_3
 
     :goto_1
     invoke-direct {v1, p1}, Ljava/io/ByteArrayOutputStream;-><init>(I)V
 
-    .line 622
+    .line 629
     const/high16 v3, 0x10000
 
     new-array v3, v3, [B
 
-    .line 624
+    .line 631
     :goto_2
     invoke-virtual {v2, v3}, Ljava/util/zip/Inflater;->inflate([B)I
 
@@ -346,27 +346,27 @@
 
     goto :goto_2
 
-    .line 621
+    .line 628
     :cond_3
     const/high16 p1, 0x100000
 
     goto :goto_1
 
-    .line 625
+    .line 632
     :cond_4
     invoke-virtual {v2}, Ljava/util/zip/Inflater;->end()V
 
-    .line 626
+    .line 633
     invoke-virtual {v1}, Ljava/io/ByteArrayOutputStream;->toByteArray()[B
 
     move-result-object v1
 
-    .line 627
+    .line 634
     array-length v2, v1
 
     if-nez v2, :cond_5
 
-    .line 628
+    .line 635
     const-string v1, "EpicDownloader"
 
     const-string v2, "Chunk inflate produced 0 bytes"
@@ -380,13 +380,13 @@
     :cond_5
     move-object v0, v1
 
-    .line 631
+    .line 638
     goto/16 :goto_0
 
     :cond_6
     move-object v0, v1
 
-    .line 634
+    .line 641
     goto/16 :goto_0
 .end method
 
@@ -394,27 +394,27 @@
     .locals 5
 
     .prologue
-    .line 832
+    .line 839
     invoke-virtual {p0}, Ljava/io/File;->exists()Z
 
     move-result v0
 
     if-nez v0, :cond_0
 
-    .line 841
+    .line 848
     :goto_0
     return-void
 
-    .line 833
+    .line 840
     :cond_0
     invoke-virtual {p0}, Ljava/io/File;->listFiles()[Ljava/io/File;
 
     move-result-object v1
 
-    .line 834
+    .line 841
     if-eqz v1, :cond_2
 
-    .line 835
+    .line 842
     array-length v2, v1
 
     const/4 v0, 0x0
@@ -424,7 +424,7 @@
 
     aget-object v3, v1, v0
 
-    .line 836
+    .line 843
     invoke-virtual {v3}, Ljava/io/File;->isDirectory()Z
 
     move-result v4
@@ -433,19 +433,19 @@
 
     invoke-static {v3}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->deleteDir(Ljava/io/File;)V
 
-    .line 835
+    .line 842
     :goto_2
     add-int/lit8 v0, v0, 0x1
 
     goto :goto_1
 
-    .line 837
+    .line 844
     :cond_1
     invoke-virtual {v3}, Ljava/io/File;->delete()Z
 
     goto :goto_2
 
-    .line 840
+    .line 847
     :cond_2
     invoke-virtual {p0}, Ljava/io/File;->delete()Z
 
@@ -458,8 +458,8 @@
     .prologue
     const/4 v1, 0x0
 
-    .line 761
-    .line 763
+    .line 768
+    .line 770
     :try_start_0
     new-instance v0, Ljava/net/URL;
 
@@ -474,30 +474,30 @@
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_1
     .catchall {:try_start_0 .. :try_end_0} :catchall_0
 
-    .line 764
+    .line 771
     const/16 v2, 0x7530
 
     :try_start_1
     invoke-virtual {v0, v2}, Ljava/net/HttpURLConnection;->setConnectTimeout(I)V
 
-    .line 765
+    .line 772
     const v2, 0xea60
 
     invoke-virtual {v0, v2}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
 
-    .line 766
+    .line 773
     const-string v2, "GET"
 
     invoke-virtual {v0, v2}, Ljava/net/HttpURLConnection;->setRequestMethod(Ljava/lang/String;)V
 
-    .line 767
+    .line 774
     const-string v2, "User-Agent"
 
     const-string v3, "UELauncher/11.0.1-14907503+++Portal+Release-Live Windows/10.0.19041.1.256.64bit"
 
     invoke-virtual {v0, v2, v3}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
 
-    .line 768
+    .line 775
     if-eqz p1, :cond_0
 
     invoke-virtual {p1}, Ljava/lang/String;->isEmpty()Z
@@ -506,23 +506,23 @@
 
     if-nez v2, :cond_0
 
-    .line 769
+    .line 776
     const-string v2, "Authorization"
 
     invoke-virtual {v0, v2, p1}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
 
-    .line 771
+    .line 778
     :cond_0
     invoke-virtual {v0}, Ljava/net/HttpURLConnection;->getResponseCode()I
 
     move-result v2
 
-    .line 772
+    .line 779
     const/16 v3, 0xc8
 
     if-eq v2, v3, :cond_2
 
-    .line 773
+    .line 780
     const-string v3, "EpicDownloader"
 
     new-instance v4, Ljava/lang/StringBuilder;
@@ -558,7 +558,7 @@
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
     .catchall {:try_start_1 .. :try_end_1} :catchall_1
 
-    .line 787
+    .line 794
     if-eqz v0, :cond_1
 
     invoke-virtual {v0}, Ljava/net/HttpURLConnection;->disconnect()V
@@ -566,28 +566,28 @@
     :cond_1
     move-object v0, v1
 
-    .line 785
+    .line 792
     :goto_0
     return-object v0
 
-    .line 776
+    .line 783
     :cond_2
     :try_start_2
     invoke-virtual {v0}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
 
     move-result-object v2
 
-    .line 777
+    .line 784
     new-instance v3, Ljava/io/ByteArrayOutputStream;
 
     invoke-direct {v3}, Ljava/io/ByteArrayOutputStream;-><init>()V
 
-    .line 778
+    .line 785
     const/16 v4, 0x2000
 
     new-array v4, v4, [B
 
-    .line 780
+    .line 787
     :goto_1
     invoke-virtual {v2, v4}, Ljava/io/InputStream;->read([B)I
 
@@ -606,13 +606,13 @@
 
     goto :goto_1
 
-    .line 783
+    .line 790
     :catch_0
     move-exception v2
 
     move-object v3, v0
 
-    .line 784
+    .line 791
     :goto_2
     :try_start_3
     const-string v0, "EpicDownloader"
@@ -653,7 +653,7 @@
     :try_end_3
     .catchall {:try_start_3 .. :try_end_3} :catchall_2
 
-    .line 787
+    .line 794
     if-eqz v3, :cond_3
 
     invoke-virtual {v3}, Ljava/net/HttpURLConnection;->disconnect()V
@@ -661,15 +661,15 @@
     :cond_3
     move-object v0, v1
 
-    .line 785
+    .line 792
     goto :goto_0
 
-    .line 781
+    .line 788
     :cond_4
     :try_start_4
     invoke-virtual {v2}, Ljava/io/InputStream;->close()V
 
-    .line 782
+    .line 789
     invoke-virtual {v3}, Ljava/io/ByteArrayOutputStream;->toByteArray()[B
     :try_end_4
     .catch Ljava/lang/Exception; {:try_start_4 .. :try_end_4} :catch_0
@@ -677,7 +677,7 @@
 
     move-result-object v1
 
-    .line 787
+    .line 794
     if-eqz v0, :cond_5
 
     invoke-virtual {v0}, Ljava/net/HttpURLConnection;->disconnect()V
@@ -685,10 +685,10 @@
     :cond_5
     move-object v0, v1
 
-    .line 782
+    .line 789
     goto :goto_0
 
-    .line 787
+    .line 794
     :catchall_0
     move-exception v0
 
@@ -701,11 +701,11 @@
 
     invoke-virtual {v3}, Ljava/net/HttpURLConnection;->disconnect()V
 
-    .line 788
+    .line 795
     :cond_6
     throw v2
 
-    .line 787
+    .line 794
     :catchall_1
     move-exception v1
 
@@ -722,7 +722,7 @@
 
     goto :goto_3
 
-    .line 783
+    .line 790
     :catch_1
     move-exception v0
 
@@ -750,12 +750,12 @@
     .end annotation
 
     .prologue
-    .line 558
+    .line 565
     invoke-virtual {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->getPath(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v2
 
-    .line 560
+    .line 567
     invoke-interface {p2}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
     move-result-object v3
@@ -774,7 +774,7 @@
 
     check-cast v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;
 
-    .line 564
+    .line 571
     new-instance v1, Ljava/lang/StringBuilder;
 
     invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
@@ -805,7 +805,7 @@
 
     move-result-object v1
 
-    .line 566
+    .line 573
     const/4 v4, 0x0
 
     :try_start_0
@@ -813,20 +813,20 @@
 
     move-result-object v1
 
-    .line 567
+    .line 574
     if-eqz v1, :cond_0
 
-    .line 569
+    .line 576
     iget v4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->windowSize:I
 
     invoke-static {v1, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->decompressChunk([BI)[B
 
     move-result-object v1
 
-    .line 570
+    .line 577
     if-nez v1, :cond_1
 
-    .line 571
+    .line 578
     const-string v1, "EpicDownloader"
 
     new-instance v4, Ljava/lang/StringBuilder;
@@ -855,11 +855,11 @@
 
     goto :goto_0
 
-    .line 579
+    .line 586
     :catch_0
     move-exception v1
 
-    .line 580
+    .line 587
     const-string v4, "EpicDownloader"
 
     new-instance v5, Ljava/lang/StringBuilder;
@@ -914,7 +914,7 @@
 
     goto/16 :goto_0
 
-    .line 575
+    .line 582
     :cond_1
     :try_start_1
     new-instance v4, Ljava/io/FileOutputStream;
@@ -923,7 +923,7 @@
     :try_end_1
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
 
-    .line 576
+    .line 583
     :try_start_2
     invoke-virtual {v4, v1}, Ljava/io/FileOutputStream;->write([B)V
     :try_end_2
@@ -932,14 +932,14 @@
     :try_start_3
     invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V
 
-    .line 577
+    .line 584
     const/4 v0, 0x1
 
-    .line 584
+    .line 591
     :goto_1
     return v0
 
-    .line 576
+    .line 583
     :catchall_0
     move-exception v1
 
@@ -949,7 +949,7 @@
     :try_end_3
     .catch Ljava/lang/Exception; {:try_start_3 .. :try_end_3} :catch_0
 
-    .line 583
+    .line 590
     :cond_2
     const-string v0, "EpicDownloader"
 
@@ -977,7 +977,7 @@
 
     invoke-static {v0, v1}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 584
+    .line 591
     const/4 v0, 0x0
 
     goto :goto_1
@@ -998,11 +998,9 @@
     .end annotation
 
     .prologue
-    const/4 v7, 0x4
-
     const/4 v1, 0x0
 
-    .line 364
+    .line 368
     :try_start_0
     const-string v0, "\"manifests\""
 
@@ -1010,33 +1008,32 @@
 
     move-result v0
 
-    .line 365
-    if-gez v0, :cond_1
+    .line 369
+    if-gez v0, :cond_0
 
     move-object v0, v1
 
-    .line 394
-    :cond_0
+    .line 401
     :goto_0
     return-object v0
 
-    .line 366
-    :cond_1
+    .line 370
+    :cond_0
     const-string v2, "\"uri\""
 
     invoke-virtual {p0, v2, v0}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
 
     move-result v0
 
-    .line 367
-    if-gez v0, :cond_2
+    .line 371
+    if-gez v0, :cond_1
 
     move-object v0, v1
 
     goto :goto_0
 
-    .line 368
-    :cond_2
+    .line 372
+    :cond_1
     const-string v2, ":"
 
     add-int/lit8 v0, v0, 0x5
@@ -1045,15 +1042,15 @@
 
     move-result v0
 
-    .line 369
-    if-gez v0, :cond_3
+    .line 373
+    if-gez v0, :cond_2
 
     move-object v0, v1
 
     goto :goto_0
 
-    .line 370
-    :cond_3
+    .line 374
+    :cond_2
     const-string v2, "\""
 
     add-int/lit8 v0, v0, 0x1
@@ -1062,15 +1059,15 @@
 
     move-result v0
 
-    .line 371
-    if-gez v0, :cond_4
+    .line 375
+    if-gez v0, :cond_3
 
     move-object v0, v1
 
     goto :goto_0
 
-    .line 372
-    :cond_4
+    .line 376
+    :cond_3
     const-string v2, "\""
 
     add-int/lit8 v3, v0, 0x1
@@ -1079,99 +1076,194 @@
 
     move-result v2
 
-    .line 373
-    if-gez v2, :cond_5
+    .line 377
+    if-gez v2, :cond_4
 
     move-object v0, v1
 
     goto :goto_0
 
-    .line 374
-    :cond_5
+    .line 378
+    :cond_4
     add-int/lit8 v0, v0, 0x1
 
     invoke-virtual {p0, v0, v2}, Ljava/lang/String;->substring(II)Ljava/lang/String;
 
-    move-result-object v2
+    move-result-object v0
 
-    .line 376
-    const-string v0, "EpicDownloader"
+    .line 382
+    const-string v2, "?"
 
-    new-instance v3, Ljava/lang/StringBuilder;
+    invoke-virtual {v0, v2}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
 
-    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
+    move-result v2
 
-    const-string v4, "Manifest URI: "
+    if-eqz v2, :cond_5
 
-    invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const/4 v2, 0x0
 
-    move-result-object v3
+    const-string v3, "?"
 
-    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0, v3}, Ljava/lang/String;->indexOf(Ljava/lang/String;)I
 
-    move-result-object v3
+    move-result v3
 
-    invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v3
-
-    invoke-static {v0, v3}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
-
-    .line 377
-    invoke-static {v2, p1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->downloadBytes(Ljava/lang/String;Ljava/lang/String;)[B
+    invoke-virtual {v0, v2, v3}, Ljava/lang/String;->substring(II)Ljava/lang/String;
 
     move-result-object v0
 
-    .line 378
-    if-eqz v0, :cond_6
+    .line 383
+    :cond_5
+    const-string v2, "/"
 
-    array-length v3, v0
+    invoke-virtual {v0, v2}, Ljava/lang/String;->lastIndexOf(Ljava/lang/String;)I
 
-    if-gt v3, v7, :cond_0
+    move-result v2
 
-    .line 381
-    :cond_6
-    const-string v0, "/Builds"
-
-    invoke-virtual {v2, v0}, Ljava/lang/String;->indexOf(Ljava/lang/String;)I
-
-    move-result v0
-
-    .line 382
-    if-gez v0, :cond_7
+    .line 384
+    if-gez v2, :cond_6
 
     move-object v0, v1
 
     goto :goto_0
 
-    .line 383
-    :cond_7
-    invoke-virtual {v2, v0}, Ljava/lang/String;->substring(I)Ljava/lang/String;
-
-    move-result-object v2
-
     .line 385
-    invoke-interface {p2}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+    :cond_6
+    add-int/lit8 v2, v2, 0x1
+
+    invoke-virtual {v0, v2}, Ljava/lang/String;->substring(I)Ljava/lang/String;
 
     move-result-object v3
 
-    :cond_8
-    invoke-interface {v3}, Ljava/util/Iterator;->hasNext()Z
+    .line 386
+    const-string v0, "EpicDownloader"
+
+    new-instance v2, Ljava/lang/StringBuilder;
+
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v4, "Manifest filename: "
+
+    invoke-virtual {v2, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v2
+
+    invoke-static {v0, v2}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
+
+    .line 389
+    invoke-interface {p2}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+
+    move-result-object v4
+
+    :cond_7
+    invoke-interface {v4}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v0
 
-    if-eqz v0, :cond_9
+    if-eqz v0, :cond_8
 
-    invoke-interface {v3}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+    invoke-interface {v4}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
     move-result-object v0
 
     check-cast v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;
 
-    .line 386
+    .line 390
+    new-instance v2, Ljava/lang/StringBuilder;
+
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
+
+    iget-object v5, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;->baseUrl:Ljava/lang/String;
+
+    invoke-virtual {v2, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    iget-object v5, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;->cloudDir:Ljava/lang/String;
+
+    invoke-virtual {v2, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    const-string v5, "/"
+
+    invoke-virtual {v2, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    iget-object v5, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;->authParams:Ljava/lang/String;
+
+    invoke-virtual {v2, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v2
+
+    .line 391
+    const-string v5, "EpicDownloader"
+
+    new-instance v6, Ljava/lang/StringBuilder;
+
+    invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v7, "Trying manifest: "
+
+    invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v6
+
+    invoke-virtual {v6, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v6
+
+    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v6
+
+    invoke-static {v5, v6}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
+
+    .line 392
+    const/4 v5, 0x0
+
+    invoke-static {v2, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->downloadBytes(Ljava/lang/String;Ljava/lang/String;)[B
+
+    move-result-object v2
+
+    .line 393
+    if-eqz v2, :cond_7
+
+    array-length v5, v2
+
+    const/4 v6, 0x4
+
+    if-le v5, v6, :cond_7
+
+    .line 394
+    const-string v3, "EpicDownloader"
+
     new-instance v4, Ljava/lang/StringBuilder;
 
     invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v5, "Manifest OK from "
+
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v4
 
     iget-object v0, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;->baseUrl:Ljava/lang/String;
 
@@ -1179,7 +1271,15 @@
 
     move-result-object v0
 
-    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v4, " bytes="
+
+    invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    array-length v4, v2
+
+    invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
 
     move-result-object v0
 
@@ -1187,50 +1287,20 @@
 
     move-result-object v0
 
-    .line 387
-    const-string v4, "EpicDownloader"
-
-    new-instance v5, Ljava/lang/StringBuilder;
-
-    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
-
-    const-string v6, "Manifest fallback: "
-
-    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v5
-
-    invoke-virtual {v5, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v5
-
-    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v5
-
-    invoke-static {v4, v5}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
-
-    .line 388
-    invoke-static {v0, p1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->downloadBytes(Ljava/lang/String;Ljava/lang/String;)[B
-
-    move-result-object v0
-
-    .line 389
-    if-eqz v0, :cond_8
-
-    array-length v4, v0
+    invoke-static {v3, v0}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
     :try_end_0
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
 
-    if-le v4, v7, :cond_8
+    move-object v0, v2
 
+    .line 395
     goto/16 :goto_0
 
-    .line 391
+    .line 398
     :catch_0
     move-exception v0
 
-    .line 392
+    .line 399
     const-string v2, "EpicDownloader"
 
     new-instance v3, Ljava/lang/StringBuilder;
@@ -1257,10 +1327,10 @@
 
     invoke-static {v2, v0}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    :cond_9
+    :cond_8
     move-object v0, v1
 
-    .line 394
+    .line 401
     goto/16 :goto_0
 .end method
 
@@ -1270,7 +1340,7 @@
     .prologue
     const/4 v1, 0x0
 
-    .line 308
+    .line 309
     :try_start_0
     invoke-virtual {p0}, Ljava/lang/String;->length()I
 
@@ -1282,14 +1352,14 @@
 
     move-result v0
 
-    .line 309
+    .line 310
     const-string v2, "\"queryParams\""
 
     invoke-virtual {p0, v2, p1}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
 
     move-result v2
 
-    .line 310
+    .line 311
     if-ltz v2, :cond_0
 
     if-le v2, v0, :cond_1
@@ -1297,11 +1367,11 @@
     :cond_0
     const-string v0, ""
 
-    .line 351
+    .line 352
     :goto_0
     return-object v0
 
-    .line 311
+    .line 312
     :cond_1
     const-string v0, "["
 
@@ -1309,14 +1379,14 @@
 
     move-result v0
 
-    .line 312
+    .line 313
     if-gez v0, :cond_2
 
     const-string v0, ""
 
     goto :goto_0
 
-    .line 313
+    .line 314
     :cond_2
     const-string v2, "]"
 
@@ -1324,14 +1394,14 @@
 
     move-result v2
 
-    .line 314
+    .line 315
     if-gez v2, :cond_3
 
     const-string v0, ""
 
     goto :goto_0
 
-    .line 315
+    .line 316
     :cond_3
     add-int/lit8 v0, v0, 0x1
 
@@ -1343,7 +1413,7 @@
 
     move-result-object v3
 
-    .line 316
+    .line 317
     invoke-virtual {v3}, Ljava/lang/String;->isEmpty()Z
 
     move-result v0
@@ -1354,7 +1424,7 @@
 
     goto :goto_0
 
-    .line 318
+    .line 319
     :cond_4
     new-instance v4, Ljava/lang/StringBuilder;
 
@@ -1362,12 +1432,12 @@
 
     invoke-direct {v4, v0}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
-    .line 319
+    .line 320
     const/4 v2, 0x1
 
     move v0, v1
 
-    .line 321
+    .line 322
     :goto_1
     invoke-virtual {v3}, Ljava/lang/String;->length()I
 
@@ -1375,17 +1445,17 @@
 
     if-ge v0, v5, :cond_5
 
-    .line 323
+    .line 324
     const-string v5, "\"name\""
 
     invoke-virtual {v3, v5, v0}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
 
     move-result v0
 
-    .line 324
+    .line 325
     if-gez v0, :cond_6
 
-    .line 349
+    .line 350
     :cond_5
     if-eqz v2, :cond_8
 
@@ -1393,7 +1463,7 @@
 
     goto :goto_0
 
-    .line 325
+    .line 326
     :cond_6
     const-string v5, ":"
 
@@ -1403,10 +1473,10 @@
 
     move-result v0
 
-    .line 326
+    .line 327
     if-ltz v0, :cond_5
 
-    .line 327
+    .line 328
     const-string v5, "\""
 
     add-int/lit8 v0, v0, 0x1
@@ -1415,10 +1485,10 @@
 
     move-result v0
 
-    .line 328
+    .line 329
     if-ltz v0, :cond_5
 
-    .line 329
+    .line 330
     const-string v5, "\""
 
     add-int/lit8 v6, v0, 0x1
@@ -1427,27 +1497,27 @@
 
     move-result v5
 
-    .line 330
+    .line 331
     if-ltz v5, :cond_5
 
-    .line 331
+    .line 332
     add-int/lit8 v0, v0, 0x1
 
     invoke-virtual {v3, v0, v5}, Ljava/lang/String;->substring(II)Ljava/lang/String;
 
     move-result-object v0
 
-    .line 334
+    .line 335
     const-string v6, "\"value\""
 
     invoke-virtual {v3, v6, v5}, Ljava/lang/String;->indexOf(Ljava/lang/String;I)I
 
     move-result v5
 
-    .line 335
+    .line 336
     if-ltz v5, :cond_5
 
-    .line 336
+    .line 337
     const-string v6, ":"
 
     add-int/lit8 v5, v5, 0x7
@@ -1456,10 +1526,10 @@
 
     move-result v5
 
-    .line 337
+    .line 338
     if-ltz v5, :cond_5
 
-    .line 338
+    .line 339
     const-string v6, "\""
 
     add-int/lit8 v5, v5, 0x1
@@ -1468,10 +1538,10 @@
 
     move-result v5
 
-    .line 339
+    .line 340
     if-ltz v5, :cond_5
 
-    .line 340
+    .line 341
     const-string v6, "\""
 
     add-int/lit8 v7, v5, 0x1
@@ -1480,24 +1550,24 @@
 
     move-result v6
 
-    .line 341
+    .line 342
     if-ltz v6, :cond_5
 
-    .line 342
+    .line 343
     add-int/lit8 v5, v5, 0x1
 
     invoke-virtual {v3, v5, v6}, Ljava/lang/String;->substring(II)Ljava/lang/String;
 
     move-result-object v5
 
-    .line 344
+    .line 345
     if-nez v2, :cond_7
 
     const-string v2, "&"
 
     invoke-virtual {v4, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    .line 345
+    .line 346
     :cond_7
     invoke-virtual {v4, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -1511,15 +1581,15 @@
 
     invoke-virtual {v0, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    .line 347
+    .line 348
     add-int/lit8 v0, v6, 0x1
 
     move v2, v1
 
-    .line 348
+    .line 349
     goto :goto_1
 
-    .line 349
+    .line 350
     :cond_8
     invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     :try_end_0
@@ -1529,11 +1599,11 @@
 
     goto/16 :goto_0
 
-    .line 350
+    .line 351
     :catch_0
     move-exception v0
 
-    .line 351
+    .line 352
     const-string v0, ""
 
     goto/16 :goto_0
@@ -1620,7 +1690,7 @@
     .line 126
     const/4 v1, 0x0
 
-    .line 230
+    .line 231
     :goto_0
     return v1
 
@@ -1718,11 +1788,11 @@
 
     goto :goto_1
 
-    .line 228
+    .line 229
     :catch_0
     move-exception v1
 
-    .line 229
+    .line 230
     const-string v2, "EpicDownloader"
 
     new-instance v3, Ljava/lang/StringBuilder;
@@ -1749,7 +1819,7 @@
 
     invoke-static {v2, v3, v1}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
 
-    .line 230
+    .line 231
     const/4 v1, 0x0
 
     goto :goto_0
@@ -1770,33 +1840,40 @@
     invoke-static {v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->progress(Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ProgressCallback;Ljava/lang/String;)V
 
     .line 135
-    invoke-static {p0, p1, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->downloadManifest(Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)[B
-
-    move-result-object v1
-
-    .line 136
-    if-nez v1, :cond_3
-
-    .line 137
-    const-string v1, "ERROR: manifest download failed"
+    const-string v1, "downloadManifest starting..."
 
     move-object/from16 v0, p4
 
     invoke-static {v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->dbg(Landroid/content/Context;Ljava/lang/String;)V
 
+    .line 136
+    invoke-static {p0, p1, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->downloadManifest(Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)[B
+
+    move-result-object v1
+
+    .line 137
+    if-nez v1, :cond_3
+
     .line 138
+    const-string v1, "ERROR: manifest download failed (all CDNs returned null/empty)"
+
+    move-object/from16 v0, p4
+
+    invoke-static {v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->dbg(Landroid/content/Context;Ljava/lang/String;)V
+
+    .line 139
     const-string v1, "EpicDownloader"
 
     const-string v2, "Failed to download manifest binary"
 
     invoke-static {v1, v2}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 139
+    .line 140
     const/4 v1, 0x0
 
     goto/16 :goto_0
 
-    .line 141
+    .line 142
     :cond_3
     new-instance v2, Ljava/lang/StringBuilder;
 
@@ -1838,7 +1915,7 @@
 
     invoke-static {v0, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->dbg(Landroid/content/Context;Ljava/lang/String;)V
 
-    .line 142
+    .line 143
     const-string v2, "EpicDownloader"
 
     new-instance v3, Ljava/lang/StringBuilder;
@@ -1863,41 +1940,41 @@
 
     invoke-static {v2, v3}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 145
+    .line 146
     const-string v2, "Parsing manifest..."
 
     move-object/from16 v0, p3
 
     invoke-static {v0, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->progress(Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ProgressCallback;Ljava/lang/String;)V
 
-    .line 146
+    .line 147
     invoke-static {v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->parseManifest([B)Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;
 
     move-result-object v5
 
-    .line 147
+    .line 148
     if-nez v5, :cond_4
 
-    .line 148
+    .line 149
     const-string v1, "ERROR: manifest parse failed"
 
     move-object/from16 v0, p4
 
     invoke-static {v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->dbg(Landroid/content/Context;Ljava/lang/String;)V
 
-    .line 149
+    .line 150
     const-string v1, "EpicDownloader"
 
     const-string v2, "Failed to parse manifest"
 
     invoke-static {v1, v2}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 150
+    .line 151
     const/4 v1, 0x0
 
     goto/16 :goto_0
 
-    .line 152
+    .line 153
     :cond_4
     new-instance v1, Ljava/lang/StringBuilder;
 
@@ -1923,7 +2000,7 @@
 
     iget-object v2, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->uniqueChunks:Ljava/util/List;
 
-    .line 153
+    .line 154
     invoke-interface {v2}, Ljava/util/List;->size()I
 
     move-result v2
@@ -1940,7 +2017,7 @@
 
     iget-object v2, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->files:Ljava/util/List;
 
-    .line 154
+    .line 155
     invoke-interface {v2}, Ljava/util/List;->size()I
 
     move-result v2
@@ -1953,12 +2030,12 @@
 
     move-result-object v1
 
-    .line 152
+    .line 153
     move-object/from16 v0, p4
 
     invoke-static {v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->dbg(Landroid/content/Context;Ljava/lang/String;)V
 
-    .line 155
+    .line 156
     const-string v1, "EpicDownloader"
 
     new-instance v2, Ljava/lang/StringBuilder;
@@ -1985,7 +2062,7 @@
 
     iget-object v3, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->uniqueChunks:Ljava/util/List;
 
-    .line 156
+    .line 157
     invoke-interface {v3}, Ljava/util/List;->size()I
 
     move-result v3
@@ -2002,7 +2079,7 @@
 
     iget-object v3, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->files:Ljava/util/List;
 
-    .line 157
+    .line 158
     invoke-interface {v3}, Ljava/util/List;->size()I
 
     move-result v3
@@ -2015,40 +2092,40 @@
 
     move-result-object v2
 
-    .line 155
+    .line 156
     invoke-static {v1, v2}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 160
+    .line 161
     new-instance v6, Ljava/io/File;
 
     move-object/from16 v0, p2
 
     invoke-direct {v6, v0}, Ljava/io/File;-><init>(Ljava/lang/String;)V
 
-    .line 161
+    .line 162
     invoke-virtual {v6}, Ljava/io/File;->mkdirs()Z
 
-    .line 162
+    .line 163
     new-instance v7, Ljava/io/File;
 
     const-string v1, ".chunks"
 
     invoke-direct {v7, v6, v1}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 163
+    .line 164
     invoke-virtual {v7}, Ljava/io/File;->mkdirs()Z
 
-    .line 165
+    .line 166
     iget-object v1, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->uniqueChunks:Ljava/util/List;
 
     invoke-interface {v1}, Ljava/util/List;->size()I
 
     move-result v8
 
-    .line 166
+    .line 167
     const/4 v1, 0x0
 
-    .line 167
+    .line 168
     iget-object v2, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->uniqueChunks:Ljava/util/List;
 
     invoke-interface {v2}, Ljava/util/List;->iterator()Ljava/util/Iterator;
@@ -2070,7 +2147,7 @@
 
     check-cast v1, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;
 
-    .line 168
+    .line 169
     new-instance v10, Ljava/io/File;
 
     invoke-virtual {v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guidStr()Ljava/lang/String;
@@ -2079,24 +2156,24 @@
 
     invoke-direct {v10, v7, v2}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 169
+    .line 170
     invoke-virtual {v10}, Ljava/io/File;->exists()Z
 
     move-result v2
 
     if-nez v2, :cond_6
 
-    .line 170
+    .line 171
     if-nez v3, :cond_5
 
-    .line 172
+    .line 173
     iget-object v2, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->chunkDir:Ljava/lang/String;
 
     invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->getPath(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v11
 
-    .line 173
+    .line 174
     new-instance v12, Ljava/lang/StringBuilder;
 
     invoke-direct {v12}, Ljava/lang/StringBuilder;-><init>()V
@@ -2133,7 +2210,7 @@
 
     move-result-object v2
 
-    .line 174
+    .line 175
     new-instance v12, Ljava/lang/StringBuilder;
 
     invoke-direct {v12}, Ljava/lang/StringBuilder;-><init>()V
@@ -2166,7 +2243,7 @@
 
     invoke-static {v0, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->dbg(Landroid/content/Context;Ljava/lang/String;)V
 
-    .line 176
+    .line 177
     :cond_5
     iget-object v2, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->chunkDir:Ljava/lang/String;
 
@@ -2176,7 +2253,7 @@
 
     if-nez v2, :cond_6
 
-    .line 177
+    .line 178
     new-instance v2, Ljava/lang/StringBuilder;
 
     invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
@@ -2203,7 +2280,7 @@
 
     invoke-static {v0, v2}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->dbg(Landroid/content/Context;Ljava/lang/String;)V
 
-    .line 178
+    .line 179
     const-string v2, "EpicDownloader"
 
     new-instance v3, Ljava/lang/StringBuilder;
@@ -2230,23 +2307,23 @@
 
     invoke-static {v2, v1}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 179
+    .line 180
     const/4 v1, 0x0
 
     goto/16 :goto_0
 
-    .line 182
+    .line 183
     :cond_6
     add-int/lit8 v1, v3, 0x1
 
-    .line 183
+    .line 184
     rem-int/lit16 v2, v1, 0x1f4
 
     if-eqz v2, :cond_7
 
     if-ne v1, v8, :cond_8
 
-    .line 184
+    .line 185
     :cond_7
     new-instance v2, Ljava/lang/StringBuilder;
 
@@ -2289,10 +2366,10 @@
     :cond_8
     move v3, v1
 
-    .line 186
+    .line 187
     goto/16 :goto_3
 
-    .line 189
+    .line 190
     :cond_9
     const-string v1, "Assembling files..."
 
@@ -2300,17 +2377,17 @@
 
     invoke-static {v0, v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->progress(Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ProgressCallback;Ljava/lang/String;)V
 
-    .line 190
+    .line 191
     iget-object v1, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->files:Ljava/util/List;
 
     invoke-interface {v1}, Ljava/util/List;->size()I
 
     move-result v3
 
-    .line 191
+    .line 192
     const/4 v1, 0x0
 
-    .line 192
+    .line 193
     iget-object v2, v5, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->files:Ljava/util/List;
 
     invoke-interface {v2}, Ljava/util/List;->iterator()Ljava/util/Iterator;
@@ -2332,7 +2409,7 @@
 
     check-cast v1, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;
 
-    .line 194
+    .line 195
     iget-object v5, v1, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;->filename:Ljava/lang/String;
 
     const-string v8, "\\"
@@ -2343,28 +2420,28 @@
 
     move-result-object v5
 
-    .line 195
+    .line 196
     new-instance v8, Ljava/io/File;
 
     invoke-direct {v8, v6, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 196
+    .line 197
     invoke-virtual {v8}, Ljava/io/File;->getParentFile()Ljava/io/File;
 
     move-result-object v9
 
-    .line 197
+    .line 198
     if-eqz v9, :cond_a
 
     invoke-virtual {v9}, Ljava/io/File;->mkdirs()Z
 
-    .line 199
+    .line 200
     :cond_a
     new-instance v9, Ljava/io/FileOutputStream;
 
     invoke-direct {v9, v8}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
 
-    .line 200
+    .line 201
     new-instance v8, Ljava/io/BufferedOutputStream;
 
     const/high16 v10, 0x10000
@@ -2373,7 +2450,7 @@
     :try_end_1
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
 
-    .line 202
+    .line 203
     :try_start_2
     iget-object v1, v1, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;->parts:Ljava/util/List;
 
@@ -2394,7 +2471,7 @@
 
     check-cast v1, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;
 
-    .line 203
+    .line 204
     new-instance v10, Ljava/io/File;
 
     invoke-virtual {v1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guidStr()Ljava/lang/String;
@@ -2403,17 +2480,17 @@
 
     invoke-direct {v10, v7, v11}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 204
+    .line 205
     invoke-virtual {v10}, Ljava/io/File;->exists()Z
 
     move-result v11
 
     if-nez v11, :cond_b
 
-    .line 205
+    .line 206
     invoke-virtual {v8}, Ljava/io/BufferedOutputStream;->close()V
 
-    .line 206
+    .line 207
     const-string v2, "EpicDownloader"
 
     new-instance v3, Ljava/lang/StringBuilder;
@@ -2452,10 +2529,10 @@
     :try_end_2
     .catchall {:try_start_2 .. :try_end_2} :catchall_0
 
-    .line 207
+    .line 208
     const/4 v1, 0x0
 
-    .line 213
+    .line 214
     :try_start_3
     invoke-virtual {v8}, Ljava/io/BufferedOutputStream;->close()V
     :try_end_3
@@ -2463,14 +2540,14 @@
 
     goto/16 :goto_0
 
-    .line 209
+    .line 210
     :cond_b
     :try_start_4
     invoke-static {v10}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->readFile(Ljava/io/File;)[B
 
     move-result-object v10
 
-    .line 210
+    .line 211
     iget v11, v1, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->offset:I
 
     iget v1, v1, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->size:I
@@ -2481,31 +2558,31 @@
 
     goto :goto_5
 
-    .line 213
+    .line 214
     :catchall_0
     move-exception v1
 
     :try_start_5
     invoke-virtual {v8}, Ljava/io/BufferedOutputStream;->close()V
 
-    .line 214
+    .line 215
     throw v1
 
-    .line 213
+    .line 214
     :cond_c
     invoke-virtual {v8}, Ljava/io/BufferedOutputStream;->close()V
 
-    .line 216
+    .line 217
     add-int/lit8 v1, v2, 0x1
 
-    .line 217
+    .line 218
     rem-int/lit16 v2, v1, 0xc8
 
     if-eqz v2, :cond_d
 
     if-ne v1, v3, :cond_e
 
-    .line 218
+    .line 219
     :cond_d
     new-instance v2, Ljava/lang/StringBuilder;
 
@@ -2548,14 +2625,14 @@
     :cond_e
     move v2, v1
 
-    .line 220
+    .line 221
     goto/16 :goto_4
 
-    .line 223
+    .line 224
     :cond_f
     invoke-static {v7}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->deleteDir(Ljava/io/File;)V
 
-    .line 225
+    .line 226
     const-string v1, "EpicDownloader"
 
     const-string v2, "Install complete!"
@@ -2564,7 +2641,7 @@
     :try_end_5
     .catch Ljava/lang/Exception; {:try_start_5 .. :try_end_5} :catch_0
 
-    .line 226
+    .line 227
     const/4 v1, 0x1
 
     goto/16 :goto_0
@@ -2585,12 +2662,12 @@
     .end annotation
 
     .prologue
-    .line 242
+    .line 243
     new-instance v0, Ljava/util/ArrayList;
 
     invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
 
-    .line 244
+    .line 245
     :try_start_0
     const-string v1, "\"manifests\""
 
@@ -2598,15 +2675,15 @@
 
     move-result v1
 
-    .line 245
+    .line 246
     if-gez v1, :cond_1
 
-    .line 298
+    .line 299
     :cond_0
     :goto_0
     return-object v0
 
-    .line 246
+    .line 247
     :cond_1
     const-string v2, "["
 
@@ -2614,13 +2691,13 @@
 
     move-result v1
 
-    .line 247
+    .line 248
     if-ltz v1, :cond_0
 
-    .line 251
+    .line 252
     add-int/lit8 v1, v1, 0x1
 
-    .line 257
+    .line 258
     :goto_1
     const-string v2, "\"uri\""
 
@@ -2628,10 +2705,10 @@
 
     move-result v3
 
-    .line 258
+    .line 259
     if-ltz v3, :cond_0
 
-    .line 261
+    .line 262
     const-string v1, ":"
 
     add-int/lit8 v2, v3, 0x5
@@ -2640,10 +2717,10 @@
 
     move-result v1
 
-    .line 262
+    .line 263
     if-ltz v1, :cond_0
 
-    .line 263
+    .line 264
     const-string v2, "\""
 
     add-int/lit8 v1, v1, 0x1
@@ -2652,10 +2729,10 @@
 
     move-result v1
 
-    .line 264
+    .line 265
     if-ltz v1, :cond_0
 
-    .line 265
+    .line 266
     const-string v2, "\""
 
     add-int/lit8 v4, v1, 0x1
@@ -2664,34 +2741,34 @@
 
     move-result v2
 
-    .line 266
+    .line 267
     if-ltz v2, :cond_0
 
-    .line 267
+    .line 268
     add-int/lit8 v1, v1, 0x1
 
     invoke-virtual {p0, v1, v2}, Ljava/lang/String;->substring(II)Ljava/lang/String;
 
     move-result-object v1
 
-    .line 268
+    .line 269
     add-int/lit8 v2, v2, 0x1
 
-    .line 271
+    .line 272
     const-string v4, "/Builds"
 
     invoke-virtual {v1, v4}, Ljava/lang/String;->indexOf(Ljava/lang/String;)I
 
     move-result v4
 
-    .line 272
+    .line 273
     if-gez v4, :cond_2
 
     move v1, v2
 
     goto :goto_1
 
-    .line 274
+    .line 275
     :cond_2
     const/4 v5, 0x0
 
@@ -2699,7 +2776,7 @@
 
     move-result-object v5
 
-    .line 275
+    .line 276
     const-string v6, "http"
 
     invoke-virtual {v5, v6}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
@@ -2712,7 +2789,7 @@
 
     goto :goto_1
 
-    .line 278
+    .line 279
     :cond_3
     const-string v6, "cloudflare.epicgamescdn.com"
 
@@ -2726,20 +2803,20 @@
 
     goto :goto_1
 
-    .line 281
+    .line 282
     :cond_4
     invoke-virtual {v1, v4}, Ljava/lang/String;->substring(I)Ljava/lang/String;
 
     move-result-object v1
 
-    .line 283
+    .line 284
     const-string v4, "?"
 
     invoke-virtual {v1, v4}, Ljava/lang/String;->indexOf(Ljava/lang/String;)I
 
     move-result v4
 
-    .line 284
+    .line 285
     if-ltz v4, :cond_5
 
     const/4 v6, 0x0
@@ -2748,7 +2825,7 @@
 
     move-result-object v1
 
-    .line 285
+    .line 286
     :cond_5
     const-string v4, "/"
 
@@ -2756,14 +2833,14 @@
 
     move-result v4
 
-    .line 286
+    .line 287
     if-gez v4, :cond_6
 
     move v1, v2
 
     goto :goto_1
 
-    .line 287
+    .line 288
     :cond_6
     const/4 v6, 0x0
 
@@ -2771,12 +2848,12 @@
 
     move-result-object v1
 
-    .line 291
+    .line 292
     invoke-static {p0, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->extractQueryParams(Ljava/lang/String;I)Ljava/lang/String;
 
     move-result-object v3
 
-    .line 293
+    .line 294
     new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;
 
     invoke-direct {v4, v5, v1, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl;-><init>(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
@@ -2787,14 +2864,14 @@
 
     move v1, v2
 
-    .line 294
+    .line 295
     goto :goto_1
 
-    .line 295
+    .line 296
     :catch_0
     move-exception v1
 
-    .line 296
+    .line 297
     const-string v2, "EpicDownloader"
 
     new-instance v3, Ljava/lang/StringBuilder;
@@ -2828,7 +2905,7 @@
     .locals 18
 
     .prologue
-    .line 650
+    .line 657
     :try_start_0
     new-instance v2, Ljava/lang/String;
 
@@ -2838,14 +2915,14 @@
 
     invoke-direct {v2, v0, v3}, Ljava/lang/String;-><init>([BLjava/nio/charset/Charset;)V
 
-    .line 651
+    .line 658
     new-instance v3, Lorg/json/JSONObject;
 
     invoke-direct {v3, v2}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
     :try_end_0
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_1
 
-    .line 655
+    .line 662
     :try_start_1
     const-string v2, "ManifestFileVersion"
 
@@ -2862,7 +2939,7 @@
 
     move-result v2
 
-    .line 658
+    .line 665
     :goto_0
     const/16 v4, 0xf
 
@@ -2873,7 +2950,7 @@
 
     move-object v4, v2
 
-    .line 663
+    .line 670
     :goto_1
     const-string v2, "ChunkHashList"
 
@@ -2881,38 +2958,38 @@
 
     move-result-object v5
 
-    .line 664
+    .line 671
     const-string v2, "DataGroupList"
 
     invoke-virtual {v3, v2}, Lorg/json/JSONObject;->optJSONObject(Ljava/lang/String;)Lorg/json/JSONObject;
 
     move-result-object v6
 
-    .line 665
+    .line 672
     const-string v2, "ChunkFilesizeList"
 
     invoke-virtual {v3, v2}, Lorg/json/JSONObject;->optJSONObject(Ljava/lang/String;)Lorg/json/JSONObject;
 
     move-result-object v7
 
-    .line 667
+    .line 674
     if-nez v5, :cond_3
 
-    .line 668
+    .line 675
     const-string v2, "EpicDownloader"
 
     const-string v3, "JSON manifest: no ChunkHashList"
 
     invoke-static {v2, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 669
+    .line 676
     const/4 v2, 0x0
 
-    .line 753
+    .line 760
     :goto_2
     return-object v2
 
-    .line 656
+    .line 663
     :catch_0
     move-exception v2
 
@@ -2920,7 +2997,7 @@
 
     goto :goto_0
 
-    .line 659
+    .line 666
     :cond_0
     const/4 v4, 0x6
 
@@ -2932,7 +3009,7 @@
 
     goto :goto_1
 
-    .line 660
+    .line 667
     :cond_1
     const/4 v4, 0x3
 
@@ -2944,7 +3021,7 @@
 
     goto :goto_1
 
-    .line 661
+    .line 668
     :cond_2
     const-string v2, "ChunksV4"
 
@@ -2952,18 +3029,18 @@
 
     goto :goto_1
 
-    .line 673
+    .line 680
     :cond_3
     new-instance v8, Ljava/util/LinkedHashMap;
 
     invoke-direct {v8}, Ljava/util/LinkedHashMap;-><init>()V
 
-    .line 674
+    .line 681
     invoke-virtual {v5}, Lorg/json/JSONObject;->keys()Ljava/util/Iterator;
 
     move-result-object v9
 
-    .line 675
+    .line 682
     :cond_4
     :goto_3
     invoke-interface {v9}, Ljava/util/Iterator;->hasNext()Z
@@ -2972,14 +3049,14 @@
 
     if-eqz v2, :cond_8
 
-    .line 676
+    .line 683
     invoke-interface {v9}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
     move-result-object v2
 
     check-cast v2, Ljava/lang/String;
 
-    .line 677
+    .line 684
     invoke-virtual {v2}, Ljava/lang/String;->length()I
 
     move-result v10
@@ -2988,17 +3065,17 @@
 
     if-lt v10, v11, :cond_4
 
-    .line 678
+    .line 685
     invoke-virtual {v5, v2}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v10
 
-    .line 680
+    .line 687
     new-instance v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;
 
     invoke-direct {v11}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;-><init>()V
 
-    .line 681
+    .line 688
     iget-object v12, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guid:[I
 
     const/4 v13, 0x0
@@ -3021,7 +3098,7 @@
 
     aput v14, v12, v13
 
-    .line 682
+    .line 689
     iget-object v12, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guid:[I
 
     const/4 v13, 0x1
@@ -3044,7 +3121,7 @@
 
     aput v14, v12, v13
 
-    .line 683
+    .line 690
     iget-object v12, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guid:[I
 
     const/4 v13, 0x2
@@ -3067,7 +3144,7 @@
 
     aput v14, v12, v13
 
-    .line 684
+    .line 691
     iget-object v12, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guid:[I
 
     const/4 v13, 0x3
@@ -3090,7 +3167,7 @@
 
     aput v14, v12, v13
 
-    .line 687
+    .line 694
     if-eqz v10, :cond_5
 
     invoke-virtual {v10}, Ljava/lang/String;->length()I
@@ -3103,7 +3180,7 @@
 
     if-lt v12, v13, :cond_5
 
-    .line 689
+    .line 696
     const/4 v12, 0x0
 
     const/16 v13, 0x10
@@ -3123,12 +3200,12 @@
     :try_end_3
     .catch Ljava/lang/Exception; {:try_start_3 .. :try_end_3} :catch_2
 
-    .line 693
+    .line 700
     :cond_5
     :goto_4
     if-eqz v6, :cond_6
 
-    .line 694
+    .line 701
     :try_start_4
     const-string v10, "0"
 
@@ -3145,12 +3222,12 @@
     .catch Ljava/lang/NumberFormatException; {:try_start_4 .. :try_end_4} :catch_3
     .catch Ljava/lang/Exception; {:try_start_4 .. :try_end_4} :catch_1
 
-    .line 697
+    .line 704
     :cond_6
     :goto_5
     if-eqz v7, :cond_7
 
-    .line 698
+    .line 705
     :try_start_5
     const-string v10, "0"
 
@@ -3167,7 +3244,7 @@
     .catch Ljava/lang/NumberFormatException; {:try_start_5 .. :try_end_5} :catch_4
     .catch Ljava/lang/Exception; {:try_start_5 .. :try_end_5} :catch_1
 
-    .line 702
+    .line 709
     :cond_7
     :goto_6
     const/4 v10, 0x0
@@ -3175,18 +3252,18 @@
     :try_start_6
     iput v10, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->windowSize:I
 
-    .line 704
+    .line 711
     invoke-interface {v8, v2, v11}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     :try_end_6
     .catch Ljava/lang/Exception; {:try_start_6 .. :try_end_6} :catch_1
 
     goto/16 :goto_3
 
-    .line 751
+    .line 758
     :catch_1
     move-exception v2
 
-    .line 752
+    .line 759
     const-string v3, "EpicDownloader"
 
     new-instance v4, Ljava/lang/StringBuilder;
@@ -3213,12 +3290,12 @@
 
     invoke-static {v3, v4, v2}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
 
-    .line 753
+    .line 760
     const/4 v2, 0x0
 
     goto/16 :goto_2
 
-    .line 690
+    .line 697
     :catch_2
     move-exception v10
 
@@ -3229,7 +3306,7 @@
 
     goto :goto_4
 
-    .line 695
+    .line 702
     :catch_3
     move-exception v10
 
@@ -3239,7 +3316,7 @@
 
     goto :goto_5
 
-    .line 699
+    .line 706
     :catch_4
     move-exception v10
 
@@ -3249,7 +3326,7 @@
 
     goto :goto_6
 
-    .line 708
+    .line 715
     :cond_8
     const-string v2, "FileManifestList"
 
@@ -3257,22 +3334,22 @@
 
     move-result-object v5
 
-    .line 709
+    .line 716
     if-nez v5, :cond_9
 
-    .line 710
+    .line 717
     const-string v2, "EpicDownloader"
 
     const-string v3, "JSON manifest: no FileManifestList"
 
     invoke-static {v2, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 711
+    .line 718
     const/4 v2, 0x0
 
     goto/16 :goto_2
 
-    .line 714
+    .line 721
     :cond_9
     new-instance v6, Ljava/util/ArrayList;
 
@@ -3282,7 +3359,7 @@
 
     invoke-direct {v6, v2}, Ljava/util/ArrayList;-><init>(I)V
 
-    .line 715
+    .line 722
     const/4 v2, 0x0
 
     move v3, v2
@@ -3294,17 +3371,17 @@
 
     if-ge v3, v2, :cond_c
 
-    .line 716
+    .line 723
     invoke-virtual {v5, v3}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
 
     move-result-object v2
 
-    .line 717
+    .line 724
     new-instance v7, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;
 
     invoke-direct {v7}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;-><init>()V
 
-    .line 718
+    .line 725
     const-string v9, "Filename"
 
     const-string v10, ""
@@ -3315,17 +3392,17 @@
 
     iput-object v9, v7, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;->filename:Ljava/lang/String;
 
-    .line 720
+    .line 727
     const-string v9, "FileChunkParts"
 
     invoke-virtual {v2, v9}, Lorg/json/JSONObject;->optJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
 
     move-result-object v9
 
-    .line 721
+    .line 728
     if-eqz v9, :cond_b
 
-    .line 722
+    .line 729
     const/4 v2, 0x0
 
     :goto_8
@@ -3335,17 +3412,17 @@
 
     if-ge v2, v10, :cond_b
 
-    .line 723
+    .line 730
     invoke-virtual {v9, v2}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
 
     move-result-object v10
 
-    .line 724
+    .line 731
     new-instance v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;
 
     invoke-direct {v11}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;-><init>()V
 
-    .line 725
+    .line 732
     const-string v12, "Guid"
 
     const-string v13, ""
@@ -3354,7 +3431,7 @@
 
     move-result-object v12
 
-    .line 726
+    .line 733
     invoke-virtual {v12}, Ljava/lang/String;->length()I
 
     move-result v13
@@ -3363,7 +3440,7 @@
 
     if-lt v13, v14, :cond_a
 
-    .line 727
+    .line 734
     iget-object v13, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guid:[I
 
     const/4 v14, 0x0
@@ -3390,7 +3467,7 @@
 
     aput v15, v13, v14
 
-    .line 728
+    .line 735
     iget-object v13, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guid:[I
 
     const/4 v14, 0x1
@@ -3417,7 +3494,7 @@
 
     aput v15, v13, v14
 
-    .line 729
+    .line 736
     iget-object v13, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guid:[I
 
     const/4 v14, 0x2
@@ -3444,7 +3521,7 @@
 
     aput v15, v13, v14
 
-    .line 730
+    .line 737
     iget-object v13, v11, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guid:[I
 
     const/4 v14, 0x3
@@ -3473,7 +3550,7 @@
     :try_end_7
     .catch Ljava/lang/Exception; {:try_start_7 .. :try_end_7} :catch_1
 
-    .line 732
+    .line 739
     :cond_a
     :try_start_8
     const-string v12, "Offset"
@@ -3493,7 +3570,7 @@
     .catch Ljava/lang/NumberFormatException; {:try_start_8 .. :try_end_8} :catch_5
     .catch Ljava/lang/Exception; {:try_start_8 .. :try_end_8} :catch_1
 
-    .line 734
+    .line 741
     :goto_9
     :try_start_9
     const-string v12, "Size"
@@ -3513,19 +3590,19 @@
     .catch Ljava/lang/NumberFormatException; {:try_start_9 .. :try_end_9} :catch_6
     .catch Ljava/lang/Exception; {:try_start_9 .. :try_end_9} :catch_1
 
-    .line 736
+    .line 743
     :goto_a
     :try_start_a
     iget-object v10, v7, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;->parts:Ljava/util/List;
 
     invoke-interface {v10, v11}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    .line 722
+    .line 729
     add-int/lit8 v2, v2, 0x1
 
     goto/16 :goto_8
 
-    .line 733
+    .line 740
     :catch_5
     move-exception v12
 
@@ -3535,7 +3612,7 @@
 
     goto :goto_9
 
-    .line 735
+    .line 742
     :catch_6
     move-exception v10
 
@@ -3545,27 +3622,27 @@
 
     goto :goto_a
 
-    .line 739
+    .line 746
     :cond_b
     invoke-interface {v6, v7}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    .line 715
+    .line 722
     add-int/lit8 v2, v3, 0x1
 
     move v3, v2
 
     goto/16 :goto_7
 
-    .line 742
+    .line 749
     :cond_c
     new-instance v2, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;
 
     invoke-direct {v2}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;-><init>()V
 
-    .line 743
+    .line 750
     iput-object v4, v2, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->chunkDir:Ljava/lang/String;
 
-    .line 744
+    .line 751
     new-instance v3, Ljava/util/ArrayList;
 
     invoke-interface {v8}, Ljava/util/Map;->values()Ljava/util/Collection;
@@ -3576,10 +3653,10 @@
 
     iput-object v3, v2, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->uniqueChunks:Ljava/util/List;
 
-    .line 745
+    .line 752
     iput-object v6, v2, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->files:Ljava/util/List;
 
-    .line 746
+    .line 753
     const-string v3, "EpicDownloader"
 
     new-instance v5, Ljava/lang/StringBuilder;
@@ -3604,7 +3681,7 @@
 
     iget-object v5, v2, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->uniqueChunks:Ljava/util/List;
 
-    .line 747
+    .line 754
     invoke-interface {v5}, Ljava/util/List;->size()I
 
     move-result v5
@@ -3619,7 +3696,7 @@
 
     move-result-object v4
 
-    .line 748
+    .line 755
     invoke-interface {v6}, Ljava/util/List;->size()I
 
     move-result v5
@@ -3632,7 +3709,7 @@
 
     move-result-object v4
 
-    .line 746
+    .line 753
     invoke-static {v3, v4}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
     :try_end_a
     .catch Ljava/lang/Exception; {:try_start_a .. :try_end_a} :catch_1
@@ -3644,7 +3721,7 @@
     .locals 17
 
     .prologue
-    .line 406
+    .line 413
     :try_start_0
     invoke-static/range {p0 .. p0}, Ljava/nio/ByteBuffer;->wrap([B)Ljava/nio/ByteBuffer;
 
@@ -3656,47 +3733,47 @@
 
     move-result-object v1
 
-    .line 409
+    .line 416
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v0
 
-    .line 410
+    .line 417
     const v2, 0x44bec00c
 
     if-eq v0, v2, :cond_0
 
-    .line 412
+    .line 419
     const-string v0, "EpicDownloader"
 
     const-string v1, "Non-binary manifest, trying JSON parser"
 
     invoke-static {v0, v1}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 413
+    .line 420
     invoke-static/range {p0 .. p0}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader;->parseJsonManifest([B)Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;
 
     move-result-object v0
 
-    .line 541
+    .line 548
     :goto_0
     return-object v0
 
-    .line 415
+    .line 422
     :cond_0
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v3
 
-    .line 416
+    .line 423
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v4
 
-    .line 417
+    .line 424
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
-    .line 418
+    .line 425
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->position()I
 
     move-result v0
@@ -3705,19 +3782,19 @@
 
     invoke-virtual {v1, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 419
+    .line 426
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->get()B
 
     move-result v0
 
     and-int/lit16 v5, v0, 0xff
 
-    .line 420
+    .line 427
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v0
 
-    .line 424
+    .line 431
     const/16 v2, 0xf
 
     if-lt v0, v2, :cond_1
@@ -3726,48 +3803,48 @@
 
     move-object v2, v0
 
-    .line 430
+    .line 437
     :goto_1
     invoke-virtual {v1, v3}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 431
+    .line 438
     invoke-virtual {v1}, Ljava/nio/ByteBuffer;->remaining()I
 
     move-result v0
 
     new-array v0, v0, [B
 
-    .line 432
+    .line 439
     invoke-virtual {v1, v0}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/ByteBuffer;
 
-    .line 435
+    .line 442
     and-int/lit8 v1, v5, 0x1
 
     if-eqz v1, :cond_4
 
-    .line 436
+    .line 443
     new-instance v1, Ljava/util/zip/Inflater;
 
     invoke-direct {v1}, Ljava/util/zip/Inflater;-><init>()V
 
-    .line 437
+    .line 444
     invoke-virtual {v1, v0}, Ljava/util/zip/Inflater;->setInput([B)V
 
-    .line 438
+    .line 445
     new-array v0, v4, [B
 
-    .line 439
+    .line 446
     invoke-virtual {v1, v0}, Ljava/util/zip/Inflater;->inflate([B)I
 
     move-result v3
 
-    .line 440
+    .line 447
     invoke-virtual {v1}, Ljava/util/zip/Inflater;->end()V
 
-    .line 441
+    .line 448
     if-eq v3, v4, :cond_4
 
-    .line 442
+    .line 449
     const-string v0, "EpicDownloader"
 
     new-instance v1, Ljava/lang/StringBuilder;
@@ -3800,12 +3877,12 @@
 
     invoke-static {v0, v1}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 443
+    .line 450
     const/4 v0, 0x0
 
     goto :goto_0
 
-    .line 425
+    .line 432
     :cond_1
     const/4 v2, 0x6
 
@@ -3817,7 +3894,7 @@
 
     goto :goto_1
 
-    .line 426
+    .line 433
     :cond_2
     const/4 v2, 0x3
 
@@ -3829,7 +3906,7 @@
 
     goto :goto_1
 
-    .line 427
+    .line 434
     :cond_3
     const-string v0, "Chunks"
 
@@ -3837,7 +3914,7 @@
 
     goto :goto_1
 
-    .line 448
+    .line 455
     :cond_4
     invoke-static {v0}, Ljava/nio/ByteBuffer;->wrap([B)Ljava/nio/ByteBuffer;
 
@@ -3849,12 +3926,12 @@
 
     move-result-object v3
 
-    .line 451
+    .line 458
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v0
 
-    .line 452
+    .line 459
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->position()I
 
     move-result v1
@@ -3865,30 +3942,30 @@
 
     invoke-virtual {v3, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 455
+    .line 462
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->position()I
 
     move-result v1
 
-    .line 456
+    .line 463
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v4
 
-    .line 457
+    .line 464
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->get()B
 
-    .line 458
+    .line 465
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v5
 
-    .line 460
+    .line 467
     new-instance v6, Ljava/util/ArrayList;
 
     invoke-direct {v6, v5}, Ljava/util/ArrayList;-><init>(I)V
 
-    .line 461
+    .line 468
     const/4 v0, 0x0
 
     :goto_2
@@ -3904,7 +3981,7 @@
 
     goto :goto_2
 
-    .line 464
+    .line 471
     :cond_5
     invoke-interface {v6}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
@@ -3923,7 +4000,7 @@
 
     check-cast v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;
 
-    .line 465
+    .line 472
     iget-object v8, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guid:[I
 
     const/4 v9, 0x0
@@ -3934,7 +4011,7 @@
 
     aput v10, v8, v9
 
-    .line 466
+    .line 473
     iget-object v8, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guid:[I
 
     const/4 v9, 0x1
@@ -3945,7 +4022,7 @@
 
     aput v10, v8, v9
 
-    .line 467
+    .line 474
     iget-object v8, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guid:[I
 
     const/4 v9, 0x2
@@ -3956,7 +4033,7 @@
 
     aput v10, v8, v9
 
-    .line 468
+    .line 475
     iget-object v0, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo;->guid:[I
 
     const/4 v8, 0x3
@@ -3971,11 +4048,11 @@
 
     goto :goto_3
 
-    .line 539
+    .line 546
     :catch_0
     move-exception v0
 
-    .line 540
+    .line 547
     const-string v1, "EpicDownloader"
 
     new-instance v2, Ljava/lang/StringBuilder;
@@ -4002,12 +4079,12 @@
 
     invoke-static {v1, v2, v0}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
 
-    .line 541
+    .line 548
     const/4 v0, 0x0
 
     goto/16 :goto_0
 
-    .line 470
+    .line 477
     :cond_6
     :try_start_1
     invoke-interface {v6}, Ljava/util/List;->iterator()Ljava/util/Iterator;
@@ -4035,7 +4112,7 @@
 
     goto :goto_4
 
-    .line 472
+    .line 479
     :cond_7
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->position()I
 
@@ -4047,7 +4124,7 @@
 
     invoke-virtual {v3, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 473
+    .line 480
     invoke-interface {v6}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
     move-result-object v7
@@ -4075,7 +4152,7 @@
 
     goto :goto_5
 
-    .line 474
+    .line 481
     :cond_8
     invoke-interface {v6}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
@@ -4102,7 +4179,7 @@
 
     goto :goto_6
 
-    .line 475
+    .line 482
     :cond_9
     invoke-interface {v6}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
@@ -4129,20 +4206,20 @@
 
     goto :goto_7
 
-    .line 478
+    .line 485
     :cond_a
     add-int v0, v1, v4
 
     invoke-virtual {v3, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 481
+    .line 488
     new-instance v1, Ljava/util/LinkedHashMap;
 
     mul-int/lit8 v0, v5, 0x2
 
     invoke-direct {v1, v0}, Ljava/util/LinkedHashMap;-><init>(I)V
 
-    .line 482
+    .line 489
     invoke-interface {v6}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
     move-result-object v4
@@ -4168,31 +4245,31 @@
 
     goto :goto_8
 
-    .line 485
+    .line 492
     :cond_b
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->position()I
 
     move-result v4
 
-    .line 486
+    .line 493
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v7
 
-    .line 487
+    .line 494
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->get()B
 
-    .line 488
+    .line 495
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v8
 
-    .line 490
+    .line 497
     new-instance v9, Ljava/util/ArrayList;
 
     invoke-direct {v9, v8}, Ljava/util/ArrayList;-><init>(I)V
 
-    .line 491
+    .line 498
     const/4 v0, 0x0
 
     :goto_9
@@ -4208,7 +4285,7 @@
 
     goto :goto_9
 
-    .line 494
+    .line 501
     :cond_c
     invoke-interface {v9}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
@@ -4235,7 +4312,7 @@
 
     goto :goto_a
 
-    .line 496
+    .line 503
     :cond_d
     const/4 v0, 0x0
 
@@ -4248,7 +4325,7 @@
 
     goto :goto_b
 
-    .line 498
+    .line 505
     :cond_e
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->position()I
 
@@ -4260,7 +4337,7 @@
 
     invoke-virtual {v3, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 500
+    .line 507
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->position()I
 
     move-result v0
@@ -4269,7 +4346,7 @@
 
     invoke-virtual {v3, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 502
+    .line 509
     const/4 v0, 0x0
 
     move v1, v0
@@ -4277,12 +4354,12 @@
     :goto_c
     if-ge v1, v8, :cond_10
 
-    .line 503
+    .line 510
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v10
 
-    .line 504
+    .line 511
     const/4 v0, 0x0
 
     :goto_d
@@ -4294,7 +4371,7 @@
 
     goto :goto_d
 
-    .line 502
+    .line 509
     :cond_f
     add-int/lit8 v0, v1, 0x1
 
@@ -4302,7 +4379,7 @@
 
     goto :goto_c
 
-    .line 507
+    .line 514
     :cond_10
     invoke-interface {v9}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
@@ -4321,33 +4398,33 @@
 
     check-cast v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;
 
-    .line 508
+    .line 515
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v10
 
-    .line 509
+    .line 516
     const/4 v1, 0x0
 
     :goto_e
     if-ge v1, v10, :cond_11
 
-    .line 510
+    .line 517
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->position()I
 
     move-result v11
 
-    .line 511
+    .line 518
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v12
 
-    .line 512
+    .line 519
     new-instance v13, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;
 
     invoke-direct {v13}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;-><init>()V
 
-    .line 513
+    .line 520
     iget-object v14, v13, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guid:[I
 
     const/4 v15, 0x0
@@ -4358,7 +4435,7 @@
 
     aput v16, v14, v15
 
-    .line 514
+    .line 521
     iget-object v14, v13, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guid:[I
 
     const/4 v15, 0x1
@@ -4369,7 +4446,7 @@
 
     aput v16, v14, v15
 
-    .line 515
+    .line 522
     iget-object v14, v13, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guid:[I
 
     const/4 v15, 0x2
@@ -4380,7 +4457,7 @@
 
     aput v16, v14, v15
 
-    .line 516
+    .line 523
     iget-object v14, v13, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->guid:[I
 
     const/4 v15, 0x3
@@ -4391,49 +4468,49 @@
 
     aput v16, v14, v15
 
-    .line 517
+    .line 524
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v14
 
     iput v14, v13, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->offset:I
 
-    .line 518
+    .line 525
     invoke-virtual {v3}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v14
 
     iput v14, v13, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart;->size:I
 
-    .line 519
+    .line 526
     iget-object v14, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo;->parts:Ljava/util/List;
 
     invoke-interface {v14, v13}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    .line 521
+    .line 528
     add-int/2addr v11, v12
 
     invoke-virtual {v3, v11}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 509
+    .line 516
     add-int/lit8 v1, v1, 0x1
 
     goto :goto_e
 
-    .line 526
+    .line 533
     :cond_12
     add-int v0, v4, v7
 
     invoke-virtual {v3, v0}, Ljava/nio/ByteBuffer;->position(I)Ljava/nio/Buffer;
 
-    .line 529
+    .line 536
     new-instance v1, Ljava/util/LinkedHashMap;
 
     mul-int/lit8 v0, v5, 0x2
 
     invoke-direct {v1, v0}, Ljava/util/LinkedHashMap;-><init>(I)V
 
-    .line 530
+    .line 537
     invoke-interface {v6}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
     move-result-object v3
@@ -4459,7 +4536,7 @@
 
     goto :goto_f
 
-    .line 531
+    .line 538
     :cond_13
     new-instance v3, Ljava/util/ArrayList;
 
@@ -4469,18 +4546,18 @@
 
     invoke-direct {v3, v0}, Ljava/util/ArrayList;-><init>(Ljava/util/Collection;)V
 
-    .line 533
+    .line 540
     new-instance v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;
 
     invoke-direct {v0}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;-><init>()V
 
-    .line 534
+    .line 541
     iput-object v2, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->chunkDir:Ljava/lang/String;
 
-    .line 535
+    .line 542
     iput-object v3, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->uniqueChunks:Ljava/util/List;
 
-    .line 536
+    .line 543
     iput-object v9, v0, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest;->files:Ljava/util/List;
     :try_end_1
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
@@ -4492,18 +4569,18 @@
     .locals 1
 
     .prologue
-    .line 858
+    .line 865
     if-eqz p0, :cond_0
 
     invoke-interface {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/EpicDownloader$ProgressCallback;->onProgress(Ljava/lang/String;)V
 
-    .line 859
+    .line 866
     :cond_0
     const-string v0, "EpicDownloader"
 
     invoke-static {v0, p1}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
 
-    .line 860
+    .line 867
     return-void
 .end method
 
@@ -4511,41 +4588,41 @@
     .locals 3
 
     .prologue
-    .line 800
+    .line 807
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getInt()I
 
     move-result v0
 
-    .line 801
+    .line 808
     if-nez v0, :cond_0
 
     const-string v0, ""
 
-    .line 812
+    .line 819
     :goto_0
     return-object v0
 
-    .line 802
+    .line 809
     :cond_0
     if-gez v0, :cond_1
 
-    .line 803
+    .line 810
     neg-int v0, v0
 
     add-int/lit8 v0, v0, -0x1
 
-    .line 804
+    .line 811
     mul-int/lit8 v0, v0, 0x2
 
     new-array v1, v0, [B
 
-    .line 805
+    .line 812
     invoke-virtual {p0, v1}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/ByteBuffer;
 
-    .line 806
+    .line 813
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->getShort()S
 
-    .line 807
+    .line 814
     new-instance v0, Ljava/lang/String;
 
     sget-object v2, Ljava/nio/charset/StandardCharsets;->UTF_16LE:Ljava/nio/charset/Charset;
@@ -4554,19 +4631,19 @@
 
     goto :goto_0
 
-    .line 809
+    .line 816
     :cond_1
     add-int/lit8 v0, v0, -0x1
 
     new-array v1, v0, [B
 
-    .line 810
+    .line 817
     invoke-virtual {p0, v1}, Ljava/nio/ByteBuffer;->get([B)Ljava/nio/ByteBuffer;
 
-    .line 811
+    .line 818
     invoke-virtual {p0}, Ljava/nio/ByteBuffer;->get()B
 
-    .line 812
+    .line 819
     new-instance v0, Ljava/lang/String;
 
     sget-object v2, Ljava/nio/charset/StandardCharsets;->US_ASCII:Ljava/nio/charset/Charset;
@@ -4585,12 +4662,12 @@
     .end annotation
 
     .prologue
-    .line 819
+    .line 826
     new-instance v1, Ljava/io/FileInputStream;
 
     invoke-direct {v1, p0}, Ljava/io/FileInputStream;-><init>(Ljava/io/File;)V
 
-    .line 820
+    .line 827
     invoke-virtual {p0}, Ljava/io/File;->length()J
 
     move-result-wide v2
@@ -4599,16 +4676,16 @@
 
     new-array v2, v0, [B
 
-    .line 821
+    .line 828
     const/4 v0, 0x0
 
-    .line 822
+    .line 829
     :goto_0
     array-length v3, v2
 
     if-ge v0, v3, :cond_0
 
-    .line 823
+    .line 830
     array-length v3, v2
 
     sub-int/2addr v3, v0
@@ -4617,20 +4694,20 @@
 
     move-result v3
 
-    .line 824
+    .line 831
     if-gez v3, :cond_1
 
-    .line 827
+    .line 834
     :cond_0
     invoke-virtual {v1}, Ljava/io/FileInputStream;->close()V
 
-    .line 828
+    .line 835
     return-object v2
 
-    .line 825
+    .line 832
     :cond_1
     add-int/2addr v0, v3
 
-    .line 826
+    .line 833
     goto :goto_0
 .end method

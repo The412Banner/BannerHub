@@ -132,9 +132,10 @@ public class EpicDownloader {
 
             // 2. Download manifest binary.
             progress(progressCallback, "Downloading manifest...");
+            dbg(ctx, "downloadManifest starting...");
             byte[] manifestBytes = downloadManifest(manifestApiJson, bearerToken, cdnUrls);
             if (manifestBytes == null) {
-                dbg(ctx, "ERROR: manifest download failed");
+                dbg(ctx, "ERROR: manifest download failed (all CDNs returned null/empty)");
                 Log.e(TAG, "Failed to download manifest binary");
                 return false;
             }
@@ -355,12 +356,15 @@ public class EpicDownloader {
     // ── Manifest download ─────────────────────────────────────────────────────
 
     /**
-     * Download the manifest binary. Uses the full URI from the first manifest entry
-     * (which already includes the auth token in the URL). Falls back to other CDNs.
+     * Download the manifest binary.
+     * The Epic API "uri" field contains the manifest path WITHOUT the auth token.
+     * The token is in "queryParams" for each CDN entry (already parsed into cdn.authParams).
+     * We extract the manifest filename from the first URI and try each CDN with its own token.
      */
     public static byte[] downloadManifest(String json, String bearerToken, List<CdnUrl> cdnUrls) {
         try {
-            // The first URI in the manifests array already has the full signed URL.
+            // Extract manifest filename from the first "uri" in the manifests array.
+            // URI is like: https://egdownload.fastly-edge.com/Builds/.../default/FILENAME.manifest
             int manifestsIdx = json.indexOf("\"manifests\"");
             if (manifestsIdx < 0) return null;
             int uriIdx = json.indexOf("\"uri\"", manifestsIdx);
@@ -373,20 +377,23 @@ public class EpicDownloader {
             if (q2 < 0) return null;
             String firstUri = json.substring(q1 + 1, q2);
 
-            Log.i(TAG, "Manifest URI: " + firstUri);
-            byte[] bytes = downloadBytes(firstUri, bearerToken);
-            if (bytes != null && bytes.length > 4) return bytes;
+            // Extract just the manifest filename (last path segment).
+            // Strip any query string that might be present.
+            String uriPath = firstUri.contains("?") ? firstUri.substring(0, firstUri.indexOf("?")) : firstUri;
+            int lastSlash = uriPath.lastIndexOf("/");
+            if (lastSlash < 0) return null;
+            String manifestFilename = uriPath.substring(lastSlash + 1); // e.g. "FILENAME.manifest"
+            Log.i(TAG, "Manifest filename: " + manifestFilename);
 
-            // Fallback: try each CDN with the same path+auth
-            int buildsIdx = firstUri.indexOf("/Builds");
-            if (buildsIdx < 0) return null;
-            String manifestPath = firstUri.substring(buildsIdx); // includes ?token
-
+            // Try each CDN using its own baseUrl + cloudDir + filename + authParams (token).
             for (CdnUrl cdn : cdnUrls) {
-                String url = cdn.baseUrl + manifestPath;
-                Log.i(TAG, "Manifest fallback: " + url);
-                bytes = downloadBytes(url, bearerToken);
-                if (bytes != null && bytes.length > 4) return bytes;
+                String url = cdn.baseUrl + cdn.cloudDir + "/" + manifestFilename + cdn.authParams;
+                Log.i(TAG, "Trying manifest: " + url);
+                byte[] bytes = downloadBytes(url, null); // CDN auth is in URL query params, not header
+                if (bytes != null && bytes.length > 4) {
+                    Log.i(TAG, "Manifest OK from " + cdn.baseUrl + " bytes=" + bytes.length);
+                    return bytes;
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "downloadManifest error: " + e.getMessage());
