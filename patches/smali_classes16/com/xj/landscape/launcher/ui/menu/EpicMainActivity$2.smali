@@ -171,10 +171,10 @@
     iput-object v9, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$checkTV:Landroid/widget/TextView;
     invoke-virtual {v8, v9}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # ── Add Button (WRAP_CONTENT × 40dp, gravity=END, white, "Add") ──────────
+    # ── Install Button (WRAP_CONTENT × 40dp, gravity=END, white, "Install") ──────────
     new-instance v11, Landroid/widget/Button;
     invoke-direct {v11, v0}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
-    const-string v13, "Add"
+    const-string v13, "Install"
     invoke-virtual {v11, v13}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v14, 0xFFFFFFFF
     invoke-virtual {v11, v14}, Landroid/widget/Button;->setTextColor(I)V
@@ -222,10 +222,10 @@
     iput-object v9, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$statusTV:Landroid/widget/TextView;
     invoke-virtual {v8, v9}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # ── Launch Button (GONE, WRAP_CONTENT × 40dp, gravity=END, "Launch") ─────
+    # ── Add Button (GONE until installed; "Add" adds game to GameHub via $13 → B3) ─────
     new-instance v12, Landroid/widget/Button;
     invoke-direct {v12, v0}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
-    const-string v13, "Launch"
+    const-string v13, "Add"
     invoke-virtual {v12, v13}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v14, 0xFFFFFFFF
     invoke-virtual {v12, v14}, Landroid/widget/Button;->setTextColor(I)V
