@@ -4121,7 +4121,7 @@ Fix chain:
 → pending
 
 ### Entry #56 — v2.7.1-beta59 — fix: align parseCdnBase with GameNative (filter cloudflare.epicgamescdn.com, use first other CDN) (2026-03-25)
-**Commit:** pending  |  **Tag:** `v2.7.1-beta59`  |  **CI:** pending
+**Commit:** `9fa5819e8b48db069c6d6e512b148555da5c1bd5`  |  **Tag:** `v2.7.1-beta59`  |  **CI:** ✅
 
 ### Files touched
 - `EpicInstallHelper.smali` — `parseCdnBase()` rewrite

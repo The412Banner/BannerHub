@@ -2434,7 +2434,7 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 **Files:** `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
 
 ### [fix] — v2.7.1-beta59 — align parseCdnBase with GameNative CDN filter (2026-03-25)
-**Commit:** pending | **Tag:** `v2.7.1-beta59`
+**Commit:** `9fa5819e8b48db069c6d6e512b148555da5c1bd5` | **Tag:** `v2.7.1-beta59`
 **Root cause:** parseCdnBase required empty queryParams (Akamai-only) — most games only have Fastly/Cloudflare entries → always returned "" → MalformedURLException on chunk URLs.
 **Fix:** filter only `cloudflare.epicgamescdn.com`; use first other CDN. baseUrl = `uri.substringBefore("/Builds")`. queryString always cleared (tokens never used on chunks per GameNative).
 **Files:** `EpicInstallHelper.smali`, `EpicMainActivity$7.smali`
