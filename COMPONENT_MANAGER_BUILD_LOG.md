@@ -4171,3 +4171,44 @@ Chunks on Fastly/Akamai are accessible without auth tokens (GameNative confirmed
 **Root cause:** Fastly CDN returns 403 on chunk downloads. The `f_token` from the manifest URL was being extracted correctly into `queryString` then immediately overwritten with `""` — a 3-line block based on wrong assumption (tokens are not path-scoped to manifest only; Fastly uses them for the whole build directory).
 **Fix:** Removed the `queryString = ""` override. `buildChunkUrl` already appends `queryString` to chunk URLs — no other changes needed.
 **CI:** pending
+
+## Entry 82 — v2.7.1-beta64 — feat: port Epic download pipeline to Java (2026-03-25)
+
+**Commit:** `17190f5`  |  **Tag:** `v2.7.1-beta64`  |  **Branch:** `epic-integration`
+
+### Files created
+- `[NEW] java_src/com/xj/landscape/launcher/ui/menu/EpicDownloader.java` — full Java source of Epic download pipeline
+- `[NEW] java_stubs/android/util/Log.java` — stub for javac compilation (real android.util.Log used at runtime)
+- `[NEW] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader.smali`
+- `[NEW] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader$CdnUrl.smali`
+- `[NEW] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkInfo.smali`
+- `[NEW] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader$ChunkPart.smali`
+- `[NEW] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader$FileInfo.smali`
+- `[NEW] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader$ParsedManifest.smali`
+- `[NEW] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicDownloader$ProgressCallback.smali`
+
+### Files modified
+- `[MOD] patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$7.smali` — lines 208-521 (310 lines of hand-written install pipeline) replaced with single `EpicDownloader.install()` call + error handler
+
+### Methods added
+- `EpicDownloader.install(String manifestApiJson, String bearerToken, String installDir, ProgressCallback cb) → boolean` — orchestrates full pipeline; ABORTS (returns false) on any failure; no silent skips
+- `EpicDownloader.parseCdnUrls(String json) → List<CdnUrl>` — extracts ALL CDN entries from manifests JSON, skips cloudflare.epicgamescdn.com, includes per-CDN authParams from queryParams array
+- `EpicDownloader.extractQueryParams(JSONArray arr) → String` — builds `?name=val&...` from queryParams JSON array (per-CDN f_token / cf_token)
+- `EpicDownloader.downloadManifest(List<CdnUrl> cdns, String bearerToken) → byte[]` — downloads binary manifest using full signed URI from manifests[0]
+- `EpicDownloader.parseManifest(byte[] data) → ParsedManifest` — full binary format: 41-byte header, optional zlib decompress (storedAs&1), ManifestMeta skip, ChunkDataList columnar (GUIDs/hashes/SHA1s/groupNums/windowSizes/fileSizes), FileManifestList (filenames + chunk parts with partStructSize prefix)
+- `EpicDownloader.downloadChunk(List<CdnUrl> cdns, ParsedManifest mf, ChunkInfo chunk) → byte[]` — CDN rotation: tries each CDN in order until one succeeds; URL = baseUrl + cloudDir + "/" + chunkPath + authParams
+- `EpicDownloader.decompressChunk(byte[] raw, int expectedSize) → byte[]` — Epic chunk container: magic 0xB1FE3AA2, headerSize at offset 8, storedAs at offset 40; inflates if storedAs&1
+
+### Root-cause analysis (0-byte files)
+Two compounding bugs in the old hand-written smali install loop:
+1. **Only one CDN tried per chunk** — code picked one `cdnBase` globally; if it returned 403 for any chunk (e.g. Fastly with stale/wrong token), all chunks silently failed
+2. **Silent skip on failure** — chunk download failure jumped to `:next_part` instead of aborting; files were created empty; loop finished; "Install complete!" was posted with 0-byte output files
+3. **Single queryString for all CDNs** — old code extracted the f_token from the manifest URL and appended it to all chunks regardless of which CDN was serving them; GameNative stores per-CDN authParams and uses each CDN's own token
+
+**Fix:** EpicDownloader rotates ALL CDN entries per chunk (GameNative pattern), uses per-CDN authParams, and ABORTS on failure (returns false).
+
+### Compilation pipeline
+`javac --release 8 -classpath java_stubs:/data/data/com.termux/files/usr/share/aapt/android.jar -d java_classes java_src/**/*.java` → `dx --dex --output epic_downloader.dex java_classes/` → `cp epic_downloader.dex classes.dex && zip epic_downloader.zip classes.dex` → `java -jar ~/apktool.jar d -o epic_ds epic_downloader.zip` → smali files from `epic_ds/smali/` copied to patches
+
+### CI result
+→ pending

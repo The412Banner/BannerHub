@@ -2463,3 +2463,11 @@ These will show in bh_epic_debug.txt to pinpoint where the OOM/crash happens
 **Fix:** Remove the 3-line `queryString = ""` override at :after_qs. The f_token extracted from the manifest URL is preserved and appended to all chunk URLs.
 **Files:** `EpicMainActivity$7.smali`, `EpicInstallHelper.smali` (comment update)
 **CI:** pending
+
+## [epic-beta] — v2.7.1-beta64 — feat: port Epic download pipeline to Java (2026-03-25)
+**Branch:** `epic-integration`  |  **Tag:** v2.7.1-beta64
+**Commit:** `17190f5`
+**What changed:** Replaced 310-line hand-written smali install loop in EpicMainActivity$7 (lines 208-521) with a single call to `EpicDownloader.install()`. EpicDownloader is a full Java port of GameNative's Epic download pipeline — compiled javac→dx→baksmali and copied to smali_classes16. Root causes of 0-byte files fixed: (1) CDN rotation — tries ALL CDNs per chunk until one succeeds (old code tried one only), (2) explicit abort on failure — returns false instead of silently skipping to :next_part, (3) per-CDN authParams — each CDN gets its own f_token/cf_token extracted from queryParams JSON array. Full binary manifest parse: 41-byte header, zlib decompress, columnar ChunkDataList + FileManifestList with partStructSize prefix. Epic chunk container decompression: magic 0xB1FE3AA2, headerSize at offset 8, inflate if storedAs&1.
+**Files touched:** `EpicDownloader.smali` (new, 7 class files total), `EpicMainActivity$7.smali` (310-line pipeline replaced), `java_src/EpicDownloader.java` (source), `java_stubs/android/util/Log.java`
+
+---
