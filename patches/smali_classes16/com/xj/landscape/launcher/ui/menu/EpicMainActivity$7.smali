@@ -39,15 +39,17 @@
 .field final synthetic val$namespace:Ljava/lang/String;
 .field final synthetic val$catalogItemId:Ljava/lang/String;
 .field final synthetic val$installDir:Ljava/lang/String;
+.field final synthetic val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
 
 
-.method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+.method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;)V
     .locals 0
     iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->this$0:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;
     iput-object p2, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$appName:Ljava/lang/String;
     iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$namespace:Ljava/lang/String;
     iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$catalogItemId:Ljava/lang/String;
     iput-object p5, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$installDir:Ljava/lang/String;
+    iput-object p6, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
     return-void
 .end method
@@ -258,6 +260,10 @@
     const-string v5, "JSON manifest not yet supported"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;
+    invoke-direct {v4, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;)V
+    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :finish
     :not_json
 
@@ -481,12 +487,22 @@
     const-string v5, "Install complete!"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    # Post success UI: progressBar/statusTV GONE, checkTV/launchBtn VISIBLE, save bh_epic_prefs
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+    iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$installDir:Ljava/lang/String;
+    new-instance v5, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$11;
+    invoke-direct {v5, v0, v3, v4}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$11;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;Ljava/lang/String;)V
+    invoke-virtual {v0, v5}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :finish
 
     :err_creds
     const-string v5, "Install failed: not logged in"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;
+    invoke-direct {v4, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;)V
+    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :finish
     :err_api
     sget v5, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
@@ -510,6 +526,10 @@
     if-nez v6, :api_err_done
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     :api_err_done
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;
+    invoke-direct {v4, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;)V
+    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :finish
     :err_manifest
     sget v6, Lcom/xj/landscape/launcher/ui/menu/EpicInstallHelper;->lastHttpStatus:I
@@ -529,16 +549,28 @@
     if-nez v6, :manifest_err_done
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
     :manifest_err_done
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;
+    invoke-direct {v4, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;)V
+    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :finish
     :err_parsebody
     const-string v5, "parseBody failed (bad header/magic?)"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;
+    invoke-direct {v4, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;)V
+    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :finish
     :err_parse
     const-string v5, "Install failed: manifest parse error"
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;
+    invoke-direct {v4, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;)V
+    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
     goto :finish   # must not fall through to move-exception in :catch_all
 
     :try_end
@@ -549,6 +581,10 @@
     move-result-object v5
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->postProgress(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity;Ljava/lang/String;)V
     invoke-static {v0, v5}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->writeDebug(Landroid/content/Context;Ljava/lang/String;)V
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$7;->val$card:Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;
+    new-instance v4, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;
+    invoke-direct {v4, v3}, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$12;-><init>(Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;)V
+    invoke-virtual {v0, v4}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V
 
     :finish
     return-void
