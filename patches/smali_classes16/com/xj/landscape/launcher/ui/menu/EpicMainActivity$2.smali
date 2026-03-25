@@ -275,9 +275,30 @@
 
     invoke-virtual {v12}, Ljava/lang/String;->isEmpty()Z
     move-result v13
-    if-nez v13, :not_installed
+    if-eqz v13, :show_installed   # pref non-empty → already have installDir
 
-    # Installed: hide Add, show checkmark + Launch (enabled)
+    # Pref empty — fallback: check if getFilesDir()/epic_games/{appName} exists on disk
+    # (covers pre-beta52 installs that never wrote the pref)
+    invoke-virtual {v0}, Landroid/content/Context;->getFilesDir()Ljava/io/File;
+    move-result-object v12
+    invoke-virtual {v12}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+    move-result-object v12
+    new-instance v13, Ljava/lang/StringBuilder;
+    invoke-direct {v13}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v13, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v14, "/epic_games/"
+    invoke-virtual {v13, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v13, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v13}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v12
+    new-instance v13, Ljava/io/File;
+    invoke-direct {v13, v12}, Ljava/io/File;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v13}, Ljava/io/File;->exists()Z
+    move-result v13
+    if-eqz v13, :not_installed    # dir not found → truly not installed
+
+    :show_installed
+    # Installed: hide Install, show checkmark + Add (enabled)
     iget-object v12, p0, Lcom/xj/landscape/launcher/ui/menu/EpicMainActivity$2;->val$addBtn:Landroid/widget/Button;
     const/16 v13, 0x8
     invoke-virtual {v12, v13}, Landroid/view/View;->setVisibility(I)V

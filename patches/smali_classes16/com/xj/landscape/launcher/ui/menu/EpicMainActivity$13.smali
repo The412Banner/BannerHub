@@ -52,7 +52,28 @@
     move-result v4
     if-eqz v4, :path_ready
 
-    # No path stored
+    # Pref empty — fallback: build getFilesDir()/epic_games/{appName} and check exists
+    invoke-virtual {v0}, Landroid/content/Context;->getFilesDir()Ljava/io/File;
+    move-result-object v5
+    invoke-virtual {v5}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+    move-result-object v5
+    new-instance v6, Ljava/lang/StringBuilder;
+    invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v6, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v5, "/epic_games/"
+    invoke-virtual {v6, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v6, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v5
+    new-instance v6, Ljava/io/File;
+    invoke-direct {v6, v5}, Ljava/io/File;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v6}, Ljava/io/File;->exists()Z
+    move-result v6
+    if-eqz v6, :no_default_path
+    move-object v3, v5    # use default path
+    goto :path_ready
+
+    :no_default_path
     const-string v4, "Reinstall game to enable launch"
     const/4 v5, 0x0
     invoke-static {v0, v4, v5}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
