@@ -619,6 +619,10 @@ public class GogGamesActivity extends Activity {
                             actionBtn.setEnabled(true);
                         });
                     }
+                    @Override public void onSelectExe(java.util.List<String> candidates,
+                                                       java.util.function.Consumer<String> onSelected) {
+                        showExePicker(candidates, onSelected);
+                    }
                 });
             });
         });
@@ -853,6 +857,10 @@ public class GogGamesActivity extends Activity {
                             actionBtn.setEnabled(true);
                         });
                     }
+                    @Override public void onSelectExe(java.util.List<String> candidates,
+                                                       java.util.function.Consumer<String> onSelected) {
+                        showExePicker(candidates, onSelected);
+                    }
                 });
             });
         });
@@ -1037,6 +1045,10 @@ public class GogGamesActivity extends Activity {
                             dialog.setCancelable(true);
                         });
                     }
+                    @Override public void onSelectExe(java.util.List<String> candidates,
+                                                       java.util.function.Consumer<String> onSelected) {
+                        showExePicker(candidates, onSelected);
+                    }
                 });
                 }); // end showInstallConfirm
             });
@@ -1210,6 +1222,29 @@ public class GogGamesActivity extends Activity {
                 }
             });
         }).start();
+    }
+
+    /**
+     * Shows a dialog letting the user pick from multiple exe candidates.
+     * {@code candidates} contains absolute paths; display name is the last 2 path segments.
+     * Calls {@code onSelected} with the chosen absolute path on the background thread.
+     */
+    private void showExePicker(java.util.List<String> candidates,
+                                java.util.function.Consumer<String> onSelected) {
+        String[] labels = new String[candidates.size()];
+        for (int i = 0; i < candidates.size(); i++) {
+            java.io.File f = new java.io.File(candidates.get(i));
+            java.io.File parent = f.getParentFile();
+            labels[i] = (parent != null) ? parent.getName() + "/" + f.getName() : f.getName();
+        }
+        uiHandler.post(() ->
+            new AlertDialog.Builder(this)
+                .setTitle("Select game executable")
+                .setItems(labels, (d, which) ->
+                    new Thread(() -> onSelected.accept(candidates.get(which))).start())
+                .setCancelable(false)
+                .show()
+        );
     }
 
     private int dp(int v) {

@@ -54,6 +54,16 @@ public final class GogDownloadManager {
         void onComplete(String exePath);
         void onError(String msg);
         default void onCancelled() {}
+        /**
+         * Called when multiple executable candidates are found and the user must
+         * choose.  {@code candidates} is a list of absolute paths.  Call
+         * {@code onSelected.accept(path)} with the chosen path to continue.
+         * Default: pick the first candidate automatically.
+         */
+        default void onSelectExe(java.util.List<String> candidates,
+                                  java.util.function.Consumer<String> onSelected) {
+            if (!candidates.isEmpty()) onSelected.accept(candidates.get(0));
+        }
     }
 
     private GogDownloadManager() {}
@@ -345,22 +355,43 @@ public final class GogDownloadManager {
             // Delete chunks temp dir
             deleteDir(chunksDir);
 
-            // Find exe — prefer temp_executable hint from manifest, fall back to scan
-            String exePath = null;
+            cb.onProgress("Install complete!", 100);
+
+            // Save install dir before exe resolution (needed if onSelectExe is async)
+            SharedPreferences.Editor ed0 = ctx.getSharedPreferences("bh_gog_prefs", 0).edit();
+            ed0.putString("gog_dir_" + game.gameId, installDir);
+            ed0.apply();
+
+            // Find exe — prefer temp_executable hint from manifest
             if (tempExe != null) {
                 File hinted = new File(installPath, tempExe);
-                if (hinted.exists()) exePath = hinted.getAbsolutePath();
+                if (hinted.exists()) {
+                    String exePath = hinted.getAbsolutePath();
+                    ctx.getSharedPreferences("bh_gog_prefs", 0).edit()
+                            .putString("gog_exe_" + game.gameId, exePath).apply();
+                    cb.onComplete(exePath);
+                    return null;
+                }
             }
-            if (exePath == null) exePath = findExe(installPath, game.gameId, installDir);
 
-            // Save prefs
-            SharedPreferences.Editor ed = ctx.getSharedPreferences("bh_gog_prefs", 0).edit();
-            ed.putString("gog_dir_" + game.gameId, installDir);
-            if (exePath != null) ed.putString("gog_exe_" + game.gameId, exePath);
-            ed.apply();
-
-            cb.onProgress("Install complete!", 100);
-            cb.onComplete(exePath != null ? exePath : "");
+            // Collect all candidates; let user pick if ambiguous
+            List<String> candidates = collectExeCandidates(installPath);
+            if (candidates.size() == 1) {
+                String exePath = candidates.get(0);
+                ctx.getSharedPreferences("bh_gog_prefs", 0).edit()
+                        .putString("gog_exe_" + game.gameId, exePath).apply();
+                cb.onComplete(exePath);
+            } else if (candidates.size() > 1) {
+                cb.onSelectExe(candidates, selected -> {
+                    if (selected != null && !selected.isEmpty()) {
+                        ctx.getSharedPreferences("bh_gog_prefs", 0).edit()
+                                .putString("gog_exe_" + game.gameId, selected).apply();
+                    }
+                    cb.onComplete(selected != null ? selected : "");
+                });
+            } else {
+                cb.onComplete(""); // no exe found
+            }
             return null; // success
         } catch (Exception e) {
             return "exception: " + e;
@@ -442,15 +473,29 @@ public final class GogDownloadManager {
                 done++;
             }
 
-            String exePath = findExe(installPath, game.gameId, installDir);
-
-            SharedPreferences.Editor ed = ctx.getSharedPreferences("bh_gog_prefs", 0).edit();
-            ed.putString("gog_dir_" + game.gameId, installDir);
-            if (exePath != null) ed.putString("gog_exe_" + game.gameId, exePath);
-            ed.apply();
-
             cb.onProgress("Install complete!", 100);
-            cb.onComplete(exePath != null ? exePath : "");
+
+            SharedPreferences.Editor ed0 = ctx.getSharedPreferences("bh_gog_prefs", 0).edit();
+            ed0.putString("gog_dir_" + game.gameId, installDir);
+            ed0.apply();
+
+            List<String> candidates = collectExeCandidates(installPath);
+            if (candidates.size() == 1) {
+                String exePath = candidates.get(0);
+                ctx.getSharedPreferences("bh_gog_prefs", 0).edit()
+                        .putString("gog_exe_" + game.gameId, exePath).apply();
+                cb.onComplete(exePath);
+            } else if (candidates.size() > 1) {
+                cb.onSelectExe(candidates, selected -> {
+                    if (selected != null && !selected.isEmpty()) {
+                        ctx.getSharedPreferences("bh_gog_prefs", 0).edit()
+                                .putString("gog_exe_" + game.gameId, selected).apply();
+                    }
+                    cb.onComplete(selected != null ? selected : "");
+                });
+            } else {
+                cb.onComplete("");
+            }
             return null; // success
         } catch (Exception e) {
             return "exception: " + e;
@@ -851,6 +896,38 @@ public final class GogDownloadManager {
             }
         }
         return null;
+    }
+
+    /**
+     * Collects ALL qualifying .exe candidates under {@code dir}, excluding
+     * known helper/redist patterns.  Returns absolute paths, shallowest first.
+     */
+    static List<String> collectExeCandidates(File dir) {
+        List<String> result = new ArrayList<>();
+        collectExeRecursive(dir, result);
+        return result;
+    }
+
+    private static void collectExeRecursive(File dir, List<String> out) {
+        if (!dir.isDirectory()) return;
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        // Files before subdirs so shallowest paths appear first
+        for (File f : files) {
+            if (f.isFile() && f.getName().toLowerCase().endsWith(".exe")) {
+                String path = f.getAbsolutePath().toLowerCase();
+                if (!path.contains("redist") && !path.contains("unins")
+                        && !path.contains("setup") && !path.contains("crash")
+                        && !path.contains("report") && !path.contains("helper")
+                        && !path.contains("dotnet") && !path.contains("vcredist")
+                        && !path.contains("directx")) {
+                    out.add(f.getAbsolutePath());
+                }
+            }
+        }
+        for (File f : files) {
+            if (f.isDirectory()) collectExeRecursive(f, out);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
