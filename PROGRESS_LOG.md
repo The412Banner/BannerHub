@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.3-pre — GOG exe picker dialog (2026-03-26)
+**Branch:** `main`  |  **Tag:** v2.7.3-pre (retagged)
+**Commit:** `f16603864`
+**What changed:**
+- collectExeCandidates() gathers all qualifying .exes (excludes redist/unins/setup/crash/report/helper/dotnet/vcredist/directx), shallowest first
+- Callback.onSelectExe() default method added; 1 candidate → auto; 2+ → showExePicker() AlertDialog
+- showExePicker() shows parent/filename label for each; user pick resumes on bg thread
+- All 3 Callback instances in GogGamesActivity override onSelectExe
+**Files touched:** `extension/GogDownloadManager.java`, `extension/GogGamesActivity.java`
+**CI result:** ✅ (rerun after transient apktool download failure)
+
+---
+
 ## [pre] — v2.7.3-pre — GOG cancel download button (2026-03-26)
 **Branch:** `main`  |  **Tag:** v2.7.3-pre (retagged)
 **Commit:** `6f277b670`
