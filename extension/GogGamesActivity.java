@@ -552,23 +552,29 @@ public class GogGamesActivity extends Activity {
         card.addView(expandSection, new LinearLayout.LayoutParams(-1, -2));
 
         // Button click
+        final Runnable[] cancelRef1 = {null};
         actionBtn.setOnClickListener(v -> {
             String btnLabel = actionBtn.getText().toString();
+            if ("Cancel".equals(btnLabel)) {
+                if (cancelRef1[0] != null) cancelRef1[0].run();
+                return;
+            }
             if ("Add Game".equals(btnLabel) || "Add to Launcher".equals(btnLabel)) {
                 String exePath = prefs.getString("gog_exe_" + game.gameId, null);
                 if (exePath != null) GogLaunchHelper.triggerLaunch(this, exePath);
                 return;
             }
             showInstallConfirm(game, () -> {
-                actionBtn.setEnabled(false);
-                actionBtn.setText("Downloading…");
-                actionBtn.setBackgroundColor(0xFF555555);
+                cancelRef1[0] = null;
+                actionBtn.setEnabled(true);
+                actionBtn.setText("Cancel");
+                actionBtn.setBackgroundColor(0xFFCC3333);
                 progressBar.setVisibility(View.VISIBLE);
                 statusTV.setVisibility(View.VISIBLE);
                 pctTV.setText("0%");
                 pctTV.setVisibility(View.VISIBLE);
 
-                GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
+                cancelRef1[0] = GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> {
                             statusTV.setText(msg);
@@ -578,6 +584,7 @@ public class GogGamesActivity extends Activity {
                     }
                     @Override public void onComplete(String exePath) {
                         uiHandler.post(() -> {
+                            cancelRef1[0] = null;
                             progressBar.setProgress(100);
                             pctTV.setVisibility(View.GONE);
                             checkmark.setVisibility(View.VISIBLE);
@@ -590,6 +597,7 @@ public class GogGamesActivity extends Activity {
                     }
                     @Override public void onError(String msg) {
                         uiHandler.post(() -> {
+                            cancelRef1[0] = null;
                             pctTV.setVisibility(View.GONE);
                             statusTV.setText("Error: " + msg);
                             actionBtn.setText("Install");
@@ -597,6 +605,18 @@ public class GogGamesActivity extends Activity {
                             actionBtn.setEnabled(true);
                             Toast.makeText(GogGamesActivity.this, "Error: " + msg,
                                     Toast.LENGTH_LONG).show();
+                        });
+                    }
+                    @Override public void onCancelled() {
+                        uiHandler.post(() -> {
+                            cancelRef1[0] = null;
+                            progressBar.setProgress(0);
+                            progressBar.setVisibility(View.GONE);
+                            pctTV.setVisibility(View.GONE);
+                            statusTV.setText("");
+                            actionBtn.setText("Install");
+                            actionBtn.setBackgroundColor(0xFF7033FF);
+                            actionBtn.setEnabled(true);
                         });
                     }
                 });
@@ -776,28 +796,34 @@ public class GogGamesActivity extends Activity {
         tile.addView(actionRow, new LinearLayout.LayoutParams(-1, -2));
 
         // Button click
+        final Runnable[] cancelRef2 = {null};
         actionBtn.setOnClickListener(v -> {
             String lbl = actionBtn.getText().toString();
+            if ("Cancel".equals(lbl)) {
+                if (cancelRef2[0] != null) cancelRef2[0].run();
+                return;
+            }
             if ("Add Game".equals(lbl) || "Add to Launcher".equals(lbl)) {
                 String exe = prefs.getString("gog_exe_" + game.gameId, null);
                 if (exe != null) GogLaunchHelper.triggerLaunch(this, exe);
                 return;
             }
             showInstallConfirm(game, () -> {
-                actionBtn.setEnabled(false);
-                actionBtn.setText("0%");
-                actionBtn.setBackgroundColor(0xFF444444);
+                cancelRef2[0] = null;
+                actionBtn.setEnabled(true);
+                actionBtn.setText("Cancel");
+                actionBtn.setBackgroundColor(0xFFCC3333);
                 progressBar.setVisibility(View.VISIBLE);
 
-                GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
+                cancelRef2[0] = GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> {
                             progressBar.setProgress(pct);
-                            actionBtn.setText(pct + "%");
                         });
                     }
                     @Override public void onComplete(String exePath) {
                         uiHandler.post(() -> {
+                            cancelRef2[0] = null;
                             progressBar.setProgress(100);
                             progressBar.setVisibility(View.GONE);
                             checkTV.setVisibility(View.VISIBLE);
@@ -808,12 +834,23 @@ public class GogGamesActivity extends Activity {
                     }
                     @Override public void onError(String msg) {
                         uiHandler.post(() -> {
+                            cancelRef2[0] = null;
                             progressBar.setVisibility(View.GONE);
                             actionBtn.setText("Install");
                             actionBtn.setBackgroundColor(0xFF5533CC);
                             actionBtn.setEnabled(true);
                             Toast.makeText(GogGamesActivity.this, "Error: " + msg,
                                     Toast.LENGTH_LONG).show();
+                        });
+                    }
+                    @Override public void onCancelled() {
+                        uiHandler.post(() -> {
+                            cancelRef2[0] = null;
+                            progressBar.setProgress(0);
+                            progressBar.setVisibility(View.GONE);
+                            actionBtn.setText("Install");
+                            actionBtn.setBackgroundColor(0xFF5533CC);
+                            actionBtn.setEnabled(true);
                         });
                     }
                 });
@@ -937,17 +974,23 @@ public class GogGamesActivity extends Activity {
             btnLp.topMargin = dp(12);
             content.addView(customInstall, btnLp);
 
+            final Runnable[] cancelRef3 = {null};
             customInstall.setOnClickListener(v -> {
+                if ("Cancel".equals(customInstall.getText().toString())) {
+                    if (cancelRef3[0] != null) cancelRef3[0].run();
+                    return;
+                }
                 showInstallConfirm(game, () -> {
-                customInstall.setEnabled(false);
-                customInstall.setText("Downloading…");
-                customInstall.setBackgroundColor(0xFF555555);
+                cancelRef3[0] = null;
+                customInstall.setEnabled(true);
+                customInstall.setText("Cancel");
+                customInstall.setBackgroundColor(0xFFCC3333);
                 progressBar.setVisibility(View.VISIBLE);
                 statusTV.setVisibility(View.VISIBLE);
                 statusTV.setText("0%  Starting…");
                 dialog.setCancelable(false);
 
-                GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
+                cancelRef3[0] = GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> {
                             progressBar.setProgress(pct);
@@ -956,6 +999,7 @@ public class GogGamesActivity extends Activity {
                     }
                     @Override public void onComplete(String exePath) {
                         uiHandler.post(() -> {
+                            cancelRef3[0] = null;
                             progressBar.setProgress(100);
                             statusTV.setText("✓ Installed");
                             customInstall.setText("Add to Launcher");
@@ -972,8 +1016,21 @@ public class GogGamesActivity extends Activity {
                     }
                     @Override public void onError(String msg) {
                         uiHandler.post(() -> {
+                            cancelRef3[0] = null;
                             progressBar.setVisibility(View.GONE);
                             statusTV.setText("Error: " + msg);
+                            customInstall.setText("Install");
+                            customInstall.setBackgroundColor(0xFF7033FF);
+                            customInstall.setEnabled(true);
+                            dialog.setCancelable(true);
+                        });
+                    }
+                    @Override public void onCancelled() {
+                        uiHandler.post(() -> {
+                            cancelRef3[0] = null;
+                            progressBar.setProgress(0);
+                            progressBar.setVisibility(View.GONE);
+                            statusTV.setText("");
                             customInstall.setText("Install");
                             customInstall.setBackgroundColor(0xFF7033FF);
                             customInstall.setEnabled(true);
