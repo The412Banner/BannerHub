@@ -4,6 +4,28 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [stable] — v2.7.1 — Restore Steam card, standalone Normal variant, Normal(GHL) (2026-03-24)
+**Branch:** `main`  |  **Tag:** v2.7.1
+**Commit:** `029ae6b`
+**What changed:**
+- Steam card restored: removed versionName CI patch (kept 5.3.5) — was breaking My Games tab on all fresh installs
+- Normal variant standalone (banner.hub), Normal(GHL) variant added (gamehub.lite)
+- README rewrite, build-crossfire.yml removed, .gitignore added
+**Files touched:** `.github/workflows/build.yml`, `README.md`, `.gitignore`
+**CI result:** ✅ 9 APKs built
+
+---
+
+## [fix] — v2.7.1-pre2 — Remove versionName patch to restore Steam card (2026-03-24)
+**Branch:** `main`  |  **Tag:** v2.7.1-pre2 (retagged)
+**Commit:** `029ae6b`
+**What changed:**
+- Removed "Patch versionName" step from `build.yml`. Root cause: CI was patching `apktool.yml` versionName from `5.3.5` → release tag (e.g. `2.7.0`). GameHub sends versionName in server API calls (`SignUtils clientparams`). With `2.7.0` instead of `5.3.5`, a server/internal version gate suppressed the Steam card in My Games tab on fresh installs. Fix: keep original `5.3.5` from base APK decompile. BannerHub version is visible from the GitHub release tag.
+**Files touched:** `.github/workflows/build.yml`
+**CI result:** ✅ run 23518106008 (APK uploaded; release published manually after duplicate-release conflict)
+
+---
+
 ## [fix] — v2.7.0 — Patch versionName, BannerHub labels, dynamic APK naming (2026-03-24)
 **Branch:** `main`  |  **Tag:** v2.7.0 (retagged — CI rebuild)
 **Commit:** `5dd70e0`
@@ -2034,3 +2056,22 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$7.smali`
+
+### [ci+docs] — v2.7.1-pre — Add Normal(GHL) variant, fix Normal package, fix README (2026-03-24)
+**Commit:** `fd39656`  |  **Tag:** v2.7.1-pre (retagged)
+#### What changed
+- Normal variant package changed from `gamehub.lite` → `banner.hub` (installs alongside official GameHub Lite)
+- New `Normal(GHL)` variant added (`gamehub.lite`) for users replacing official GameHub Lite
+- APK: `BannerHub-vX.Y.Z-Normal(GHL).apk`
+- README: added Normal(GHL) row, added missing PuBG-CrossFire row, updated count 7→9, updated Which APK / FAQ
+- CI: build-quick.yml unaffected (pre-release Normal already used banner.hub)
+
+## v2.7.2-pre — GOG ported to side menu with bh-lite UI (2026-03-25)
+- GOG tab removed from bottom navigation
+- GOG now launches from side menu as a full Activity (identical to bh-lite)
+- List / Grid / Poster 3-way view toggle
+- SteamGridDB 600×900 cover art with GOG icon fallback
+- Long-press on grid/poster tiles → detail dialog with HTML description
+- GogGamesActivity, GogMainActivity, GogLoginActivity, GogDownloadManager, GogLaunchHelper compiled as Java (classes18.dex)
+- All 29 GOG smali files removed
+- CI: build-quick.yml (pre-release, Normal APK)

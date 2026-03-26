@@ -177,6 +177,16 @@ jobs:
           # Inject original classes12.dex (skipped smali reassembly due to dex index limit)
           zip rebuilt-unsigned.apk classes12.dex
 
+          # Compile and inject GOG extension dex as classes18.dex
+          ANDROID_JAR=$(ls $ANDROID_SDK_ROOT/platforms/android-*/android.jar 2>/dev/null | sort -V | tail -1)
+          mkdir -p ext_classes
+          javac -source 8 -target 8 -cp "$ANDROID_JAR" -d ext_classes extension/*.java
+          BUILD_TOOLS=$(ls $ANDROID_SDK_ROOT/build-tools | sort -V | tail -1)
+          mkdir -p ext_dex
+          $ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/d8 --release --min-api 26 --output ext_dex $(find ext_classes -name "*.class")
+          cp ext_dex/classes.dex classes18.dex
+          zip -j rebuilt-unsigned.apk classes18.dex
+
           # Align
           ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
 

@@ -1583,7 +1583,7 @@
     # BannerHub: GOG menu item
     :pswitch_10
     new-instance p0, Landroid/content/Intent;
-    const-class p1, Lcom/xj/landscape/launcher/ui/menu/GogMainActivity;
+    const-class p1, Lapp/revanced/extension/gamehub/GogMainActivity;
     invoke-direct {p0, p2, p1}, Landroid/content/Intent;-><init>(Landroid/content/Context;Ljava/lang/Class;)V
     invoke-virtual {p2, p0}, Landroid/content/Context;->startActivity(Landroid/content/Intent;)V
     goto :goto_1

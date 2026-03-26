@@ -5903,23 +5903,6 @@
     .line 113
     invoke-interface {v2, v3}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    # BannerHub: inject GOG Games tab after "My Games"
-    # Use reflection to avoid new method_ids in full classes11.dex (at 65535 limit).
-    # Class.forName + newInstance are already in classes11's method pool.
-    # Resource ID 0x7f130e94 = bh_gog_games_tab ("GOG Games") in patched public.xml.
-    new-instance v3, Lcom/xj/landscape/launcher/ui/main/TabItemData;
-    const-string v9, "com.xj.landscape.launcher.ui.menu.GogGamesFragment$TabFactory"
-    invoke-static {v9}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
-    move-result-object v9
-    invoke-virtual {v9}, Ljava/lang/Class;->newInstance()Ljava/lang/Object;
-    move-result-object v6
-    check-cast v6, Lkotlin/jvm/functions/Function0;
-    const/4 v4, 0x0
-    const v5, 0x7f130e94
-    const/4 v7, 0x0
-    const/4 v8, 0x0
-    invoke-direct/range {v3 .. v8}, Lcom/xj/landscape/launcher/ui/main/TabItemData;-><init>(IILkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-    invoke-interface {v2, v3}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     .line 114
     .line 115
@@ -8422,6 +8405,9 @@
     .line 72
     .line 73
     invoke-virtual {p0}, Lcom/xj/common/trace/collectors/HudEventCollector;->j()V
+
+    # BannerHub: GOG launch helper — fires EditImportedGameInfoDialog after GOG install
+    invoke-static {p0}, Lapp/revanced/extension/gamehub/GogLaunchHelper;->checkPendingLaunch(Landroid/app/Activity;)V
 
     .line 74
     return-void

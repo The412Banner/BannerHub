@@ -3587,3 +3587,81 @@ Three bugs from beta65: (1) right-column LP MATCH_PARENT clips content to parent
 
 ### CI result
 → ✅ run 23411207426 — Normal APK built successfully
+
+---
+
+### 423 — bh-lite v0.3.1-pre — Component Manager + Downloader UI upgrade (2026-03-23)
+**Repo:** Bannerhub-Lite  |  **Commit:** `8308819`  |  **Tag:** v0.3.1-pre
+
+**Files changed:**
+- `extension/ComponentManagerActivity.java` [MOD] — full rewrite
+- `extension/ComponentDownloadActivity.java` [MOD] — full rewrite
+
+**ComponentManagerActivity changes:**
+- Replaced ArrayAdapter+mode-switching list with persistent dark-theme layout (0xFF0D0D0D)
+- Header: ← back (finish), orange "Banners Component Manager" title (weight=1), grey count badge (GradientDrawable bg), red ✕ All button (GONE when no .bh_injected dirs)
+- Search bar EditText with TextWatcher → applyFilter() rebuilds filteredComponents[] from allComponents[]
+- Card ListView via ComponentCardAdapter (BaseAdapter): colored accent strip (3dp, typeColor), name+source column (source from `banners_sources` SP key `name`), type badge (GradientDrawable semi-transparent bg, typeColor text, 9sp), arrow ›
+- Empty state TextView (center gravity, grey) shown when filteredComponents is empty
+- Bottom bar: "+ Add New" (showTypeDialog) | "↓ Download" (ComponentDownloadActivity) — explicit 48dp height via LayoutParams
+- showOptionsDialog: AlertDialog .setItems ["Inject / Replace file...", "Backup to Downloads", "Remove"] — no more mode=1 list
+- showTypeDialog: AlertDialog .setItems [DXVK, VKD3D-Proton, Box64, FEXCore, GPU Driver / Turnip] — no more mode=2 list
+- cleanSP(name): reads url_for:name → url; removes name, name:type, url_for:name, dl:url
+- pendingMode replaces mode field: 1=injectRaw into existing, 3=new inject
+
+**ComponentDownloadActivity changes:**
+- Persistent layout (buildUI() called once in onCreate, never rebuilt)
+- mCurrentRepo field, mProgressBar field, mStatusText field
+- DarkAdapter extends BaseAdapter: white 15sp text, 48dp minHeight, dark selector
+- Mode 0: showRepos() — 6 repos listed, status="Select a source"
+- Mode 1: showCategories() — 5 type categories, status="Select a component type"
+- Mode 2: showAssets(type) — filter by type, ✓ prefix for dl:url in banners_sources SP, status="Tap a component..."
+- fetchIntoAllLists(): fetches once per repo (GitHub Releases API or pack.json), populates mAllNames/mAllUrls
+- writeSourceSP(): writes 4 SP entries: dirName→repo, dl:url→"1", dirName:type→typeName, url_for:dirName→url
+- findNewDir(): timestamp-scan of components dir for dir with lastModified > preInjectTs
+- detectType(filename): keyword-based → TYPE_GPU_DRIVER/DXVK/VKD3D/BOX64/FEXCORE int
+
+**Root-cause / design:**
+Porting BannerHub (5.3.5 smali) UI upgrades to BannerHub Lite (5.1.4 Java extension). Key constraint: `javac -cp "$ANDROID_JAR"` only — no AndroidX/RecyclerView on classpath. Solution: BaseAdapter + ListView instead of RecyclerView. All other UI patterns (accent strip, type badge, SP keys, timestamp scan) match BannerHub smali exactly.
+
+**CI result:**
+→ ✅ run 23441811893 — Normal APK built successfully (1m46s)
+
+---
+
+## Entry #44 — fix: parseManifestDownloadUrl & separator + appName progress (2026-03-23)
+**Tag:** v2.7.1-pre-beta44 | **Branch:** epic-integration (bannerhub-testing)  
+**CI:** ✅ run 23458616129 — Normal APK built (3m39s)
+
+**Files changed:**
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicInstallHelper.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/EpicMainActivity$7.smali`
+
+**Root-cause analysis:**
+`parseManifestDownloadUrl` appended `&` BEFORE the first query param and NO `&` between subsequent params. Root cause: `if-nez v6, :not_first` is true when `v6=1` (not-first iteration), so it skipped the `&` append. For the first param (`v6=0`), `if-nez` was false → fell through to append `&`. Result: `?&Policy=XXXSignature=YYYKey-Pair-Id=ZZZ` — CloudFront signature validation fails → HTTP 0 exception. Fix: `if-eqz v6, :not_first` skips `&` only when v6=0 (first param), appends `&` for all subsequent.
+
+**Methods/changes:**
+- `parseManifestDownloadUrl`: `if-nez` → `if-eqz` at first-param separator check
+- `EpicMainActivity$7.run()`: step 2 progress changed to `"Fetching: " + val$appName` for on-screen appName visibility
+
+## Entry 77 — v2.7.1-pre — Add Normal(GHL) variant, fix Normal package (2026-03-24)
+**Commit:** `fd39656` | **Tag:** v2.7.1-pre | **CI:** build-quick.yml (Normal only)
+
+**Root cause / motivation:** Normal variant was using `gamehub.lite` package, causing a conflict with the official GameHub Lite app. Users couldn't have both installed. Normal changed to `banner.hub` (standalone), and a new `Normal(GHL)` variant added for users who specifically want to replace the `gamehub.lite` slot.
+
+**Methods/changes:**
+- `build.yml` matrix: Normal package `gamehub.lite` → `banner.hub`; added `Normal(GHL)` entry with `gamehub.lite` / label `BannerHub`
+- `README.md`: added Normal(GHL) row, added missing PuBG-CrossFire row, variant count 7→9, updated Which APK / FAQ sections
+
+## Entry 78 — v2.7.2-pre — Port GOG to side menu: Java extension, list/grid/poster, SteamGridDB (2026-03-25)
+**Commit:** (pending) | **Tag:** v2.7.2-pre | **CI:** build-quick.yml (Normal only)
+
+**Root cause / motivation:** GOG was implemented as a bottom tab (GogGamesFragment + TabItemData injection) in LandscapeLauncherMainActivity. The side menu already had a pswitch_10 launching GogMainActivity (smali), but the tab UI was separate and had outdated card UI. User requested: remove the tab, wire GOG into the side menu Activity, and use identical card UI to bh-lite (list/grid/poster views, SteamGridDB 600×900 covers, long-press detail dialog, HTML description rendering).
+
+**Methods/changes:**
+- `extension/` (new dir): 8 Java files ported from bh-lite: GogGame, GogTokenRefresh, GogInstallPath, GogDownloadManager, GogLoginActivity, GogMainActivity, GogGamesActivity, GogLaunchHelper (B3 not g3)
+- `patches/smali_classes16/`: deleted all 29 GOG smali files (GogGamesFragment* + GogMainActivity* + GogGame/DownloadManager/TokenRefresh/LoginActivity/InstallPath)
+- `patches/smali_classes11/LandscapeLauncherMainActivity.smali`: removed tab injection block (GogGamesFragment$TabFactory forName); added GogLaunchHelper.checkPendingLaunch(p0) in onResume
+- `patches/smali_classes5/HomeLeftMenuDialog.smali`: pswitch_10 const-class updated from com.xj.landscape.launcher.ui.menu.GogMainActivity → app.revanced.extension.gamehub.GogMainActivity
+- `patches/AndroidManifest.xml`: removed old smali package registrations; added app.revanced.extension.gamehub.GogMainActivity/GogLoginActivity/GogGamesActivity
+- `build.yml` + `build-quick.yml`: added Java compilation step (javac + d8) injecting classes18.dex into rebuilt APK
