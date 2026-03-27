@@ -25,24 +25,6 @@
     return-void
 .end method
 
-# ── Read first line of a file; returns null on error ─────────────
-.method private static readFileLine(Ljava/lang/String;)Ljava/lang/String;
-    .locals 2
-    :try_start_0
-    new-instance v0, Ljava/io/RandomAccessFile;
-    const-string v1, "r"
-    invoke-direct {v0, p0, v1}, Ljava/io/RandomAccessFile;-><init>(Ljava/lang/String;Ljava/lang/String;)V
-    invoke-virtual {v0}, Ljava/io/RandomAccessFile;->readLine()Ljava/lang/String;
-    move-result-object v1
-    invoke-virtual {v0}, Ljava/io/RandomAccessFile;->close()V
-    return-object v1
-    :try_end_0
-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :err
-    :err
-    const/4 v0, 0x0
-    return-object v0
-.end method
-
 # ── Parse kB value from a /proc/meminfo line ─────────────────────
 # e.g. "MemTotal:       7861248 kB" -> 7861248L
 .method private static parseMemKb(Ljava/lang/String;)J
@@ -130,45 +112,53 @@
     return-object v0
 .end method
 
-# ── Count online CPU cores ────────────────────────────────────────
+# ── Count online CPU cores from /proc/stat ────────────────────────
+# Counts lines starting with "cpu" + digit (cpu0, cpu1, ...) which the
+# kernel scheduler only emits for cores that are actually online.
 .method private static getActiveCores()I
     .locals 5
-    const/4 v0, 0x0  # active count
-    const/4 v1, 0x0  # core index
-
-    :core_loop
-    new-instance v2, Ljava/lang/StringBuilder;
-    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v3, "/sys/devices/system/cpu/cpu"
-    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
-    const-string v3, "/online"
-    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v2
-
-    invoke-static {v2}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->readFileLine(Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v2
-    if-eqz v2, :cores_done
-
+    const/4 v0, 0x0  # count
     :try_start_0
-    invoke-virtual {v2}, Ljava/lang/String;->trim()Ljava/lang/String;
+    new-instance v1, Ljava/io/RandomAccessFile;
+    const-string v2, "/proc/stat"
+    const-string v3, "r"
+    invoke-direct {v1, v2, v3}, Ljava/io/RandomAccessFile;-><init>(Ljava/lang/String;Ljava/lang/String;)V
+
+    :read_loop
+    invoke-virtual {v1}, Ljava/io/RandomAccessFile;->readLine()Ljava/lang/String;
     move-result-object v2
-    const-string v3, "1"
-    invoke-virtual {v3, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    if-eqz v2, :read_done
+
+    # Need at least 4 chars: "cpu0"
+    invoke-virtual {v2}, Ljava/lang/String;->length()I
     move-result v3
-    if-eqz v3, :next_core
+    const/4 v4, 0x4
+    if-lt v3, v4, :read_loop
+
+    # Must start with "cpu"
+    const-string v3, "cpu"
+    invoke-virtual {v2, v3}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+    move-result v3
+    if-eqz v3, :read_loop
+
+    # 4th character must be a digit '0'-'9'
+    const/4 v3, 0x3
+    invoke-virtual {v2, v3}, Ljava/lang/String;->charAt(I)C
+    move-result v3
+    const/16 v4, 0x30   # '0'
+    if-lt v3, v4, :read_loop
+    const/16 v4, 0x39   # '9'
+    if-gt v3, v4, :read_loop
+
     add-int/lit8 v0, v0, 0x1
+    goto :read_loop
+
+    :read_done
+    invoke-virtual {v1}, Ljava/io/RandomAccessFile;->close()V
     :try_end_0
-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :next_core
-
-    :next_core
-    add-int/lit8 v1, v1, 0x1
-    const/16 v3, 0x20
-    if-lt v1, v3, :core_loop
-
-    :cores_done
-    add-int/lit8 v0, v0, 0x1  # cpu0 has no "online" file, always on
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :err
+    return v0
+    :err
     return v0
 .end method
 
