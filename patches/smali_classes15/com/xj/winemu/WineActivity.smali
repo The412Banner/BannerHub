@@ -8717,6 +8717,9 @@
     .line 24
     .line 25
     :cond_1
+    # ── BannerHub: inject/sync HUD overlay on every resume ──
+    invoke-static {p0}, Lcom/xj/winemu/sidebar/BhHudInjector;->injectOrUpdate(Landroid/app/Activity;)V
+
     sget-object p0, Lcom/xj/winemu/external/PcInGameDelegateManager;->a:Lcom/xj/winemu/external/PcInGameDelegateManager;
 
     .line 26
