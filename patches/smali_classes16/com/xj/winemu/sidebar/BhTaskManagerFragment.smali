@@ -2,14 +2,13 @@
 .super Landroidx/fragment/app/Fragment;
 .source "SourceFile"
 
-# Wine Task Manager sidebar tab — three-tab UI:
-#   Tab 0 "Applications" — .exe processes
-#   Tab 1 "Processes"    — wine infrastructure processes
-#   Tab 2 "Performance"  — CPU cores, RAM, VRAM info
+# Wine Task Manager sidebar tab — two-tab UI:
+#   Always visible at top: Container Info (CPU cores, RAM, VRAM)
+#   Tab 0 "Applications" — Wine infra processes (non-.exe)
+#   Tab 1 "Processes"    — Windows .exe processes
 
 .field public appsLayout:Landroid/widget/LinearLayout;
 .field public procsLayout:Landroid/widget/LinearLayout;
-.field public perfLayout:Landroid/widget/LinearLayout;
 .field public bhContext:Landroid/content/Context;
 
 # Colors (0xAARRGGBB signed ints):
@@ -256,36 +255,27 @@
     return-object v0
 .end method
 
-# ── showTab — show one content panel, hide the other two ─────────
+# ── showTab — show one content panel, hide the other ─────────────
 .method public showTab(I)V
-    .locals 5
+    .locals 4
     const/4 v0, 0x0     # VISIBLE
     const/16 v1, 0x8    # GONE
 
     iget-object v2, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->appsLayout:Landroid/widget/LinearLayout;
     iget-object v3, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->procsLayout:Landroid/widget/LinearLayout;
-    iget-object v4, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->perfLayout:Landroid/widget/LinearLayout;
 
-    # Hide all first
+    # Hide both first
     invoke-virtual {v2, v1}, Landroid/view/View;->setVisibility(I)V
     invoke-virtual {v3, v1}, Landroid/view/View;->setVisibility(I)V
-    invoke-virtual {v4, v1}, Landroid/view/View;->setVisibility(I)V
 
-    # Show selected
+    # Show selected (default: tab 0 = Applications)
     const/4 v1, 0x1
     if-eq p1, v1, :show_procs
-    const/4 v1, 0x2
-    if-eq p1, v1, :show_perf
-    # default: tab 0 = Applications
     invoke-virtual {v2, v0}, Landroid/view/View;->setVisibility(I)V
     return-void
 
     :show_procs
     invoke-virtual {v3, v0}, Landroid/view/View;->setVisibility(I)V
-    return-void
-
-    :show_perf
-    invoke-virtual {v4, v0}, Landroid/view/View;->setVisibility(I)V
     return-void
 .end method
 
@@ -293,15 +283,13 @@
 # Builds:
 #   ScrollView
 #     LinearLayout (vertical root)
+#       Container Info (always visible): header + CPU/RAM/VRAM rows
 #       LinearLayout (tab bar, horizontal)
 #         Button "Applications" (weight=1, tabIndex=0)
 #         Button "Processes"    (weight=1, tabIndex=1)
-#         Button "Performance"  (weight=1, tabIndex=2)
 #         Button "↺"            (refresh)
 #       appsLayout  (LinearLayout, VISIBLE)
 #       procsLayout (LinearLayout, GONE)
-#       perfLayout  (LinearLayout, GONE)
-#         Container Info header + CPU/RAM/VRAM rows
 .method public onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;
     .locals 8
     # v0 = context
@@ -337,6 +325,63 @@
     const/4 v5, -0x2   # WRAP_CONTENT
     invoke-direct {v3, v4, v5}, Landroid/widget/FrameLayout$LayoutParams;-><init>(II)V
     invoke-virtual {v1, v2, v3}, Landroid/widget/ScrollView;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    # ── CONTAINER INFO (always visible at top) ────────────────────────
+    const-string v3, "Container Info"
+    invoke-static {v0, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeHeaderText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
+    move-result-object v3
+    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # CPU cores row
+    invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
+    move-result-object v3
+    invoke-virtual {v3}, Ljava/lang/Runtime;->availableProcessors()I
+    move-result v3   # total cores
+    invoke-static {}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->getActiveCores()I
+    move-result v4   # active cores
+    new-instance v5, Ljava/lang/StringBuilder;
+    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v6, "CPU Cores:  "
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v6, " active / "
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5, v3}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v6, " total"
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+    invoke-static {v0, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
+    move-result-object v3
+    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # RAM row
+    invoke-static {}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->getRamInfo()Ljava/lang/String;
+    move-result-object v3
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v5, "RAM:         "
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+    invoke-static {v0, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
+    move-result-object v3
+    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # VRAM row
+    invoke-static {}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->getVramInfo()Ljava/lang/String;
+    move-result-object v3
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v5, "VRAM:        "
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+    invoke-static {v0, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
+    move-result-object v3
+    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     # ── TAB BAR (horizontal) ─────────────────────────────────────────
     new-instance v3, Landroid/widget/LinearLayout;
@@ -390,29 +435,6 @@
     iput v6, v5, Landroid/widget/LinearLayout$LayoutParams;->weight:F
     invoke-virtual {v3, v4, v5}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
-    # Button "Performance" (tabIndex=2, weight=1)
-    new-instance v4, Landroid/widget/Button;
-    invoke-direct {v4, v0}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
-    const-string v5, "Performance"
-    invoke-virtual {v4, v5}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
-    const v5, -0x1
-    invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextColor(I)V
-    const/high16 v5, 0x41200000
-    invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextSize(F)V
-    const/4 v5, 0x0
-    invoke-virtual {v4, v5}, Landroid/widget/TextView;->setAllCaps(Z)V
-    new-instance v5, Lcom/xj/winemu/sidebar/BhTabListener;
-    const/4 v6, 0x2
-    invoke-direct {v5, p0, v6}, Lcom/xj/winemu/sidebar/BhTabListener;-><init>(Lcom/xj/winemu/sidebar/BhTaskManagerFragment;I)V
-    invoke-virtual {v4, v5}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-    new-instance v5, Landroid/widget/LinearLayout$LayoutParams;
-    const/4 v6, 0x0
-    const/4 v7, -0x2
-    invoke-direct {v5, v6, v7}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    const/high16 v6, 0x3f800000
-    iput v6, v5, Landroid/widget/LinearLayout$LayoutParams;->weight:F
-    invoke-virtual {v3, v4, v5}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-
     # Button "↺" (Refresh, no weight — fixed size)
     new-instance v4, Landroid/widget/Button;
     invoke-direct {v4, v0}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
@@ -444,75 +466,6 @@
     invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
     iput-object v3, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->procsLayout:Landroid/widget/LinearLayout;
     invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
-
-    # ── PERFORMANCE tab content (GONE initially) ──────────────────────
-    new-instance v3, Landroid/widget/LinearLayout;
-    invoke-direct {v3, v0}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
-    const/4 v4, 0x1
-    invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->setOrientation(I)V
-    const/16 v4, 0x8   # GONE
-    invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
-    iput-object v3, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->perfLayout:Landroid/widget/LinearLayout;
-    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
-
-    # Fill perfLayout with Container Info ─────────────────────────────
-    const-string v4, "Container Info"
-    invoke-static {v0, v4}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeHeaderText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
-    move-result-object v4
-    invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
-
-    # CPU cores row
-    invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
-    move-result-object v4
-    invoke-virtual {v4}, Ljava/lang/Runtime;->availableProcessors()I
-    move-result v4   # total cores
-
-    invoke-static {}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->getActiveCores()I
-    move-result v5   # active cores
-
-    new-instance v6, Ljava/lang/StringBuilder;
-    invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v7, "CPU Cores:  "
-    invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v6, v5}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
-    const-string v7, " active / "
-    invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v6, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
-    const-string v7, " total"
-    invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v4
-    invoke-static {v0, v4}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
-    move-result-object v4
-    invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
-
-    # RAM row
-    invoke-static {}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->getRamInfo()Ljava/lang/String;
-    move-result-object v4
-    new-instance v5, Ljava/lang/StringBuilder;
-    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v6, "RAM:         "
-    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v4
-    invoke-static {v0, v4}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
-    move-result-object v4
-    invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
-
-    # VRAM row
-    invoke-static {}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->getVramInfo()Ljava/lang/String;
-    move-result-object v4
-    new-instance v5, Ljava/lang/StringBuilder;
-    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v6, "VRAM:        "
-    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v4
-    invoke-static {v0, v4}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
-    move-result-object v4
-    invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     # Kick off initial scan (populates appsLayout + procsLayout)
     invoke-virtual {p0}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->startScan()V
