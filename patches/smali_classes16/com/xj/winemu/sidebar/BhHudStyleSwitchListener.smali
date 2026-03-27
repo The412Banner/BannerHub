@@ -72,7 +72,7 @@
     const/4 v4, 0x0
     goto :fr_set_vis
     :fr_gone
-    const/4 v4, 0x8
+    const/16 v4, 0x8
     :fr_set_vis
     invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
 
@@ -85,7 +85,7 @@
     move-result-object v3
     if-eqz v3, :done
 
-    const/4 v4, 0x8
+    const/16 v4, 0x8
     invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
 
     :done

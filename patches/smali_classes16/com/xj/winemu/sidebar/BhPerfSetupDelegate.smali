@@ -222,7 +222,7 @@
     const/4 v12, 0x0
     goto :fr_set_vis_init
     :fr_gone_init
-    const/4 v12, 0x8
+    const/16 v12, 0x8
     :fr_set_vis_init
     invoke-virtual {v9, v12}, Landroid/view/View;->setVisibility(I)V
 
@@ -239,7 +239,7 @@
     const/4 v11, 0x0
     goto :fr_set_vis_update
     :fr_gone_update
-    const/4 v11, 0x8
+    const/16 v11, 0x8
     :fr_set_vis_update
     invoke-virtual {v9, v11}, Landroid/view/View;->setVisibility(I)V
 
