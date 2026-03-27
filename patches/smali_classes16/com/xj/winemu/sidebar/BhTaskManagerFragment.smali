@@ -226,7 +226,7 @@
     # Find "KEY=" in the environ string
     invoke-virtual {v8, v5}, Ljava/lang/String;->indexOf(Ljava/lang/String;)I
     move-result v6          # v6 = position of "KEY=" (-1 if absent)
-    if-lt v6, 0, :next_proc
+    if-ltz v6, :next_proc
 
     # Advance past "KEY=" to get value start position
     invoke-virtual {v5}, Ljava/lang/String;->length()I
@@ -238,7 +238,7 @@
     invoke-virtual {v8, v7, v6}, Ljava/lang/String;->indexOf(II)I
     move-result v7          # v7 = end of value (-1 if no null found)
 
-    if-lt v7, 0, :value_to_end
+    if-ltz v7, :value_to_end
 
     # Extract value[v6 .. v7]
     invoke-virtual {v8, v6, v7}, Ljava/lang/String;->substring(II)Ljava/lang/String;
