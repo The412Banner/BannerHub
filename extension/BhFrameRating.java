@@ -256,10 +256,15 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
     }
 
-    /** Sets only the background alpha so labels stay fully opaque. */
-    private void applyBackgroundOpacity(int opacity0to100) {
+    /** Sets background alpha only (text stays opaque). Below 30% adds a black outline so text stays readable. */
+    public void applyBackgroundOpacity(int opacity0to100) {
         int alpha = opacity0to100 * 255 / 100;
         setBackgroundColor(android.graphics.Color.argb(alpha, 0, 0, 0));
+        float radius = opacity0to100 < 30 ? 3f : 0f;
+        for (TextView tv : new TextView[]{tvApi, tvTimeV, tvGpu, tvCpu, tvRam,
+                tvBat, tvTmp, tvFps, tvTime, tvCpuCores, tvGpuMhzLabel, tvGpuMhzVal}) {
+            tv.setShadowLayer(radius, 0f, 0f, 0xFF000000);
+        }
     }
 
     private void toggleOrientation() {
