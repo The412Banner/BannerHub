@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — v2.7.5-pre30 — combine stroke + shadow below 10% opacity (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre30
+**Commit:** `cfe330d31`  |  **CI:** queued
+**What changed:** Shadow 4f now applies for all opacity<30 (including <10 where stroke outline is also active). Three tiers: <10% stroke+shadow, 10-29% shadow only, ≥30% clear.
+#### Files touched
+- `extension/BhFrameRating.java`
+
+---
+
 ## [feat] — v2.7.5-pre29 — OutlinedTextView stroke outline below 10% opacity (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre29
 **Commit:** `2b9a3dd4c`  |  **CI:** queued
