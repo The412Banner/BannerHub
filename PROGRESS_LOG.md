@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.5-pre3 — FPS overlay: fix API label reading runtime engine name (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre3
+**Commit:** `62aa09c68`  |  **CI:** ✅ run 23687466600
+**What changed:**
+- Root cause: readApiName() read SP (configured renderer) — game had both DXVK and VKD3D set; DXVK key checked first so always showed DXVK regardless of actual renderer
+- Fix: reflect into WineActivity.g → ActivityWineBinding.hudLayer → HUDLayer.b → UnifiedHUDView.a — exact same field original HUD renders; set by Wine at runtime via perf socket callback on first frame
+- Shows "API" when field is "N/A" (before first frame presented)
+- SharedPreferences import removed
+#### Files touched
+- `extension/BhFrameRating.java`
+
+---
+
 ## [pre] — v2.7.5-pre2 — FPS overlay: CHRG label when charging, strip API version (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre2
 **Commit:** `57de19552`  |  **CI:** ✅ run 23687095100

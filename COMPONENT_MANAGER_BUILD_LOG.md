@@ -3733,6 +3733,20 @@ AlertDialog with radio buttons pre-selected from the current `api_source` pref.
 
 ---
 
+## Entry 90 — v2.7.5-pre3 — FPS overlay: fix API label reading runtime engine name (2026-03-28)
+**Commit:** `62aa09c68`  |  **Tag:** v2.7.5-pre3  |  **Branch:** main  |  **[CI✅]** run 23687466600
+
+**Root-cause analysis:**
+readApiName() checked SP keys pc_ls_DXVK and pc_ls_VK3k (what renderer is configured per-game). Game had both set; code checked DXVK first and returned early → always showed "DXVK" even when VKD3D was the active renderer. The original GameHub HUD does NOT read SP for the API name — it uses a runtime callback: Wine/DXVK/VKD3D calls back via a native Unix socket perf event (PerfPlugin → PerfEventListener.d(driverName, driverVersion, engineName, ...)) on first frame presented → ProgramController.d() → HUDLayer.setEngineName() → UnifiedHUDView.a = engineName.toUpperCase(). Field a defaults to "N/A" before first frame.
+
+**Methods changed:**
+- `readApiName()` — complete rewrite: reflect WineActivity.g (ActivityWineBinding) → .hudLayer (HUDLayer) → .b (UnifiedHUDView) → .a (String); return "API" if null/"N/A"/empty; SharedPreferences import removed
+
+**Files modified:** 1
+- `extension/BhFrameRating.java`
+
+---
+
 ## Entry 89 — v2.7.5-pre2 — FPS overlay: CHRG label when charging, strip API version (2026-03-28)
 **Commit:** `57de19552`  |  **Tag:** v2.7.5-pre2  |  **Branch:** main  |  **[CI✅]** run 23687095100
 
