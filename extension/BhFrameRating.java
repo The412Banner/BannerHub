@@ -198,7 +198,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     }
 
     private TextView addLabel(Context ctx, String text, int color) {
-        TextView tv = new TextView(ctx);
+        TextView tv = new OutlinedTextView(ctx);
         tv.setText(text);
         tv.setTextColor(color);
         tv.setTextSize(9f);
@@ -228,7 +228,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     /** Creates a time TextView for use in main bar (horizontal or vertical). */
     private TextView makeTimeLabel(Context ctx) {
-        TextView tv = new TextView(ctx);
+        TextView tv = new OutlinedTextView(ctx);
         tv.setText("--:--");
         tv.setTextColor(0xFFFFFFFF);
         tv.setTextSize(9f);
@@ -239,7 +239,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     /** Adds a label row to the extra detail group. */
     private TextView addExtraLabel(Context ctx, String text, int color) {
-        TextView tv = new TextView(ctx);
+        TextView tv = new OutlinedTextView(ctx);
         tv.setText(text);
         tv.setTextColor(color);
         tv.setTextSize(8f);
@@ -256,14 +256,22 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
     }
 
-    /** Sets background alpha only (text stays opaque). Below 30% adds a black outline so text stays readable. */
+    /** Sets background alpha only (text stays opaque).
+     *  < 10%  → solid stroke outline (OutlinedTextView)
+     *  10–29% → blurred shadow halo (setShadowLayer 4f)
+     *  ≥ 30%  → no effect
+     */
     public void applyBackgroundOpacity(int opacity0to100) {
         int alpha = opacity0to100 * 255 / 100;
         setBackgroundColor(android.graphics.Color.argb(alpha, 0, 0, 0));
-        float radius = opacity0to100 < 30 ? 4f : 0f;
+        boolean strokeOutline = opacity0to100 < 10;
+        float shadowRadius = (opacity0to100 >= 10 && opacity0to100 < 30) ? 4f : 0f;
         for (TextView tv : new TextView[]{tvApi, tvTimeV, tvGpu, tvCpu, tvRam,
                 tvBat, tvTmp, tvFps, tvTime, tvCpuCores, tvGpuMhzLabel, tvGpuMhzVal}) {
-            tv.setShadowLayer(radius, 0f, 0f, 0xFF000000);
+            tv.setShadowLayer(shadowRadius, 0f, 0f, shadowRadius > 0 ? 0xFF000000 : 0);
+            if (tv instanceof OutlinedTextView) {
+                ((OutlinedTextView) tv).setOutlineEnabled(strokeOutline);
+            }
         }
     }
 
@@ -672,6 +680,42 @@ public class BhFrameRating extends LinearLayout implements Runnable {
             return br.readLine();
         } catch (IOException e) {
             return null;
+        }
+    }
+
+    // ── Outlined text view ────────────────────────────────────────────────
+
+    /** TextView that optionally draws a solid black stroke outline behind the fill pass. */
+    private static class OutlinedTextView extends TextView {
+        private boolean outlineEnabled = false;
+
+        public OutlinedTextView(Context ctx) {
+            super(ctx);
+        }
+
+        public void setOutlineEnabled(boolean enabled) {
+            if (outlineEnabled != enabled) {
+                outlineEnabled = enabled;
+                invalidate();
+            }
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            if (outlineEnabled) {
+                Paint p = getPaint();
+                int savedColor = p.getColor();
+                Paint.Style savedStyle = p.getStyle();
+                float savedWidth = p.getStrokeWidth();
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(3f);
+                p.setColor(0xFF000000);
+                super.onDraw(canvas);
+                p.setStyle(savedStyle);
+                p.setStrokeWidth(savedWidth);
+                p.setColor(savedColor);
+            }
+            super.onDraw(canvas);
         }
     }
 
