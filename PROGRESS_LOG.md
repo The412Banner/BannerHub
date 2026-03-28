@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — v2.7.5-pre26 — tighten text outline radius 3f→1.5f (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre26
+**Commit:** `a3e84a87c`  |  **CI:** queued
+**What changed:** Shadow radius reduced from 3f to 1.5f — denser, sharper black outline below 30% opacity.
+#### Files touched
+- `extension/BhFrameRating.java`
+
+---
+
 ## [feat] — v2.7.5-pre25 — black text outline below 30% opacity (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre25
 **Commit:** `e788691bb`  |  **CI:** queued
