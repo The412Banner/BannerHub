@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.5-pre7 — fix: widen overlay + show extra detail in horizontal mode (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre7
+**Commit:** `aaeab7e32`  |  **CI:** ✅ run 23689573696
+**What changed:**
+- Outer BhFrameRating is now always VERTICAL; inner `mainRow` LinearLayout holds stats and toggles H↔V on tap — extra detail block sits below in both orientations
+- Extra detail labels (except tvCpuCores) use `setSingleLine(true)` + `setEllipsize(END)`: no wrapping, container naturally grows to fit the longest line
+- Removed all `isVertical` guards from extraDetailGroup visibility — extra detail shows in both modes
+- `extraDetailGroup` LayoutParams: WRAP_CONTENT (was MATCH_PARENT, broken under new outer layout)
+#### Files touched
+- `extension/BhFrameRating.java`
+
+---
+
 ## [pre] — v2.7.5-pre6 — fix: VerifyError crash opening Performance tab (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre6
 **Commit:** `bc18a57c9`  |  **CI:** ✅ run 23689336694
