@@ -274,7 +274,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     /** Re-clamps overlay position after layout has settled (e.g. after orientation toggle). */
     private void reclampPosition() {
-        // postDelayed one frame so getHeight() reflects the new vertical layout, not stale dims.
         handler.postDelayed(new Runnable() {
             @Override public void run() {
                 ViewGroup.LayoutParams vlp = getLayoutParams();
@@ -282,13 +281,21 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) vlp;
                 int screenW = getRootView().getWidth();
                 int screenH = getRootView().getHeight();
+                // Measure unconstrained in height so we get the true natural height,
+                // not the FrameLayout-clipped value (AT_MOST screenH - topMargin).
+                measure(
+                    MeasureSpec.makeMeasureSpec(screenW, MeasureSpec.AT_MOST),
+                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+                );
+                int naturalW = getMeasuredWidth();
+                int naturalH = getMeasuredHeight();
                 if (lp.leftMargin < 0) lp.leftMargin = 0;
                 if (lp.topMargin  < 0) lp.topMargin  = 0;
-                if (lp.leftMargin + getWidth()  > screenW) lp.leftMargin = screenW - getWidth();
-                if (lp.topMargin  + getHeight() > screenH) lp.topMargin  = screenH - getHeight();
+                if (lp.leftMargin + naturalW > screenW) lp.leftMargin = screenW - naturalW;
+                if (lp.topMargin  + naturalH > screenH) lp.topMargin  = screenH - naturalH;
                 setLayoutParams(lp);
             }
-        }, 32); // two frames — ensures layout has settled
+        }, 32);
     }
 
     @Override
