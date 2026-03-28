@@ -128,9 +128,13 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
                         if (lp.gravity != 0) {
+                            // Switch from gravity to explicit positioning.
+                            // Use translationY (not topMargin) so FrameLayout always measures
+                            // us with the full screen height — no AT_MOST (screenH-topMargin) clip.
                             lp.gravity = 0;
                             lp.leftMargin = v.getLeft();
-                            lp.topMargin = v.getTop();
+                            lp.topMargin = 0;
+                            v.setTranslationY(v.getTop());
                             v.setLayoutParams(lp);
                         }
                         dragLastX = event.getRawX();
@@ -147,18 +151,18 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         }
                         int dx = (int) (event.getRawX() - dragLastX);
                         int dy = (int) (event.getRawY() - dragLastY);
+                        // X: leftMargin (width constraint is not an issue for narrow overlay)
                         lp.leftMargin += dx;
-                        lp.topMargin += dy;
-                        // Clamp so overlay never overflows screen edges
                         int screenW = v.getRootView().getWidth();
                         int screenH = v.getRootView().getHeight();
                         if (lp.leftMargin < 0) lp.leftMargin = 0;
-                        if (lp.topMargin < 0) lp.topMargin = 0;
                         if (lp.leftMargin + v.getWidth() > screenW)
                             lp.leftMargin = screenW - v.getWidth();
-                        if (lp.topMargin + v.getHeight() > screenH)
-                            lp.topMargin = screenH - v.getHeight();
                         v.setLayoutParams(lp);
+                        // Y: translationY so topMargin stays 0 and height is never constrained
+                        float newTy = v.getTranslationY() + dy;
+                        newTy = Math.max(0, Math.min(newTy, screenH - v.getHeight()));
+                        v.setTranslationY(newTy);
                         dragLastX = event.getRawX();
                         dragLastY = event.getRawY();
                         return true;
@@ -271,7 +275,11 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         reclampPosition();
     }
 
-    /** Measures unconstrained, corrects margins, then triggers a single layout pass. */
+    /**
+     * Clamps overlay position within screen bounds.
+     * X uses leftMargin; Y uses translationY so topMargin stays 0 and FrameLayout
+     * always measures with the full screen height — no height constraint from position.
+     */
     private void reclampPosition() {
         ViewGroup.LayoutParams vlp = getLayoutParams();
         if (!(vlp instanceof FrameLayout.LayoutParams)) {
@@ -282,18 +290,22 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         int screenW = getRootView().getWidth();
         int screenH = getRootView().getHeight();
         if (screenW == 0 || screenH == 0) { requestLayout(); return; }
-        // Measure with unconstrained height to get true natural dimensions.
+        // topMargin=0 so FrameLayout measures us with AT_MOST screenH — no clip.
         measure(
             MeasureSpec.makeMeasureSpec(screenW, MeasureSpec.AT_MOST),
-            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+            MeasureSpec.makeMeasureSpec(screenH, MeasureSpec.AT_MOST)
         );
         int naturalW = getMeasuredWidth();
         int naturalH = getMeasuredHeight();
+        // Clamp X via leftMargin
         if (lp.leftMargin < 0) lp.leftMargin = 0;
-        if (lp.topMargin  < 0) lp.topMargin  = 0;
         if (lp.leftMargin + naturalW > screenW) lp.leftMargin = screenW - naturalW;
-        if (lp.topMargin  + naturalH > screenH) lp.topMargin  = screenH - naturalH;
-        setLayoutParams(lp); // triggers requestLayout internally
+        // Clamp Y via translationY (topMargin stays 0)
+        float ty = getTranslationY();
+        if (ty < 0) ty = 0;
+        if (ty + naturalH > screenH) ty = screenH - naturalH;
+        setTranslationY(ty);
+        setLayoutParams(lp);
     }
 
     @Override
