@@ -111,7 +111,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         extraDetailGroup.addView(divider, divLp);
 
         tvTime     = addExtraLabel(ctx, "TIME --:--", 0xFFFFFFFF);
-        tvCpuCores = addExtraLabel(ctx, "C0:-- C1:--\nC2:-- C3:--\nC4:-- C5:--\nC6:-- C7:--", 0xFFFFFFFF);
+        tvCpuCores = addExtraLabel(ctx, "C0:--\nC1:--\nC2:--\nC3:--\nC4:--\nC5:--\nC6:--\nC7:--", 0xFFFFFFFF);
         tvGpuInfo  = addExtraLabel(ctx, "--\n--MHz", 0xFFFFAB91);
         tvGpuTemp  = addExtraLabel(ctx, "TMP --\u00b0C", 0xFFEF9A9A);
         tvRamDetail= addExtraLabel(ctx, "RAM --G / --G", 0xFF90CAF9);
@@ -377,14 +377,10 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         if (extraDetail && isVertical) {
                             if (coreMhz != null && coreMhz.length >= 8) {
                                 tvCpuCores.setText(String.format(
-                                        "C0:%4d C1:%4d\n" +
-                                        "C2:%4d C3:%4d\n" +
-                                        "C4:%4d C5:%4d\n" +
-                                        "C6:%4d C7:%4d",
-                                        coreMhz[0], coreMhz[1],
-                                        coreMhz[2], coreMhz[3],
-                                        coreMhz[4], coreMhz[5],
-                                        coreMhz[6], coreMhz[7]));
+                                        "C0:%4d\nC1:%4d\nC2:%4d\nC3:%4d\n" +
+                                        "C4:%4d\nC5:%4d\nC6:%4d\nC7:%4d",
+                                        coreMhz[0], coreMhz[1], coreMhz[2], coreMhz[3],
+                                        coreMhz[4], coreMhz[5], coreMhz[6], coreMhz[7]));
                             }
                             String model = gpuModel != null ? gpuModel : "--";
                             tvGpuInfo.setText(model + "\n" + gpuMhz + "MHz");
