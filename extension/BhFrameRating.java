@@ -50,7 +50,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     // Extra detail group
     private final LinearLayout extraDetailGroup;
-    private final TextView tvCpuCores, tvGpuInfo, tvGpuTemp, tvRamDetail, tvSwap, tvTime;
+    private final TextView tvCpuCores, tvGpuInfo, tvGpuTemp, tvTime;
     private boolean extraDetail = false;
 
     // CPU stat tracking across samples
@@ -114,8 +114,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         tvCpuCores = addExtraLabel(ctx, "C0:--\nC1:--\nC2:--\nC3:--\nC4:--\nC5:--\nC6:--\nC7:--", 0xFFFFFFFF);
         tvGpuInfo  = addExtraLabel(ctx, "--\n--MHz", 0xFFFFAB91);
         tvGpuTemp  = addExtraLabel(ctx, "TMP --\u00b0C", 0xFFEF9A9A);
-        tvRamDetail= addExtraLabel(ctx, "RAM --G / --G", 0xFF90CAF9);
-        tvSwap     = addExtraLabel(ctx, "SW --/--G", 0xFFB39DDB);
 
         LinearLayout.LayoutParams egLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -341,8 +339,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                 final String gpuModel   = newExtra ? readGpuModel() : null;
                 final int gpuMhz        = newExtra ? readGpuMhz() : 0;
                 final int gpuThermal    = newExtra ? readGpuThermal() : 0;
-                final float[] ramDetail = newExtra ? readRamDetail() : null;
-                final String swapStr    = newExtra ? readSwap() : null;
                 final String timeStr    = newExtra ? readTime() : null;
 
                 handler.post(new Runnable() {
@@ -385,11 +381,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                             String model = gpuModel != null ? gpuModel : "--";
                             tvGpuInfo.setText(model + "\n" + gpuMhz + "MHz");
                             tvGpuTemp.setText("TMP " + gpuThermal + "\u00b0C");
-                            if (ramDetail != null && ramDetail.length >= 2) {
-                                tvRamDetail.setText(String.format(
-                                        "RAM %.1f/%.1fG", ramDetail[0], ramDetail[1]));
-                            }
-                            if (swapStr != null) tvSwap.setText(swapStr);
                             if (timeStr != null) tvTime.setText("TIME " + timeStr);
                         }
                     }
@@ -616,44 +607,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
             }
         }
         return 0;
-    }
-
-    private float[] readRamDetail() {
-        ActivityManager am = (ActivityManager)
-                getContext().getSystemService(Context.ACTIVITY_SERVICE);
-        if (am == null) return null;
-        ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
-        am.getMemoryInfo(mi);
-        float total = mi.totalMem / 1_073_741_824f;
-        float used  = (mi.totalMem - mi.availMem) / 1_073_741_824f;
-        return new float[]{used, total};
-    }
-
-    private String readSwap() {
-        long swapTotal = 0, swapFree = 0;
-        try (BufferedReader br = new BufferedReader(new FileReader("/proc/meminfo"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (line.startsWith("SwapTotal:")) {
-                    swapTotal = parseMemInfoKb(line);
-                } else if (line.startsWith("SwapFree:")) {
-                    swapFree = parseMemInfoKb(line);
-                    break;
-                }
-            }
-        } catch (IOException ignored) {}
-        float total = swapTotal / (1024f * 1024f);
-        float used  = (swapTotal - swapFree) / (1024f * 1024f);
-        return String.format("SW %.1f/%.1fG", used, total);
-    }
-
-    private long parseMemInfoKb(String line) {
-        try {
-            String[] parts = line.trim().split("\\s+");
-            return Long.parseLong(parts[1]);
-        } catch (Exception e) {
-            return 0;
-        }
     }
 
     private String readTime() {
