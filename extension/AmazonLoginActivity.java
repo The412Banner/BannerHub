@@ -75,7 +75,7 @@ public class AmazonLoginActivity extends Activity {
             + "&openid.oa2.client_id=device%3A" + clientId
             + "&language=en_US"
             + "&marketPlaceId=ATVPDKIKX0DER"
-            + "&openid.return_to=https%3A%2F%2Fwww.amazon.com"
+            + "&openid.return_to=https%3A%2F%2Fgaming.amazon.com"
             + "&openid.pape.max_auth_age=0"
             + "&openid.ns.pape=http%3A%2F%2Fspecs.openid.net%2Fextensions%2Fpape%2F1.0"
             + "&openid.assoc_handle=amzn_sonic_games_launcher"
