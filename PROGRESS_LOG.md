@@ -2656,3 +2656,15 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `extension/AmazonGamesActivity.java` (new)
 - `patches/smali_classes5/.../HomeLeftMenuDialog.smali`
 - `patches/AndroidManifest.xml`
+**Commit:** `75c8ede78`  |  **CI:** ✅ run 23707207001 — artifact: BannerHub-amazon-75c8ede
+
+### [feat] — amazon-integration branch — Phase 2: Library sync + game cards (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- AmazonGame.java: data class (productId, entitlementId, title, artUrl, heroUrl, developer, publisher, productSku, isInstalled, installPath, versionId, downloadSize, installSize)
+- AmazonApiClient.java: GetEntitlements (paginated, dedup by productId), GetGameDownload, GetLiveVersionIds, getSdkChannelSpec, appendPath helper, postGaming (amz-1.0 headers), getBytes
+- AmazonGamesActivity.java (full): library list with collapsible cards, cover art async load, cache in bh_amazon_prefs SP, Install/Launch stubs, token auto-refresh
+#### Files touched
+- `extension/AmazonGame.java` (new)
+- `extension/AmazonApiClient.java` (new)
+- `extension/AmazonGamesActivity.java` (replaced stub with full impl)

@@ -4003,3 +4003,22 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 
 **Commit:** (pending)  |  **Branch:** amazon-integration
 **CI:** pending first build
+
+---
+
+## Entry 124 — amazon-integration Phase 2 — Library sync + game cards (2026-03-29)
+
+**Root cause / motivation:** Phase 2 implements the library sync (GetEntitlements API) and the game list UI. Users can now log in and see their Amazon library.
+
+**What was added:**
+- `AmazonGame`: POJO data class; shortId() strips "amzn1.adg.product." prefix for display
+- `AmazonApiClient`: POST GetEntitlements (paginated, dedup by productId, hardwareHash = sha256Upper(serial)); POST GetGameDownload (uses entitlementId); POST GetLiveVersionIds; GET SDK channel spec; appendPath helper (splits at '?' to preserve query params); postGaming adds X-Amz-Target + x-amzn-token + Content-Encoding: amz-1.0; getBytes for manifest.proto download
+- `AmazonGamesActivity` (full): header with back/refresh buttons; indeterminate ProgressBar; ScrollView with collapsible cards; top row: 60×60 cover art (async HTTP load) + title/developer/installed indicator + expand arrow; expand section: publisher, product ID, Install/Launch stubs; SharedPreferences cache (bh_amazon_prefs, amazon_library_cache); install state preserved from cache on re-sync; token auto-refresh via AmazonCredentialStore.getValidAccessToken()
+
+**Files changed:**
+- `extension/AmazonGame.java` (new)
+- `extension/AmazonApiClient.java` (new)
+- `extension/AmazonGamesActivity.java` (replaced Phase 1 stub)
+
+**Commit:** (pending)  |  **Branch:** amazon-integration
+**CI:** pending
