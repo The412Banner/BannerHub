@@ -225,10 +225,10 @@ public class EpicApiClient {
                     EpicDownloadManager.EpicManifest.parseManifestApiJson(manifestJson, accessToken);
             if (manifest == null) return 0;
 
-            // Sum up all unique chunk fileSizes
+            // Sum windowSize (uncompressed/installed size), fall back to fileSize if zero
             long total = 0;
             for (EpicDownloadManager.ChunkInfo c : manifest.uniqueChunks) {
-                total += c.fileSize;
+                total += c.windowSize > 0 ? c.windowSize : c.fileSize;
             }
             return total;
         } catch (Exception e) {
