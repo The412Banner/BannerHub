@@ -8319,6 +8319,25 @@
     invoke-virtual {p0, v4}, Lcom/xj/landscape/launcher/ui/main/LandscapeLauncherMainActivity;->B3(Ljava/lang/String;)V
     :bh_no_amazon_launch
 
+    # BannerHub: Epic pending launch check
+    const-string v3, "bh_epic_prefs"
+    const/4 v4, 0x0
+    invoke-virtual {p0, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v3
+    const-string v4, "pending_epic_exe"
+    const/4 v5, 0x0
+    invoke-interface {v3, v4, v5}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v4
+    if-eqz v4, :bh_no_epic_launch
+    invoke-interface {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v3
+    const-string v5, "pending_epic_exe"
+    invoke-interface {v3, v5}, Landroid/content/SharedPreferences$Editor;->remove(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+    move-result-object v3
+    invoke-interface {v3}, Landroid/content/SharedPreferences$Editor;->apply()V
+    invoke-virtual {p0, v4}, Lcom/xj/landscape/launcher/ui/main/LandscapeLauncherMainActivity;->B3(Ljava/lang/String;)V
+    :bh_no_epic_launch
+
     .line 9
     const/4 v0, 0x1
 

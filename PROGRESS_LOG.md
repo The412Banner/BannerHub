@@ -2716,3 +2716,48 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 **Commit:** `2a0aee562`  |  **Tag:** v2.7.6-pre
 Merged amazon-integration branch. All 6 phases: PKCE auth, library sync,
 manifest download, install, launch, SDK cache + update checker.
+
+### [fix] — v2.7.6-pre — Show game size in Amazon install confirm dialog (2026-03-29)
+**Commit:** `01e6e85f4`  |  **Tag:** v2.7.6-pre
+#### What changed
+- Install confirm dialog now shows "Game size: X GB" by fetching download spec + manifest.proto on a background thread when dialog opens
+- Falls back to "Unknown" if fetch fails
+- Free storage line kept below game size line
+#### Files touched
+- `extension/AmazonGamesActivity.java` (showInstallConfirm: background size fetch)
+
+### [release] — v2.7.6 stable — Amazon Games integration (2026-03-29)
+**Commit:** `23a9f6b73`  |  **Tag:** v2.7.6
+#### What changed
+- Amazon Games integration stable release (all 6 phases merged from amazon-integration branch)
+- Credits added: GameNative Team credited in AmazonApiClient.java, README.md, and AMAZON_IMPLEMENTATION.md
+- debug logging removed, GetLiveVersionIds field fixed (adgProductIds)
+- Install confirm dialog shows game size
+#### Files touched
+- `extension/AmazonApiClient.java` (credit header)
+- `README.md` (Amazon credit entry)
+- `AMAZON_IMPLEMENTATION.md` (new — full implementation reference)
+
+### [feat] — epic-integration branch — Epic Games Store integration (2026-03-29)
+**Commit:** (pending)  |  **Branch:** epic-integration
+#### What changed
+- Epic Games Store integration: full auth, library sync, install (chunked manifest), launch pipeline
+- 8 new Java extension files: EpicGame, EpicCredentialStore, EpicAuthClient, EpicApiClient, EpicDownloadManager, EpicLoginActivity, EpicMainActivity, EpicGamesActivity
+- CI workflow: build-epic.yml — artifact-only (no release), triggers on epic-integration branch push
+- Smali patches: HomeLeftMenuDialog (id=0xc "Epic" menu item + pswitch_12), LandscapeLauncherMainActivity (pending_epic_exe launch hook)
+- AndroidManifest: registered EpicMainActivity, EpicLoginActivity, EpicGamesActivity
+- UI mirrors Amazon/GOG: list/grid/poster view modes, same card layout and buttons
+- Windows-only game filter (platform: Windows/Win32)
+#### Files touched
+- `extension/EpicGame.java` (new — data model)
+- `extension/EpicCredentialStore.java` (new — SharedPreferences bh_epic_prefs, auto-refresh)
+- `extension/EpicAuthClient.java` (new — OAuth2 authorization_code + refresh, Legendary credentials)
+- `extension/EpicApiClient.java` (new — library, catalog, manifest API)
+- `extension/EpicDownloadManager.java` (new — chunked binary/JSON manifest download, CDN selection)
+- `extension/EpicLoginActivity.java` (new — WebView OAuth2 login)
+- `extension/EpicMainActivity.java` (new — login/loggedIn card, entry point ID=0xc)
+- `extension/EpicGamesActivity.java` (new — full library UI, install, launch)
+- `.github/workflows/build-epic.yml` (new — artifact-only CI for epic-integration)
+- `patches/smali_classes5/.../HomeLeftMenuDialog.smali` (Epic menu item + pswitch_12)
+- `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali` (pending_epic_exe hook)
+- `patches/AndroidManifest.xml` (Epic activities registered)
