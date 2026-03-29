@@ -322,13 +322,19 @@ public final class GogDownloadManager {
 
             // Download + assemble each file
             int total = files.size(), done = 0;
+            long speedWindowStart = System.currentTimeMillis();
+            long speedWindowBytes = 0;
+            long speedBps = 0;
             for (DepotFile df : files) {
                 if (cancelled.get()) return "cancelled";
                 int pct = 15 + (int) ((done / (float) total) * 80);
-                cb.onProgress("Downloading: " + df.relativePath, pct);
+                String speedStr = formatSpeed(speedBps);
+                cb.onProgress("Downloading: " + df.relativePath
+                        + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
                 File outFile = new File(installPath, df.relativePath);
                 outFile.getParentFile().mkdirs();
 
+                long fileBytes = 0;
                 try (FileOutputStream fos = new FileOutputStream(outFile)) {
                     for (DepotFile.ChunkRef chunk : df.chunks) {
                         if (cancelled.get()) return "cancelled";
@@ -339,12 +345,20 @@ public final class GogDownloadManager {
                             Log.w(TAG, "Chunk download failed: " + chunk.hash);
                             continue;
                         }
+                        fileBytes += chunkRaw.length;
                         byte[] inflated = inflateZlib(chunkRaw);
                         if (inflated == null) inflated = chunkRaw; // not compressed
                         fos.write(inflated);
                     }
                 }
                 done++;
+                speedWindowBytes += fileBytes;
+                long elapsed = System.currentTimeMillis() - speedWindowStart;
+                if (elapsed >= 1000) {
+                    speedBps = speedWindowBytes * 1000L / elapsed;
+                    speedWindowStart = System.currentTimeMillis();
+                    speedWindowBytes = 0;
+                }
             }
 
             // Write manifest marker
@@ -463,14 +477,26 @@ public final class GogDownloadManager {
             installDirRef.set(installPath);
 
             int total = files.size(), done = 0;
+            long speedWindowStartG1 = System.currentTimeMillis();
+            long speedWindowBytesG1 = 0;
+            long speedBpsG1 = 0;
             for (Gen1File gf : files) {
                 if (cancelled.get()) return "cancelled";
                 int pct = 15 + (int) ((done / (float) total) * 80);
-                cb.onProgress("Downloading: " + gf.path, pct);
+                String speedStrG1 = formatSpeed(speedBpsG1);
+                cb.onProgress("Downloading: " + gf.path
+                        + (speedStrG1.isEmpty() ? "" : "  " + speedStrG1), pct);
                 File outFile = new File(installPath, gf.path);
                 outFile.getParentFile().mkdirs();
                 downloadRange(gf.url, gf.offset, gf.size, outFile);
                 done++;
+                speedWindowBytesG1 += gf.size;
+                long elapsedG1 = System.currentTimeMillis() - speedWindowStartG1;
+                if (elapsedG1 >= 1000) {
+                    speedBpsG1 = speedWindowBytesG1 * 1000L / elapsedG1;
+                    speedWindowStartG1 = System.currentTimeMillis();
+                    speedWindowBytesG1 = 0;
+                }
             }
 
             cb.onProgress("Install complete!", 100);
@@ -636,6 +662,12 @@ public final class GogDownloadManager {
         }
     }
 
+    private static String formatSpeed(long bps) {
+        if (bps <= 0) return "";
+        if (bps >= 1048576) return String.format("%.1f MB/s", bps / 1048576.0);
+        return (bps / 1024) + " KB/s";
+    }
+
     /** Downloads url to outFile, reporting progress via cb. */
     private static void downloadWithProgress(String url, File out, Callback cb, AtomicBoolean cancelled) {
         try {
@@ -647,13 +679,25 @@ public final class GogDownloadManager {
                  FileOutputStream fos = new FileOutputStream(out)) {
                 byte[] buf = new byte[32768];
                 int n, downloaded = 0;
+                long speedWindowStart = System.currentTimeMillis();
+                long speedWindowBytes = 0;
+                long speedBps = 0;
                 while ((n = is.read(buf)) != -1) {
                     if (cancelled.get()) return;
                     fos.write(buf, 0, n);
                     downloaded += n;
+                    speedWindowBytes += n;
+                    long elapsed = System.currentTimeMillis() - speedWindowStart;
+                    if (elapsed >= 500) {
+                        speedBps = speedWindowBytes * 1000L / elapsed;
+                        speedWindowStart = System.currentTimeMillis();
+                        speedWindowBytes = 0;
+                    }
                     if (total > 0) {
                         int pct = 15 + (int) ((downloaded / (float) total) * 80);
-                        cb.onProgress("Downloading: " + out.getName(), pct);
+                        String speed = formatSpeed(speedBps);
+                        cb.onProgress("Downloading: " + out.getName()
+                                + (speed.isEmpty() ? "" : "  " + speed), pct);
                     }
                 }
             }

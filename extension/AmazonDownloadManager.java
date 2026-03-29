@@ -120,8 +120,11 @@ public class AmazonDownloadManager {
             }
 
             // Step 4: Download files in batches of 6
-            AtomicLong downloaded = new AtomicLong(0);
-            AtomicLong lastEmit   = new AtomicLong(0);
+            AtomicLong downloaded      = new AtomicLong(0);
+            AtomicLong lastEmit        = new AtomicLong(0);
+            AtomicLong lastSpeedMs     = new AtomicLong(System.currentTimeMillis());
+            AtomicLong lastSpeedBytes  = new AtomicLong(0);
+            AtomicLong currentSpeedBps = new AtomicLong(0);
             List<AmazonManifest.ManifestFile> files = manifest.allFiles;
 
             ExecutorService pool = Executors.newFixedThreadPool(MAX_PARALLEL);
@@ -145,6 +148,7 @@ public class AmazonDownloadManager {
                         tasks.add(() -> downloadFileWithRetry(
                                 file, dlUrl, tkn, installDir,
                                 downloaded, lastEmit, manifest.totalInstallSize,
+                                lastSpeedMs, lastSpeedBytes, currentSpeedBps,
                                 progress, cancel));
                     }
 
@@ -188,6 +192,9 @@ public class AmazonDownloadManager {
             AtomicLong totalDownloaded,
             AtomicLong lastEmit,
             long totalSize,
+            AtomicLong lastSpeedMs,
+            AtomicLong lastSpeedBytes,
+            AtomicLong currentSpeedBps,
             ProgressCallback progress,
             CancelChecker cancel) {
 
@@ -209,7 +216,8 @@ public class AmazonDownloadManager {
 
             try {
                 if (downloadFile(fileUrl, tmpFile, totalDownloaded, lastEmit,
-                                 totalSize, progress, cancel)) {
+                                 totalSize, lastSpeedMs, lastSpeedBytes, currentSpeedBps,
+                                 progress, cancel)) {
                     // SHA-256 verify (hashAlgorithm==0)
                     if (file.hashAlgorithm == 0 && file.hashBytes.length > 0) {
                         byte[] computed = sha256(tmpFile);
@@ -261,6 +269,9 @@ public class AmazonDownloadManager {
             AtomicLong totalDownloaded,
             AtomicLong lastEmit,
             long totalSize,
+            AtomicLong lastSpeedMs,
+            AtomicLong lastSpeedBytes,
+            AtomicLong currentSpeedBps,
             ProgressCallback progress,
             CancelChecker cancel) throws IOException {
 
@@ -292,8 +303,19 @@ public class AmazonDownloadManager {
                 long emit = lastEmit.get();
                 if (progress != null && dl - emit >= PROGRESS_INTERVAL) {
                     if (lastEmit.compareAndSet(emit, dl)) {
-                        String name = tmpFile.getName();
-                        progress.onProgress(dl, totalSize, name);
+                        // Speed: one thread wins CAS every 500ms
+                        long nowMs     = System.currentTimeMillis();
+                        long prevMs    = lastSpeedMs.get();
+                        long timeDelta = nowMs - prevMs;
+                        if (timeDelta >= 500 && lastSpeedMs.compareAndSet(prevMs, nowMs)) {
+                            long prevB  = lastSpeedBytes.getAndSet(dl);
+                            long bDelta = dl - prevB;
+                            if (timeDelta > 0) currentSpeedBps.set(bDelta * 1000L / timeDelta);
+                        }
+                        String cleanName = tmpFile.getName().replace(".tmp", "");
+                        String speed     = formatSpeed(currentSpeedBps.get());
+                        String label     = cleanName + (speed.isEmpty() ? "" : "  " + speed);
+                        progress.onProgress(dl, totalSize, label);
                     }
                 }
             }
@@ -301,6 +323,14 @@ public class AmazonDownloadManager {
             conn.disconnect();
         }
         return true;
+    }
+
+    // ── Speed formatting ─────────────────────────────────────────────────────
+
+    private static String formatSpeed(long bps) {
+        if (bps <= 0) return "";
+        if (bps >= 1048576) return String.format("%.1f MB/s", bps / 1048576.0);
+        return (bps / 1024) + " KB/s";
     }
 
     // ── SHA-256 ───────────────────────────────────────────────────────────────

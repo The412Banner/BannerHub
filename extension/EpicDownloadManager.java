@@ -205,9 +205,12 @@ public class EpicDownloadManager {
             for (ChunkInfo chunk : manifest.uniqueChunks) totalBytes += Math.max(chunk.fileSize, 1);
             final long fTotalBytes = totalBytes;
             final int totalChunks  = manifest.uniqueChunks.size();
-            final AtomicLong completedBytes   = new AtomicLong(0);
+            final AtomicLong completedBytes    = new AtomicLong(0);
             final AtomicInteger completedCount = new AtomicInteger(0);
             final AtomicInteger failCount      = new AtomicInteger(0);
+            final AtomicLong lastSpeedMs       = new AtomicLong(System.currentTimeMillis());
+            final AtomicLong lastSpeedBytes    = new AtomicLong(0);
+            final AtomicLong currentSpeedBps   = new AtomicLong(0);
 
             // Download unique chunks — 6 parallel threads
             ExecutorService pool = Executors.newFixedThreadPool(6);
@@ -225,10 +228,22 @@ public class EpicDownloadManager {
                     long done = completedBytes.addAndGet(Math.max(fc.fileSize, 1));
                     int  cnt  = completedCount.incrementAndGet();
                     int  pct  = (int)(done * 80L / fTotalBytes);
-                    String mb = String.format("%.1f / %.1f MB",
-                            done / 1048576.0, fTotalBytes / 1048576.0);
+
+                    // Speed: one thread updates every 500ms via CAS
+                    long nowMs     = System.currentTimeMillis();
+                    long prevMs    = lastSpeedMs.get();
+                    long timeDelta = nowMs - prevMs;
+                    if (timeDelta >= 500 && lastSpeedMs.compareAndSet(prevMs, nowMs)) {
+                        long prevB  = lastSpeedBytes.getAndSet(done);
+                        long bDelta = done - prevB;
+                        if (timeDelta > 0) currentSpeedBps.set(bDelta * 1000L / timeDelta);
+                    }
+
+                    String mb    = String.format("%.1f / %.1f MB", done / 1048576.0, fTotalBytes / 1048576.0);
+                    String speed = formatSpeed(currentSpeedBps.get());
                     progress(progressCallback,
-                            "Downloading chunks (" + cnt + "/" + totalChunks + ")  " + mb, pct);
+                            "Downloading chunks (" + cnt + "/" + totalChunks + ")  " + mb
+                            + (speed.isEmpty() ? "" : "  " + speed), pct);
                 });
             }
             pool.shutdown();
@@ -805,6 +820,12 @@ public class EpicDownloadManager {
             }
         }
         dir.delete();
+    }
+
+    private static String formatSpeed(long bps) {
+        if (bps <= 0) return "";
+        if (bps >= 1048576) return String.format("%.1f MB/s", bps / 1048576.0);
+        return (bps / 1024) + " KB/s";
     }
 
     private static void progress(ProgressCallback cb, String msg, int pct) {
