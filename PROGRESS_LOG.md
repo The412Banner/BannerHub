@@ -2699,3 +2699,13 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `extension/AmazonSdkManager.java` (new)
 - `extension/AmazonGamesActivity.java` (ensureSdkFiles after install)
+
+### [feat] — amazon-integration branch — Phase 6: Polish + update check (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- checkForUpdates(): GetLiveVersionIds per installed game in sync thread; marks versionId+_UPDATE_AVAILABLE; card shows "Update Available" in orange
+- launchGame(): now runs on background thread, calls ensureSdkFiles before building launch spec
+- Update Available indicator on installed game cards
+#### Files touched
+- `extension/AmazonGamesActivity.java`
+- `COMPONENT_MANAGER_BUILD_LOG.md`

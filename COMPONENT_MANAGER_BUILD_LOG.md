@@ -4041,3 +4041,29 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 
 **Commit:** (pending)  |  **Branch:** amazon-integration
 **CI:** pending
+
+---
+
+## Entry 126 — amazon-integration Phase 4+5+6 — Launch, SDK, Polish (2026-03-29)
+
+**Phase 4 — Launch:**
+- `AmazonLaunchHelper`: fuel.json parser (Main.Command, WorkingSubdirOverride, Args from JSONArray); exe scoring heuristic (Java port of ExecutableSelectionUtils.kt — UE shipping +300, UE Binaries/ +250, root-level +200, name fuzzy match +100, negative keywords -150, generic -200, tiebreak by size); `buildFuelEnv()` 5 FuelPump env vars (FUEL_DIR, AMAZON_GAMES_SDK_PATH, AMAZON_GAMES_FUEL_ENTITLEMENT_ID, AMAZON_GAMES_FUEL_PRODUCT_SKU, AMAZON_GAMES_FUEL_DISPLAY_NAME=Player)
+- `LandscapeLauncherMainActivity.smali`: Amazon pending launch check mirroring GOG pattern — reads `pending_amazon_exe` from `bh_amazon_prefs` → calls `B3(exePath)` → clears pref
+- `AmazonGamesActivity`: Launch button → `launchGame()` → background thread → `ensureSdkFiles()` → `buildLaunchSpec()` → stores `pending_amazon_exe` → finish()
+
+**Phase 5 — SDK:**
+- `AmazonSdkManager`: GET SDK channel spec (LAUNCHER_CHANNEL_ID); manifest.proto pipeline (same as game); filter `"Amazon Games Services"` files, skip `._*` macOS forks; `FuelSDK_x64.dll` → `Legacy/`; `AmazonGamesSDK_*` → `AmazonGamesSDK/`; cache at `filesDir/amazon_sdk/` + `.sdk_version` sentinel; `isSdkCached()` = VERSION_FILE exists + hasAnyFile in Amazon Games Services/; `deploySdkToPrefix()` idempotent copy (skip if dest exists + size matches); `ensureSdkFiles()` called from install AND launch
+
+**Phase 6 — Polish:**
+- Update check: `checkForUpdates()` in sync thread — `GetLiveVersionIds` per installed game; if `liveVersion != versionId` → marks `versionId += "_UPDATE_AVAILABLE"` → card shows "✓ Installed — Update Available" in orange
+- Launch: `ensureSdkFiles()` called in background thread before building launch spec
+- Uninstall: confirmation dialog + recursive deleteDir + bh_amazon_prefs cache update (Phase 3, now confirmed complete)
+
+**Files changed:**
+- `extension/AmazonLaunchHelper.java` (Phase 4, new)
+- `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali` (Phase 4)
+- `extension/AmazonSdkManager.java` (Phase 5, new)
+- `extension/AmazonGamesActivity.java` (all phases — install/launch/uninstall/update-check)
+
+**Commits:** Phase 4 `edc4fbeca`, Phase 5 `024d6f199`  |  **Branch:** amazon-integration
+**CI Phase 4:** ✅ run 23707604129  |  **CI Phase 5:** ✅ run 23707686644

@@ -201,6 +201,9 @@ public class AmazonGamesActivity extends Activity {
                 }
             }
 
+            // Check for updates on installed games
+            checkForUpdates(token, games);
+
             saveCachedGames(games);
 
             uiHandler.post(() -> {
@@ -275,9 +278,10 @@ public class AmazonGamesActivity extends Activity {
         }
 
         if (game.isInstalled) {
+            boolean updateAvailable = game.versionId.endsWith("_UPDATE_AVAILABLE");
             TextView instTV = new TextView(this);
-            instTV.setText("✓ Installed");
-            instTV.setTextColor(0xFF44CC44);
+            instTV.setText(updateAvailable ? "✓ Installed — Update Available" : "✓ Installed");
+            instTV.setTextColor(updateAvailable ? 0xFFFFAA00 : 0xFF44CC44);
             instTV.setTextSize(11f);
             info.addView(instTV, new LinearLayout.LayoutParams(-1, -2));
         }
@@ -392,6 +396,25 @@ public class AmazonGamesActivity extends Activity {
 
     // ── Install / Uninstall ───────────────────────────────────────────────────
 
+    // ── Update check ──────────────────────────────────────────────────────────
+
+    private void checkForUpdates(String token, List<AmazonGame> games) {
+        for (AmazonGame game : games) {
+            if (!game.isInstalled || game.productId.isEmpty()) continue;
+            try {
+                String liveVersion = AmazonApiClient.getLiveVersionId(token, game.productId);
+                if (liveVersion != null && !liveVersion.isEmpty()
+                        && !liveVersion.equals(game.versionId)) {
+                    Log.d(TAG, "Update available for: " + game.title
+                            + " (" + game.versionId + " → " + liveVersion + ")");
+                    game.versionId = liveVersion + "_UPDATE_AVAILABLE";
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Update check failed for: " + game.title, e);
+            }
+        }
+    }
+
     private void startInstall(AmazonGame game, Button installBtn) {
         installBtn.setEnabled(false);
         installBtn.setText("Installing…");
@@ -460,26 +483,38 @@ public class AmazonGamesActivity extends Activity {
             return;
         }
 
-        AmazonLaunchHelper.LaunchSpec spec = AmazonLaunchHelper.buildLaunchSpec(
-                game.installPath, game.title, "");
-        if (spec == null) {
-            Toast.makeText(this, "Could not find exe for: " + game.title, Toast.LENGTH_SHORT).show();
-            return;
-        }
+        new Thread(() -> {
+            String token = AmazonCredentialStore.getValidAccessToken(this);
+            if (token == null) {
+                uiHandler.post(() -> Toast.makeText(this, "Login required", Toast.LENGTH_SHORT).show());
+                return;
+            }
 
-        // Store fuel env vars in prefs so the smali launch hook can read them
-        getSharedPreferences("bh_amazon_prefs", 0).edit()
-                .putString("pending_fuel_env_" + game.productId,
-                        android.text.TextUtils.join("|",
-                                AmazonLaunchHelper.buildFuelEnv(game)))
-                .apply();
+            // Ensure SDK DLLs are cached before launch (idempotent)
+            AmazonSdkManager.ensureSdkFiles(this, token);
 
-        // Trigger B3 via the same pending-exe mechanism as GOG
-        getSharedPreferences("bh_amazon_prefs", 0).edit()
-                .putString("pending_amazon_exe", spec.command)
-                .apply();
+            AmazonLaunchHelper.LaunchSpec spec = AmazonLaunchHelper.buildLaunchSpec(
+                    game.installPath, game.title, "");
+            if (spec == null) {
+                uiHandler.post(() -> Toast.makeText(this,
+                        "Could not find exe for: " + game.title, Toast.LENGTH_SHORT).show());
+                return;
+            }
 
-        finish(); // return to LandscapeLauncherMainActivity → onResume picks up pending_amazon_exe
+            // Store fuel env vars in prefs for future reference
+            getSharedPreferences("bh_amazon_prefs", 0).edit()
+                    .putString("pending_fuel_env_" + game.productId,
+                            android.text.TextUtils.join("|",
+                                    AmazonLaunchHelper.buildFuelEnv(game)))
+                    .apply();
+
+            // Trigger B3 via the same pending-exe mechanism as GOG
+            getSharedPreferences("bh_amazon_prefs", 0).edit()
+                    .putString("pending_amazon_exe", spec.command)
+                    .apply();
+
+            uiHandler.post(() -> finish()); // → LandscapeLauncherMainActivity.onResume → B3
+        }).start();
     }
 
     private void confirmUninstall(AmazonGame game) {
