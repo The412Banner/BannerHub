@@ -80,8 +80,16 @@ public class AmazonDownloadManager {
                                    File installDir,
                                    ProgressCallback progress,
                                    CancelChecker cancel) {
+        AmazonApiClient.dbg("[DL] install() called:"
+                + " title=" + game.title
+                + " entitlementId=" + game.entitlementId
+                + " productId=" + game.productId
+                + " productSku=" + game.productSku
+                + " installDir=" + installDir.getAbsolutePath());
+
         if (game.entitlementId == null || game.entitlementId.isEmpty()) {
             Log.e(TAG, "entitlementId is blank for: " + game.title);
+            AmazonApiClient.dbg("[DL] ABORT: entitlementId is blank");
             return false;
         }
 
@@ -96,9 +104,11 @@ public class AmazonDownloadManager {
                     AmazonApiClient.getGameDownload(accessToken, game.entitlementId);
             if (spec == null) {
                 Log.e(TAG, "getGameDownload failed for: " + game.title);
+                AmazonApiClient.dbg("[DL] ABORT: getGameDownload returned null");
                 return false;
             }
             log("downloadUrl: " + spec.downloadUrl);
+            AmazonApiClient.dbg("[DL] versionId=" + spec.versionId);
 
             // Step 2: Download manifest
             log("Downloading manifest.proto...");
@@ -106,6 +116,7 @@ public class AmazonDownloadManager {
             byte[] manifestBytes = AmazonApiClient.getBytes(manifestUrl, accessToken);
             if (manifestBytes == null) {
                 Log.e(TAG, "manifest download failed");
+                AmazonApiClient.dbg("[DL] ABORT: manifest download returned null");
                 return false;
             }
             log("Manifest downloaded: " + manifestBytes.length + " bytes");
@@ -114,6 +125,14 @@ public class AmazonDownloadManager {
             AmazonManifest.ParsedManifest manifest = AmazonManifest.parse(manifestBytes);
             log("Manifest parsed: " + manifest.allFiles.size() + " files, "
                     + manifest.totalInstallSize + " bytes total");
+
+            // Log first 10 file paths to confirm which game this manifest belongs to
+            AmazonApiClient.dbg("[DL] manifest first files:");
+            int preview = Math.min(10, manifest.allFiles.size());
+            for (int i = 0; i < preview; i++) {
+                AmazonApiClient.dbg("[DL]   [" + i + "] " + manifest.allFiles.get(i).unixPath()
+                        + " (" + manifest.allFiles.get(i).size + " bytes)");
+            }
 
             if (progress != null) {
                 progress.onProgress(0, manifest.totalInstallSize, "Starting…");
@@ -357,5 +376,6 @@ public class AmazonDownloadManager {
 
     private static void log(String msg) {
         Log.d(TAG, msg);
+        AmazonApiClient.dbg("[DL] " + msg);
     }
 }
