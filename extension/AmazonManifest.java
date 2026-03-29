@@ -2,9 +2,6 @@ package app.revanced.extension.gamehub;
 
 import android.util.Log;
 
-import org.tukaani.xz.LZMAInputStream;
-import org.tukaani.xz.XZInputStream;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -157,6 +154,10 @@ public class AmazonManifest {
     }
 
     // ── Decompression ─────────────────────────────────────────────────────────
+    //
+    // org.tukaani.xz (XZInputStream, LZMAInputStream) is built into GameHub
+    // but NOT in the compile-time classpath (only android.jar is available to
+    // javac in CI). Access via reflection so the class compiles with javac.
 
     private static byte[] decompress(byte[] body, int algo) throws IOException {
         if (body.length < 2) return body;
@@ -164,12 +165,7 @@ public class AmazonManifest {
         // XZ magic: 0xFD 0x37
         boolean isXz = ((body[0] & 0xFF) == 0xFD) && ((body[1] & 0xFF) == 0x37);
 
-        InputStream decompressed;
-        if (isXz) {
-            decompressed = new XZInputStream(new ByteArrayInputStream(body), -1);
-        } else {
-            decompressed = new LZMAInputStream(new ByteArrayInputStream(body), -1);
-        }
+        InputStream decompressed = createDecompressStream(body, isXz);
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         byte[] buf = new byte[65536];
@@ -179,6 +175,23 @@ public class AmazonManifest {
         }
         decompressed.close();
         return bos.toByteArray();
+    }
+
+    private static InputStream createDecompressStream(byte[] body, boolean isXz)
+            throws IOException {
+        String className = isXz
+                ? "org.tukaani.xz.XZInputStream"
+                : "org.tukaani.xz.LZMAInputStream";
+        try {
+            Class<?> cls  = Class.forName(className);
+            java.lang.reflect.Constructor<?> ctor =
+                    cls.getConstructor(InputStream.class, int.class);
+            return (InputStream) ctor.newInstance(
+                    new ByteArrayInputStream(body), -1);
+        } catch (Exception e) {
+            throw new IOException("Cannot create " + className
+                    + " (org.tukaani.xz not available?): " + e.getMessage(), e);
+        }
     }
 
     // ── Manifest protobuf parser ──────────────────────────────────────────────

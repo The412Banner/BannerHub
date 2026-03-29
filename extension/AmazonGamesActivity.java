@@ -3,6 +3,7 @@ package app.revanced.extension.gamehub;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Bitmap;
+import java.io.File;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.os.Bundle;
