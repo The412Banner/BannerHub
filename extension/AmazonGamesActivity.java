@@ -560,7 +560,8 @@ public class AmazonGamesActivity extends Activity {
                     .putString("pending_amazon_exe", spec.command)
                     .apply();
 
-            uiHandler.post(() -> finish()); // → LandscapeLauncherMainActivity.onResume → B3
+            // finishAffinity closes GamesActivity + MainActivity so LandscapeLauncherMainActivity.onResume fires
+            uiHandler.post(() -> finishAffinity());
         }).start();
     }
 
