@@ -4067,3 +4067,26 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 
 **Commits:** Phase 4 `edc4fbeca`, Phase 5 `024d6f199`  |  **Branch:** amazon-integration
 **CI Phase 4:** ✅ run 23707604129  |  **CI Phase 5:** ✅ run 23707686644
+
+---
+## Entry 127 — epic-integration — Full Epic Games Store integration (2026-03-29)
+
+**Branch:** epic-integration | **Commit:** `ae57801a9`
+
+**Root cause / motivation:** Epic Games Store integration requested; full pipeline from OAuth2 login through library sync, chunked manifest download, Windows exe scan, and launch. Previous epic work (beta62-67) was on a now-deleted testing repo. Clean Java-only implementation started fresh using confirmed knowledge of prior root causes (0-byte downloads: CDN selection, binary manifest parse, chunk subfolder decimal vs hex, no auth tokens on chunks).
+
+**Files added/modified:**
+- `extension/EpicGame.java` (new — data model with appName as primary key)
+- `extension/EpicCredentialStore.java` (new — bh_epic_prefs, auto-refresh token)
+- `extension/EpicAuthClient.java` (new — Legendary credentials, auth_code + refresh, ISO 8601 manual parse)
+- `extension/EpicApiClient.java` (new — library paginated fetch, catalog enrichment, manifest JSON unwrap)
+- `extension/EpicDownloadManager.java` (new — binary/JSON manifest, columnar FileManifestList, CDN skip cloudflare, chunk subfolder DECIMAL %02d, no auth on chunks)
+- `extension/EpicLoginActivity.java` (new — WebView OAuth2, AtomicBoolean double-fire guard)
+- `extension/EpicMainActivity.java` (new — side menu entry ID=0xc)
+- `extension/EpicGamesActivity.java` (new — list/grid/poster views, install confirm with async size fetch, exe scan, launch)
+- `.github/workflows/build-epic.yml` (new — artifact-only CI, permissions: contents: read)
+- `patches/smali_classes5/.../HomeLeftMenuDialog.smali` (Epic menu item id=0xc + pswitch_12)
+- `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali` (pending_epic_exe hook)
+- `patches/AndroidManifest.xml` (3 Epic activities)
+
+**CI:** queued — artifact-only build on epic-integration branch push
