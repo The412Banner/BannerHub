@@ -87,7 +87,8 @@ public class AmazonLoginActivity extends Activity {
 
     static boolean isAmazonRedirect(String url) {
         return (url.startsWith("https://www.amazon.com/")
-             || url.startsWith("https://amazon.com/"))
+             || url.startsWith("https://amazon.com/")
+             || url.startsWith("https://gaming.amazon.com/"))
             && url.contains("openid.assoc_handle=amzn_sonic_games_launcher");
     }
 
