@@ -2799,3 +2799,7 @@ manifest download, install, launch, SDK cache + update checker.
 - Fallback scan now tries: wine64, wine, wineloader, wine64-preloader
 - launchExe() now takes Context and shows error Toast if binary not found
 - BhInitLaunchRunnable: opens at WINEPREFIX/dosdevices (c:, d:, z: drive letters) instead of WINEPREFIX root
+
+### v2.8.1 stable — Wine Task Manager Launch tab (2026-03-30)
+**Tag:** v2.8.1  |  **CI:** ✅ run 23758456801
+New since v2.8.0: Wine Task Manager Launch tab (dosdevices browser, WINELOADER-based launch, .exe/.msi/.bat/.cmd support)
