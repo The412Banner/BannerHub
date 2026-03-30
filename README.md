@@ -31,6 +31,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Winlator HUD Overlay](#winlator-hud-overlay)
   - [Performance Sidebar Toggles](#performance-sidebar-toggles)
   - [RTS Touch Controls](#rts-touch-controls)
+  - [Wine Task Manager](#wine-task-manager)
   - [VRAM Limit Unlock](#vram-limit-unlock)
   - [Per-Game CPU Core Affinity](#per-game-cpu-core-affinity)
   - [PC Game Settings: Offline Mode](#pc-game-settings-offline-mode)
@@ -352,6 +353,24 @@ Enable via the **Controls tab** in the in-game sidebar. Adds a full gesture over
 | Pinch to zoom | Mouse wheel scroll up/down (configurable) |
 
 Tap the **gear icon** in the Controls tab to configure pan direction and pinch-to-zoom scroll direction.
+
+---
+
+### Wine Task Manager
+
+Accessible from the **Wine Task Manager tab** in the in-game sidebar. Shows real-time Wine process info and lets you manage and launch executables while a game is running.
+
+**Three tabs:**
+
+| Tab | What it shows |
+|-----|--------------|
+| **Applications** | Wine infrastructure processes (wineserver, preloader, etc.) with a Kill button per entry |
+| **Processes** | Running Windows .exe processes with a Kill button per entry |
+| **Launch** | File browser rooted at your Wine prefix's drive list — browse and launch executables |
+
+**Container Info panel** (always visible at top): CPU cores assigned, system RAM used/total, VRAM limit, device model, Android version.
+
+**Launch tab:** Opens at `dosdevices` showing Windows drive letters (`c:`, `d:`, `z:`, etc.). Navigate into any drive, browse folders (yellow ▶) and launchable files (white). Tap a `.exe`, `.msi`, `.bat`, or `.cmd` to launch it inside the already-running Wine session. The new process shares the existing wineserver.
 
 ---
 
