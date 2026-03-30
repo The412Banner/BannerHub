@@ -2803,3 +2803,10 @@ manifest download, install, launch, SDK cache + update checker.
 ### v2.8.1 stable — Wine Task Manager Launch tab (2026-03-30)
 **Tag:** v2.8.1  |  **CI:** ✅ run 23758456801
 New since v2.8.0: Wine Task Manager Launch tab (dosdevices browser, WINELOADER-based launch, .exe/.msi/.bat/.cmd support)
+
+### Session recap — 2026-03-30
+Full session: added Wine Task Manager Launch tab from scratch. Tested on device — two .exe files confirmed launching. Released as v2.8.1 stable.
+- BhWineLaunchHelper.java: findWineBinary (WINELOADER first), getWinePrefix, getWineEnviron, listDir, isLaunchable, launchExe
+- 4 new smali inner classes: BhFolderListener, BhExeLaunchListener, BhInitLaunchRunnable, BhBrowseToRunnable
+- BhTaskManagerFragment: 3rd tab, browseTo method, dosdevices default
+- Bugs fixed: const/4 nibble overflow on 0x2f, launch silent fail via WINELOADER lookup
