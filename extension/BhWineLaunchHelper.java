@@ -5,6 +5,8 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
 
@@ -67,29 +69,58 @@ public class BhWineLaunchHelper {
     }
 
     /**
-     * Read the full environment block from the first running .exe process.
+     * Read the full environment block from a running Wine process.
+     * Prefers stable Wine infrastructure processes (wineserver, services.exe,
+     * explorer.exe) over the game exe, whose environment may be bloated or
+     * modified by the game launcher and can exceed the 64 KB read limit.
      * Returns a "KEY=VALUE" String array, or null if not found.
      */
     public static String[] getWineEnviron() {
+        // Priority list: infrastructure processes first, game .exe as last resort.
+        // "wineserver" is most stable — small env, always has WINEPREFIX/DISPLAY/etc.
+        String[] preferred = {"wineserver", "services.exe", "explorer.exe", "plugplay.exe"};
         try {
             File proc = new File("/proc");
             File[] entries = proc.listFiles();
             if (entries == null) return null;
+
+            // Pass 1: look for preferred infrastructure processes
+            for (String target : preferred) {
+                for (File entry : entries) {
+                    try { Integer.parseInt(entry.getName()); } catch (NumberFormatException e) { continue; }
+                    String comm = readFirstLine("/proc/" + entry.getName() + "/comm");
+                    if (comm == null) continue;
+                    if (!comm.trim().equalsIgnoreCase(target)) continue;
+                    String[] env = readEnviron(entry.getName());
+                    if (env != null) return env;
+                }
+            }
+
+            // Pass 2: fall back to any .exe (game exe)
             for (File entry : entries) {
                 try { Integer.parseInt(entry.getName()); } catch (NumberFormatException e) { continue; }
                 String comm = readFirstLine("/proc/" + entry.getName() + "/comm");
                 if (comm == null) continue;
                 if (!comm.trim().toLowerCase().endsWith(".exe")) continue;
-                byte[] buf = new byte[65536];
-                FileInputStream fis = new FileInputStream("/proc/" + entry.getName() + "/environ");
-                int read = fis.read(buf);
-                fis.close();
-                if (read <= 0) continue;
-                String content = new String(buf, 0, read);
-                return content.split("\u0000");
+                String[] env = readEnviron(entry.getName());
+                if (env != null) return env;
             }
         } catch (Exception ignored) {}
         return null;
+    }
+
+    private static String[] readEnviron(String pid) {
+        try {
+            // 256 KB — enough for even heavy game environments
+            byte[] buf = new byte[262144];
+            FileInputStream fis = new FileInputStream("/proc/" + pid + "/environ");
+            int read = fis.read(buf);
+            fis.close();
+            if (read <= 0) return null;
+            return new String(buf, 0, read).split("\u0000");
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -128,24 +159,59 @@ public class BhWineLaunchHelper {
     }
 
     /**
-     * Launch a Windows executable using the running Wine binary and
-     * environment.  Runs on a background thread.  Shows an error Toast
-     * (on the main thread) if the wine binary cannot be located.
+     * Launch a Windows executable inside the existing Wine session.
+     * Uses "wine start /unix <path>" so Wine attaches to the running wineserver
+     * rather than spawning a new session.  Errors are written to a debug file
+     * (bh_launch_debug.txt in the app's external files dir) since Toasts are
+     * suppressed by the system while WineActivity is fullscreen.
      */
     public static void launchExe(final Context ctx, final String exePath) {
         new Thread(() -> {
+            StringBuilder log = new StringBuilder();
             try {
                 String wineBin = findWineBinary();
+                log.append("wineBin=").append(wineBin).append("\n");
                 if (wineBin == null) {
                     showToast(ctx, "Launch failed: wine binary not found");
+                    writeDebug(ctx, log.append("FAIL: wine binary not found\n").toString());
                     return;
                 }
                 String[] env = getWineEnviron();
-                Runtime.getRuntime().exec(new String[]{wineBin, exePath}, env, null);
+                log.append("env entries=").append(env == null ? "null" : env.length).append("\n");
+                // "start /unix" tells Wine to launch the path as a Unix filesystem path
+                // and attach to the already-running wineserver/session.
+                String[] cmd = new String[]{wineBin, "start", "/unix", exePath};
+                log.append("cmd=").append(java.util.Arrays.toString(cmd)).append("\n");
+                Process p = Runtime.getRuntime().exec(cmd, env, null);
+                // Drain stderr so the process doesn't block
+                new Thread(() -> {
+                    try {
+                        InputStream err = p.getErrorStream();
+                        byte[] buf = new byte[4096];
+                        StringBuilder sb = new StringBuilder();
+                        int n;
+                        while ((n = err.read(buf)) != -1) sb.append(new String(buf, 0, n));
+                        if (sb.length() > 0) writeDebug(ctx, "stderr: " + sb + "\n");
+                    } catch (Exception ignored) {}
+                }).start();
+                log.append("exec OK\n");
+                writeDebug(ctx, log.toString());
             } catch (Exception e) {
+                log.append("EXCEPTION: ").append(e).append("\n");
                 showToast(ctx, "Launch error: " + e.getMessage());
+                writeDebug(ctx, log.toString());
             }
         }).start();
+    }
+
+    private static void writeDebug(Context ctx, String text) {
+        try {
+            File dir = ctx != null ? ctx.getExternalFilesDir(null) : null;
+            if (dir == null) return;
+            FileWriter fw = new FileWriter(new File(dir, "bh_launch_debug.txt"), true);
+            fw.write("[" + new java.util.Date() + "] " + text + "\n");
+            fw.close();
+        } catch (Exception ignored) {}
     }
 
     /** Post a Toast to the main thread from any thread. */
@@ -179,7 +245,7 @@ public class BhWineLaunchHelper {
                 if (comm == null) continue;
                 String lower = comm.trim().toLowerCase();
                 if (!lower.endsWith(".exe") && !lower.startsWith("wine")) continue;
-                byte[] buf = new byte[65536];
+                byte[] buf = new byte[262144];
                 FileInputStream fis = new FileInputStream("/proc/" + entry.getName() + "/environ");
                 int read = fis.read(buf);
                 fis.close();
