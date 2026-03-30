@@ -76,7 +76,7 @@ All 9 variants can be installed simultaneously. All APKs are signed with AOSP te
 
 Accessible via the left side menu → **GOG**.
 
-For the complete technical implementation breakdown, see [GOG_IMPLEMENTATION.md](GOG_IMPLEMENTATION.md).
+For the complete technical implementation breakdown, see [GOG_IMPLEMENTATION.md](GOG_IMPLEMENTATION.md) (API endpoints, auth flow, manifest format, download pipeline, BannerHub integration guide).
 
 #### Authentication
 
@@ -146,6 +146,8 @@ Some very old GOG titles pre-date the content-system entirely and return `total_
 
 Accessible via the left side menu → **Amazon Games**.
 
+For the complete technical implementation breakdown, see [AMAZON_IMPLEMENTATION.md](AMAZON_IMPLEMENTATION.md) (PKCE auth, GetEntitlements API, manifest.proto format, XZ/LZMA decode, FuelPump env vars, SDK DLL deployment, BannerHub integration guide).
+
 *Pipeline based on research by [The GameNative Team](https://github.com/utkarshdalal/GameNative).*
 
 #### Authentication
@@ -179,6 +181,8 @@ Accessible via the left side menu → **Amazon Games**.
 ### Epic Games Store
 
 Accessible via the left side menu → **Epic Games**.
+
+For the complete technical implementation breakdown, see [EPIC_IMPLEMENTATION.md](EPIC_IMPLEMENTATION.md) (OAuth2 auth, library API, manifest format, CDN selection, chunk download pipeline, BannerHub integration guide).
 
 *Pipeline based on research by [The GameNative Team](https://github.com/utkarshdalal/GameNative).*
 

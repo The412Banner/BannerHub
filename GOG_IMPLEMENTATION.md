@@ -1,145 +1,55 @@
-# BannerHub — GOG Games Integration: Complete Implementation Reference
+# GameNative GOG Integration — Full Technical Report
 
-**Version:** v2.7.0
-**Branch merged:** gog-beta → main
-**Date:** 2026-03-22
-
-**Credits:** The GOG API pipeline, OAuth2 authentication flow, download architecture, and library sync logic in this implementation are based on the research and implementation of [The GameNative Team](https://github.com/utkarshdalal/GameNative). Without their work this feature would not have been possible.
+Source repository: https://github.com/utkarshdalal/GameNative
+Report date: 2026-03-21
 
 ---
 
 ## Table of Contents
 
-1. [Overview](#1-overview)
-2. [Class Structure](#2-class-structure)
-3. [Injection Points](#3-injection-points)
-4. [Data Model — GogGame](#4-data-model--goggame)
-5. [Authentication — GogLoginActivity](#5-authentication--gogloginactivity)
-6. [Token Refresh — GogTokenRefresh](#6-token-refresh--gogtokenrefresh)
-7. [Library Sync — GogGamesFragment$1 / $3 / $4](#7-library-sync--goggamesfragment1--3--4)
-8. [Card UI — GogGamesFragment$2](#8-card-ui--goggamesfragment2)
-9. [Install Button — GogGamesFragment$6](#9-install-button--goggamesfragment6)
-10. [Download Confirmation — GogGamesFragment$8](#10-download-confirmation--goggamesfragment8)
-11. [Download Pipeline — GogDownloadManager + $1](#11-download-pipeline--gogdownloadmanager--1)
-12. [Progress Updates — GogDownloadManager$3](#12-progress-updates--gogdownloadmanager3)
-13. [Toast — GogDownloadManager$2](#13-toast--gogdownloadmanager2)
-14. [Add Button — GogGamesFragment$7](#14-add-button--goggamesfragment7)
-15. [Uninstall — GogGamesFragment$10](#15-uninstall--goggamesfragment10)
-16. [Install Path — GogInstallPath](#16-install-path--goginstallpath)
-17. [SharedPreferences Layout](#17-sharedpreferences-layout)
-18. [GOG API Reference](#18-gog-api-reference)
-19. [Smali Register Constraints and Solutions](#19-smali-register-constraints-and-solutions)
-20. [Progress Band Map](#20-progress-band-map)
-21. [DEX Placement](#21-dex-placement)
-22. [CI and Build Notes](#22-ci-and-build-notes)
+1. [Authentication](#1-authentication)
+2. [Game Library — Discovery and Metadata](#2-game-library--discovery-and-metadata)
+3. [Data Model and Local Storage](#3-data-model-and-local-storage)
+4. [Images and Media](#4-images-and-media)
+5. [UI Display](#5-ui-display)
+6. [Download Pipeline — Gen 2 (Modern)](#6-download-pipeline--gen-2-modern)
+7. [Download Pipeline — Gen 1 (Legacy)](#7-download-pipeline--gen-1-legacy)
+8. [Dependencies Pipeline](#8-dependencies-pipeline)
+9. [API Reference Summary](#9-api-reference-summary)
+10. [Key Constants and Configuration](#10-key-constants-and-configuration)
+11. [Service Layer — GOGService](#11-service-layer--gogservice)
+12. [Game Launch — Executable Discovery and Wine Command](#12-game-launch--executable-discovery-and-wine-command)
+13. [Post-Install Steps — Script Interpreter and Dependencies](#13-post-install-steps--script-interpreter-and-dependencies)
+14. [Uninstall / Delete](#14-uninstall--delete)
+15. [Installation Verification](#15-installation-verification)
+16. [Game Fixes (Per-Title Overrides)](#16-game-fixes-per-title-overrides)
+17. [BannerHub Integration Guide](#17-bannerhub-integration-guide)
 
 ---
 
-## 1. Overview
+## 1. Authentication
 
-The GOG Games tab is a full game store integration built entirely in smali, injected into GameHub 5.3.5 ReVanced. It provides:
+### OAuth2 Flow
 
-- OAuth2 login to GOG account via WebView
-- Full library sync (Gen 1 + Gen 2 games)
-- Per-game card UI with thumbnail, title, developer, Gen badge, download size
-- Install flow with confirmation dialog → download pipeline → progress bar
-- Post-install checkmark shown immediately on the card
-- "Add" button to register the game with GameHub's built-in Import Game dialog
-- Persistent install state across app restarts
-- Uninstall with full card reset
+File: `GOGOAuthActivity.kt`, `GOGAuthManager.kt`
 
-All code lives in `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/Gog*.smali`.
+Authentication uses GOG Galaxy's standard OAuth2 authorization-code flow:
 
----
-
-## 2. Class Structure
-
-| Class | Role |
-|---|---|
-| `GogGame` | Data holder: title, imageUrl, gameId, storeUrl, category, description, developer, fileSize (long) |
-| `GogMainActivity` | Host activity for the GOG tab; contains a TabLayout with Login and Games tabs |
-| `GogMainActivity$1` | TabLayout.OnTabSelectedListener — switches between Login and Games fragments |
-| `GogMainActivity$2` | Fragment instantiator helper |
-| `GogLoginActivity` | Fragment: WebView OAuth2 login flow; stores tokens to `bh_gog_prefs` |
-| `GogLoginActivity$1` | WebViewClient: intercepts redirect URL, extracts auth code |
-| `GogLoginActivity$2` | Token exchange network Runnable; parses JSON, saves tokens |
-| `GogLoginActivity$3` | Runnable: posts "Login successful" Toast on main thread |
-| `GogLoginActivity$4` | Runnable: posts "Login failed" Toast on main thread |
-| `GogTokenRefresh` | Static helper: reads refresh_token from SP, GETs new access_token, saves it |
-| `GogGamesFragment` | Fragment: hosts the games tab; RecyclerView-style scroll view of game cards |
-| `GogGamesFragment$TabFactory` | TabHost.TabContentFactory — creates tab content views |
-| `GogGamesFragment$1` | Library sync network Runnable: fetches owned game IDs + per-game metadata |
-| `GogGamesFragment$2` | Card builder: creates all views for one game card (thumbnail, labels, buttons, checkmark) |
-| `GogGamesFragment$3` | Image fetch Runnable: downloads cover image bytes on background thread |
-| `GogGamesFragment$4` | Image decode + set Runnable: decodes Bitmap, posts setImageBitmap to UI thread |
-| `GogGamesFragment$4$1` | Inner Runnable of $4: the actual UI-thread setImageBitmap call |
-| `GogGamesFragment$5` | "Sync Library" button click listener: re-triggers $1 library sync |
-| `GogGamesFragment$6` | Install button click listener: shows confirmation dialog |
-| `GogGamesFragment$7` | Add button click listener: reads gog_exe_ from SP, calls B3(exePath) |
-| `GogGamesFragment$8` | Dialog positive-button listener: hides Install button, shows ProgressBar, calls startDownload |
-| `GogGamesFragment$10` | Uninstall button click listener: deletes install dir, clears SP keys, resets card |
-| `GogDownloadManager` | Static entry point: `startDownload(ctx, game, pb, statusTV, addBtn, checkmark)` → Thread |
-| `GogDownloadManager$1` | Background Runnable: 7-step Gen 2 download pipeline |
-| `GogDownloadManager$2` | Toast Runnable: posts Toast to main thread |
-| `GogDownloadManager$3` | Progress Runnable: posted to main thread Handler to update ProgressBar + card UI |
-| `GogInstallPath` | Static helper: returns `File(filesDir/gog_games/{installDirectory})` |
-
----
-
-## 3. Injection Points
-
-### HomeLeftMenuDialog — menu item registration
-
-File: `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog.smali`
-
-A new menu item with ID=10 and label "GOG" is injected immediately before the `submitList()` call in `HomeLeftMenuDialog.Z0()`. Tapping it starts `GogMainActivity`.
-
-### LandscapeLauncherMainActivity — menu item handler
-
-File: `patches/smali_classes16/com/xj/landscape/launcher/ui/main/LandscapeLauncherMainActivity.smali`
-
-The `handleMenuItemClick` method has an injected branch: when `item.getItemId() == 10`, it starts `GogMainActivity` via `startActivity(new Intent(context, GogMainActivity.class))`.
-
-### AndroidManifest.xml
-
-`GogMainActivity` and `GogLoginActivity` are declared as `<activity>` entries. The `android:theme` for both is set to `@style/Theme.AppCompat.NoActionBar` to match the rest of GameHub's UI.
-
-### public.xml / strings.xml
-
-- `gog_menu_item` string resource declared for the sidebar label
-- Resource ID entries added to `public.xml` for the new string resources
-
----
-
-## 4. Data Model — GogGame
-
-```
-GogGame fields:
-  String  title        — display name
-  String  imageUrl     — https://images.gog-statics.com/...
-  String  gameId       — numeric string (product ID)
-  String  storeUrl     — https://www.gog.com/game/{slug}
-  String  category     — "game" / "dlc" / etc.
-  String  description  — short description text
-  String  developer    — developer name
-  long    fileSize     — total download size in bytes
-```
-
-`fileSize` is read as a `long` (`iget-wide`) when computing "X MB" for the dialog and when computing `fileSizeMB = fileSize / 1048576`.
-
----
-
-## 5. Authentication — GogLoginActivity
-
-### OAuth2 Authorization URL
-
-```
-https://auth.gog.com/auth
-  ?client_id=46899977096215655
-  &redirect_uri=https://embed.gog.com/on_login_success?origin=client
-  &response_type=code
-  &layout=galaxy
-```
+1. A per-session `state` parameter (32 random bytes, hex-encoded) is generated for CSRF protection.
+2. A `GOGOAuthActivity` opens an in-app WebView (`AuthWebViewDialog`) loaded with:
+   ```
+   https://auth.gog.com/auth
+     ?client_id=46899977096215655
+     &redirect_uri=https://embed.gog.com/on_login_success?origin=client
+     &response_type=code
+     &layout=galaxy
+     &state={randomState}
+   ```
+3. On every URL change in the WebView, the activity checks:
+   - Whether the URL matches the redirect URI (`embed.gog.com/on_login_success`)
+   - Whether the `state` query param matches the stored value (CSRF check — mismatches are silently dropped)
+   - Extracts `code=` query param from the redirect URL
+4. The extracted code is passed back via `Activity.RESULT_OK` intent extra `auth_code`.
 
 ### Token Exchange
 
@@ -152,455 +62,1222 @@ GET https://auth.gog.com/token
   &redirect_uri=https://embed.gog.com/on_login_success?origin=client
 ```
 
-Note: `client_id` and `client_secret` are the public GOG Galaxy credentials, intentionally public and used by all third-party GOG clients (Heroic Games Launcher, heroic-gogdl, etc.).
+Note: The `client_id` and `client_secret` are the public GOG Galaxy app credentials — they are
+intentionally public and widely known (same ones used by heroic-gogdl, Heroic Games Launcher, etc.).
 
-### Redirect Intercept (GogLoginActivity$1 — WebViewClient)
+Response fields used:
+- `access_token` — used as Bearer token for all API calls
+- `refresh_token` — used to obtain new access tokens when expired
+- `user_id` — stored for later use
+- `expires_in` — seconds until token expires
 
-`shouldOverrideUrlLoading()` checks if URL contains `on_login_success`. If so, extracts `code=` query param and triggers `GogLoginActivity$2` (token exchange Runnable) on a background thread.
+### Credential Storage
 
-### Token Storage (bh_gog_prefs SharedPreferences)
-
-After successful token exchange:
+Credentials are stored as JSON in `{filesDir}/gog_auth.json`:
+```json
+{
+  "46899977096215655": {
+    "access_token": "...",
+    "refresh_token": "...",
+    "user_id": "...",
+    "expires_in": 3600,
+    "loginTime": 1711234567.0
+  }
+}
 ```
-access_token    → SP string
-refresh_token   → SP string
-user_id         → SP string
-bh_gog_login_time   → SP int  (System.currentTimeMillis() / 1000)
-bh_gog_expires_in   → SP int  (value from JSON "expires_in" field)
-```
 
-### JSON Parsing
+The file is keyed by `client_id`. Multiple entries are possible — one for the Galaxy app
+credentials and additional entries for per-game credentials (used by cloud saves).
 
-`GogLoginActivity.parseJsonStringField(json, key)` — static helper. Finds `"key":"value"` pattern via `String.indexOf()` + substring extraction. Used throughout all GOG classes (no org.json dependency needed for simple string fields).
+### Token Refresh
+
+On every call to `getStoredCredentials()`:
+- Checks `System.currentTimeMillis()/1000 >= loginTime + expiresIn`
+- If expired, calls:
+  ```
+  GET https://auth.gog.com/token
+    ?client_id={clientId}
+    &client_secret={clientSecret}
+    &grant_type=refresh_token
+    &refresh_token={refreshToken}
+  ```
+- Updates `gog_auth.json` with fresh tokens and new `loginTime`
+- Recursively re-reads the file
+
+### Per-Game Credentials (Cloud Saves)
+
+GOG cloud saves require a game-specific access token. The flow:
+1. Fetch the game's build manifest to extract `clientSecret`
+2. Call token endpoint with `grant_type=refresh_token` using the Galaxy app's refresh token,
+   but `client_id`/`client_secret` of the game
+3. Store the result under the game's `clientId` key in `gog_auth.json`
+4. This scoped token is what GOG's cloud save API requires
+
+### Logout
+
+Deletes `gog_auth.json` entirely.
 
 ---
 
-## 6. Token Refresh — GogTokenRefresh
+## 2. Game Library — Discovery and Metadata
 
-Called at the start of any authenticated operation:
+### Step 1 — Fetch Owned Game IDs
 
-```
-if (currentTime >= loginTime + expiresIn) → GogTokenRefresh.refresh(context)
-```
-
-`refresh()`:
-1. Reads `refresh_token` from `bh_gog_prefs`
-2. GETs `https://auth.gog.com/token?...&grant_type=refresh_token&refresh_token={token}`
-3. Parses new `access_token` and optionally new `refresh_token` from JSON response
-4. Writes new values back to SP; resets `bh_gog_login_time` to current time
-5. Returns new `access_token` string, or `null` on any failure
-
-If `null` is returned, the caller proceeds with the old token (best-effort). A hard auth failure would require the user to re-login from the Login tab.
-
----
-
-## 7. Library Sync — GogGamesFragment$1 / $3 / $4
-
-### Step 1 — Get owned game IDs
+File: `GOGApiClient.kt` (`getGameIds`)
 
 ```
 GET https://embed.gog.com/user/data/games
-Authorization: Bearer {access_token}
+Authorization: Bearer {accessToken}
+User-Agent: GameNative/1.0
 ```
 
-Response: `{"owned": [123456789, ...]}`
-
-The owned array is iterated. Each numeric ID is fetched in the next step.
-
-### Step 2 — Per-game metadata
-
-```
-GET https://api.gog.com/products/{id}?expand=downloads,description
-Authorization: Bearer {access_token}
+Response:
+```json
+{ "owned": [1234567890, 9876543210, ...] }
 ```
 
-Response fields used:
-- `title` → `GogGame.title`
-- `images.logo2x` or `images.background` → base for `GogGame.imageUrl`
-- `game_type` → `GogGame.category` (used for Gen 1/Gen 2 detection)
-- `description.full` → `GogGame.description`
-- `developers[0]` or `developer` → `GogGame.developer`
-- `downloads.installers[].total_size` (Gen 1) or build manifest size → `GogGame.fileSize`
-- `slug` → used to build `GogGame.storeUrl`
-- `id` (string) → `GogGame.gameId`
+Returns all numeric GOG product IDs owned by the account. The `owned` array contains integers
+which are converted to strings.
 
-`imageUrl` is constructed by taking the CDN base URL and appending `.png` or the appropriate suffix.
+### Step 2 — Skip Already-Known Games
 
-### Image Loading (GogGamesFragment$3 / $4)
+`GOGManager.refreshLibrary()` fetches all IDs from the local Room database
+(`gogGameDao.getAllGameIdsIncludingExcluded()`) and only fetches details for IDs not already stored.
+This avoids re-fetching on every sync.
 
-`$3` fetches raw image bytes from `GogGame.imageUrl` via `HttpURLConnection` on a background thread. `$4` decodes via `BitmapFactory.decodeByteArray()` and posts a `$4$1` Runnable to the main thread Handler which calls `imageView.setImageBitmap(bitmap)`.
+ID `1801418160` (GOG Galaxy itself) is explicitly ignored.
 
-### Gen 1 / Gen 2 Detection
+### Step 3 — Fetch Game Details
 
-After metadata fetch: if `content-system.gog.com/products/{id}/os/windows/builds?generation=2` returns a non-empty builds array, the game is Gen 2. Otherwise Gen 1. The badge label ("Gen 1" / "Gen 2") is set on the card's badge TextView.
+File: `GOGApiClient.kt` (`getGameById`)
+
+```
+GET https://api.gog.com/products/{gameId}?expand=downloads,description,screenshots
+Authorization: Bearer {accessToken}
+User-Agent: GameNative/1.0
+```
+
+Raw response fields used:
+
+| Field | Usage |
+|---|---|
+| `title` | Game name |
+| `slug` | URL-friendly name |
+| `images.logo2x` / `images.logo` | Box art / hero image URL (protocol-relative `//` → prefixed with `https:`) |
+| `images.icon` | Small icon URL |
+| `developers[0].name` | Developer string |
+| `publisher.name` or `publisher` (string) | Publisher (handles both object and plain string) |
+| `genres[].name` | Genre list |
+| `languages` (object, keys only) | Language code list |
+| `description.lead` | Short description text |
+| `release_date` | ISO 8601 date string (e.g. `"2022-08-18T17:50:00+0300"`) |
+| `downloads.installers[0].total_size` | Download size in bytes |
+| `is_secret` | Boolean — hides the game if true (Amazon Prime entitlements etc.) |
+| `game_type` | `"dlc"` causes the game to be excluded from the library |
+
+### Filtering / Exclusion Rules
+
+A game is marked `exclude=true` (stored in DB but not shown) if any of:
+- `title == "Unknown Game"` or starts with `"product_title_"` or is `"Unknown"`
+- `downloadSize == 0`
+- `isSecret == true`
+- `title` ends with `"Amazon Prime"`
+- `isDlc == true`
+
+DLCs are excluded from the main library display but kept in the DB so their depots can be
+recognized during ownership checks at download time.
+
+### Batch Processing
+
+Games are upserted in batches of 10 (`REFRESH_BATCH_SIZE = 10`) to avoid holding large
+in-memory lists. After each batch, `gogGameDao.upsertPreservingInstallStatus()` is called, which
+preserves `isInstalled`, `installPath`, `installSize`, `lastPlayed`, `playTime` for games that
+already exist in the DB.
+
+### Installation Detection on Sync
+
+After library sync, `detectAndUpdateExistingInstallations()` scans:
+- `{dataDir}/GOG/games/common/` (internal storage)
+- `{externalStoragePath}/GOG/games/common/` (external storage, if enabled)
+
+For each subdirectory it finds `.info` files containing JSON with a `gameId` field,
+cross-references against the DB, and marks the game as installed if found.
 
 ---
 
-## 8. Card UI — GogGamesFragment$2
+## 3. Data Model and Local Storage
 
-Called once per game to build all views programmatically. All views are added to a `LinearLayout` (vertical card container) which is then added to the main scroll container.
+### `GOGGame` Entity (Room database table `gog_games`)
 
-### View hierarchy per card
+File: `GOGGame.kt`
 
-```
-LinearLayout (card, vertical, dark background, rounded corners, margin)
-  ├── LinearLayout (horizontal header row)
-  │     ├── ImageView         — cover thumbnail (78dp height)
-  │     ├── LinearLayout (vertical info column)
-  │     │     ├── TextView    — title
-  │     │     ├── TextView    — developer
-  │     │     ├── TextView    — Gen badge ("Gen 1" / "Gen 2")
-  │     │     └── TextView    — file size ("X MB")
-  ├── ProgressBar             — GONE initially; shown during download
-  ├── TextView (statusTV)     — GONE initially; "Downloading: filename X%"
-  ├── Button (Install)        — VISIBLE initially; GONE after install starts
-  ├── Button (Add)            — GONE initially; VISIBLE + enabled at progress=100
-  ├── TextView (checkmark)    — GONE initially; "✓ Installed" in green
-  └── [Detail dialog trigger on card tap → shows title + description + Uninstall button]
-```
-
-### Register constraint: v16 for checkmark ref
-
-With `.locals 17`, p0=v17 (the `$2` instance). v16 is a free local but **invalid in all standard (non-range) instructions**.
-
-Solution:
-1. Create and configure checkmark TextView in v13 (4-bit, fully accessible)
-2. Persist to v16: `move-object/from16 v16, v13` (8-bit dest — valid)
-3. Set GONE via v13 (still holds the ref)
-4. Add to parent via v13
-5. Pref check uses v13/v14/v15 as temps (v16 is safe from being overwritten)
-6. If installed: reload from v16: `move-object/from16 v13, v16`, then `setVisibility(VISIBLE)`
-7. Pass to `$6` constructor via range: `invoke-direct/range {v10 .. v16}` (v16 is valid as range endpoint)
-
-### Install state check on card build
-
-After creating the checkmark as GONE, `GogGamesFragment$2` reads `gog_dir_{gameId}` from `bh_gog_prefs`. If non-empty, the install directory is checked for existence with `File.exists()`. If it exists:
-- Checkmark reloaded from v16 → set VISIBLE
-- Install button stays GONE
-- Add button set VISIBLE + enabled
-
-This ensures cards built on app restart reflect persisted install state.
-
----
-
-## 9. Install Button — GogGamesFragment$6
-
-`View.OnClickListener` on the Install button.
-
-Fields: `a:Context`, `b:GogGame`, `c:ProgressBar`, `d:TextView (statusTV)`, `e:Button (Add)`, `f:TextView (checkmark)`
-
-`onClick()`:
-1. Reads `GogGame.fileSize` (long, `iget-wide`) → computes `fileSizeMB = fileSize / 1048576` (int)
-2. Gets `StatFs(context.getFilesDir().getAbsolutePath()).getAvailableBytes()` → `availableGB`
-3. Builds message: `"Download Size: X MB\nAvailable Space: Y GB"`
-4. Creates `GogGamesFragment$8` instance (the dialog's positive-button listener) — passes all 7 args including checkmark ref
-5. Builds and shows `AlertDialog` ("Download Game" title, message, Cancel / Download buttons)
-
-### Register layout in onClick (.locals 15)
-
-With `.locals 15`, p0=v15, p1=v16 (the clicked View).
-
-The `$8` creation needs 8 consecutive registers. Solution: shift `new-instance` to v6, args to v7–v13:
-- v5 = message string
-- v6 = new $8 instance
-- v7 = context, v8 = game, v9 = p1 (via `move-object/from16 v9, p1`), v10 = progressBar, v11 = statusTV, v12 = addButton, v13 = checkmark
-- `invoke-direct/range {v6 .. v13}`
-
-AlertDialog builder uses v9 (fresh temp) for builder instance, v5 for message, v6 for positive listener.
-
----
-
-## 10. Download Confirmation — GogGamesFragment$8
-
-`DialogInterface.OnClickListener` on the dialog's "Download" positive button.
-
-Fields: `a:Context`, `b:GogGame`, `c:View (install button)`, `d:ProgressBar`, `e:TextView (statusTV)`, `f:Button (Add)`, `g:TextView (checkmark)`
-
-`onClick()`:
-1. Hides Install button (GONE)
-2. Shows ProgressBar (VISIBLE)
-3. Shows statusTV (VISIBLE), sets text "Starting download..."
-4. Calls `GogDownloadManager.startDownload(context, game, progressBar, statusTV, addButton, checkmark)`
-
----
-
-## 11. Download Pipeline — GogDownloadManager + $1
-
-### Entry point
-
-`GogDownloadManager.startDownload(ctx, game, pb, statusTV, addBtn, checkmark)` — static method.
-
-Creates `GogDownloadManager$1` with all 6 args (using `invoke-direct/range {v0..v6}`), wraps in `Thread`, calls `thread.start()`.
-
-### GogDownloadManager$1 fields
-
-| Field | Type | Content |
+| Column | Type | Notes |
 |---|---|---|
-| `a` | Context | app context |
-| `b` | GogGame | game being downloaded |
-| `c` | String | access token (read from SP at start of run()) |
-| `d` | ProgressBar | card progress bar |
-| `e` | Button | Add button |
-| `f` | Handler | `new Handler(Looper.getMainLooper())` |
-| `g` | TextView | statusTV |
-| `h` | TextView | checkmark |
+| `id` | String (PK) | Numeric GOG product ID as string |
+| `title` | String | Display name |
+| `slug` | String | URL slug |
+| `download_size` | Long | Bytes, from `installers[0].total_size` |
+| `install_size` | Long | Bytes, calculated from filesystem after install |
+| `is_installed` | Boolean | Updated after successful download |
+| `install_path` | String | Absolute path to install directory |
+| `image_url` | String | Box art / hero URL (logo2x preferred) |
+| `icon_url` | String | Small icon URL |
+| `description` | String | Short lead description |
+| `release_date` | String | Raw ISO 8601 string from GOG API |
+| `developer` | String | First developer name |
+| `publisher` | String | Publisher name |
+| `genres` | List<String> | Stored via Room TypeConverter |
+| `languages` | List<String> | Language code list |
+| `last_played` | Long | Unix timestamp ms |
+| `play_time` | Long | Seconds |
+| `type` | AppType | Enum, defaults to `game` |
+| `exclude` | Boolean | Hidden from UI if true |
 
-### 7-step pipeline (run())
+### DAO Queries (`GOGGameDao`)
 
-**Step 1 — Token check + builds URL**
+| Method | Query |
+|---|---|
+| `getAll()` | All non-excluded games, alphabetical, as `Flow` |
+| `getByInstallStatus(bool)` | Filter by `is_installed`, as `Flow` |
+| `searchByTitle(query)` | `LIKE '%query%'` search, as `Flow` |
+| `getAllGameIdsIncludingExcluded()` | All IDs regardless of exclude flag (for ownership checks) |
+| `deleteAllNonInstalledGames()` | Clears uninstalled games from DB on re-sync |
+| `upsertPreservingInstallStatus()` | @Transaction — inserts new, preserves install fields for existing |
+
+### `GOGCredentials`
+
+Transient data class (not persisted by Room, only used in-memory):
+- `accessToken`, `refreshToken`, `userId`, `username`
+
+### Manifest File (`_gog_manifest.json`)
+
+Written to the game's install directory after a successful download:
+```json
+{
+  "version": 2,
+  "baseProductId": "1234567890",
+  "scriptInterpreter": false,
+  "products": [
+    { "productId": "1234567890", "name": "Game Title",
+      "temp_executable": "", "temp_arguments": "" }
+  ],
+  "buildId": "...",
+  "versionName": "1.0.0",
+  "language": "en-US"
+}
+```
+
+Used on first launch to decide post-install steps (run GOG's script interpreter or a
+`temp_executable` installer).
+
+---
+
+## 4. Images and Media
+
+### Sources
+
+All image URLs come from the `GET /products/{id}?expand=...` response:
+
+- **Hero/box art** — `images.logo2x` (preferred) or `images.logo`. Protocol-relative URLs
+  (`//images.gog.com/...`) are corrected to `https://images.gog.com/...` during parsing.
+- **Icon** — `images.icon`, same protocol-relative fixup applied.
+
+There is no secondary screenshot or background art fetched during library sync — only
+`logo2x`, `logo`, and `icon`.
+
+### Storage
+
+Image URLs are stored as plain strings in the `gog_games` table (`image_url`, `icon_url`).
+Images are **not** downloaded or cached locally by the sync process — they remain remote URLs.
+
+### Display / Loading
+
+File: `GOGAppScreen.kt`
+
+The UI uses `GameDisplayInfo`:
+```kotlin
+GameDisplayInfo(
+    iconUrl  = game?.iconUrl  ?: libraryItem.iconHash,
+    heroImageUrl = game?.imageUrl ?: game?.iconUrl ?: libraryItem.iconHash,
+    ...
+)
+```
+
+The `heroImageUrl` falls back from `imageUrl` → `iconUrl` → the generic `libraryItem.iconHash`
+so something is always displayed. Image loading itself is handled by Coil (used elsewhere in the
+project) via Compose's `AsyncImage` components in the shared library UI layer.
+
+Images are loaded on demand from the remote GOG CDN each time they are displayed — no local
+caching layer is implemented in the GOG path specifically.
+
+---
+
+## 5. UI Display
+
+### `GOGAppScreen`
+
+File: `GOGAppScreen.kt`
+
+Extends `BaseAppScreen` — a shared Compose screen base used by all store integrations (Steam,
+Epic, GOG, Amazon). GOG-specific overrides:
+
+**`getGameDisplayInfo()`**
+- Calls `GOGService.getGOGGameOf(gameId)` (async, on `LaunchedEffect`)
+- Listens for `AndroidEvent.LibraryInstallStatusChanged` events to re-fetch and refresh display
+  when install state changes
+- Parses `releaseDate` from GOG's ISO 8601 format (`"yyyy-MM-dd'T'HH:mm:ssZ"`) to Unix timestamp
+  seconds for the shared `GameDisplayInfo` struct
+- Formats `downloadSize` and `installSize` into human-readable strings (`KB`/`MB`/`GB`) at
+  `1024` base
+
+**`isInstalled()`** — delegates to `GOGService.isGameInstalled(gameId)`
+
+**`isDownloading()`** — checks `GOGService.getDownloadInfo(gameId)` for an active, incomplete
+download (`isActive() == true && progress < 1.0f`)
+
+**`getDownloadProgress()`** — returns `downloadInfo.getProgress()` as `Float` 0–1
+
+**Uninstall Dialog** — static `mutableStateListOf<String>` shared across all instances;
+`showUninstallDialog(appId)` / `hideUninstallDialog(appId)` / `shouldShowUninstallDialog(appId)`
+control visibility
+
+**Menu options** — built from `AppMenuOption` enum; available options depend on install/download
+state (Install, Uninstall, Play, etc.) — implementation deferred to `BaseAppScreen`
+
+---
+
+## 6. Download Pipeline — Gen 2 (Modern)
+
+File: `GOGDownloadManager.kt`, `GOGApiClient.kt` (api package), `GOGManifestParser.kt`
+
+The Gen 2 (Galaxy) format uses a chunked, content-addressed CDN. Almost all modern GOG games
+use Gen 2.
+
+### Step 1 — Select Build
+
 ```
 GET https://content-system.gog.com/products/{gameId}/os/windows/builds?generation=2
+Authorization: Bearer {accessToken}
 ```
-Parses `items[0].link` from JSON response → build manifest URL.
-Progress: 5% "Fetching build info..."
 
-**Step 2 — Build manifest**
+Response: `{ "total_count": N, "count": N, "items": [ { "build_id", "product_id", "os",
+"generation", "version_name", "branch", "link", "legacy_build_id" }, ... ] }`
+
+Strategy: try Gen 2 first (`generation=2`), fall back to Gen 1 (`generation=1`). Within each
+generation, pick the first item matching `os == "windows"`.
+
+### Step 2 — Fetch Build Manifest
+
 ```
-GET {buildLink}
+GET {build.link}
+Authorization: Bearer {accessToken}
 ```
-Response is zlib-compressed. Decompressed with `java.util.zip.Inflater`. Parsed as JSON:
-- `installDirectory` → used as subdirectory name in `gog_games/`
-- `baseProductId` → used for CDN secure link
-- `depots[]` → array of depot objects to fetch
-Progress: 20% "Reading manifest..."
 
-**Step 3 — Per-depot meta**
-For each depot in depots[]:
+Response is **zlib or gzip compressed JSON** — detected by magic bytes:
+- `0x1F 0x8B` = gzip → `GZIPInputStream`
+- `0x78 0x9C` / `0x78 0x01` / `0x78 0xDA` = zlib → `java.util.zip.Inflater`
+- Otherwise treated as plain UTF-8
+
+Decompressed JSON structure (Gen 2):
+```json
+{
+  "baseProductId": "1234567890",
+  "installDirectory": "GameTitle",
+  "depots": [
+    {
+      "productId": "1234567890",
+      "languages": ["en-US", "*"],
+      "manifest": "abcdef1234...",
+      "compressedSize": 1234567,
+      "size": 9876543,
+      "osBitness": ["64"]
+    }
+  ],
+  "dependencies": ["MSVC2017", "ISI"],
+  "products": [
+    { "productId": "1234567890", "name": "Game Title",
+      "temp_executable": "", "temp_arguments": "" }
+  ],
+  "scriptInterpreter": false
+}
 ```
-GET https://gog-cdn-fastly.gog.com/content-system/v2/meta/{AA}/{BB}/{hash}
+
+### Step 3 — Filter Depots by Language
+
+`GOGManifestParser.filterDepotsByLanguage()`:
+1. Maps container language name (e.g. `"german"`) to an ordered list of GOG codes via
+   `GOGConstants.CONTAINER_LANGUAGE_TO_GOG_CODES`:
+   - `"german"` → `["german", "de-DE", "de"]`
+2. Tries each code in order; uses the first that matches any depot's `languages[]`
+3. Depots with language `"*"` are always included (language-neutral content)
+4. If no match, falls back to English codes: `["english", "en-US", "en"]`
+5. Ownership filter: drops depots whose `productId` is not in `gogGameDao.getAllGameIdsIncludingExcluded()`
+   — this silently excludes unowned DLC depots
+
+### Step 4 — Fetch Depot Manifests (Gen 2)
+
+For each depot's `manifest` hash:
+
+CDN path format (GOG Galaxy path):
 ```
-Where `AA` = first 2 chars of depot hash, `BB` = next 2 chars, `hash` = full depot hash.
-Response is also zlib-compressed. Decompressed, parsed as JSON.
-Collects `DepotFile` entries (path + chunks array + md5). Language filter: skips files with a `languages` field that doesn't contain `"en"` or `"*"`.
-Also scans for exe: first `.exe` not containing "redist" → stored as `temp_executable` candidate.
-Progress: 40% "Reading depot..."
-
-**Step 4 — Secure CDN link**
+hash "abcdef1234..." -> "ab/cd/abcdef1234..."
 ```
-GET https://content-system.gog.com/products/{baseProductId}/secure_link
-  ?generation=2&_version=2&path=/
-Authorization: Bearer {access_token}
+
 ```
-Response JSON: `urls[0].endpoint_name` or `url` field → CDN base URL (time-limited signed URL).
-Progress: 45% "Preparing download..."
-
-**Steps 5 + 6 — File download loop**
-For each `DepotFile` in collected list:
-- Skips directories (path ends with `/`)
-- Creates parent directories via `File.mkdirs()`
-- For each chunk in file's chunk array:
-  - Chunk URL: `{cdnBaseUrl}/{AA}/{BB}/{compressedMd5}` (same 2-char prefix pattern)
-  - Downloads to `.gog_chunks/` temp file
-  - If chunk is zlib-compressed: decompresses with `Inflater`
-  - Appends decompressed bytes to output file via `FileOutputStream` (append mode)
-- Progress: `(fileIndex * 40 / totalFiles) + 45` → maps to 45%–85% band
-- Status text: `"Downloading: {filename} {pct}%"` (uses `mul-int/lit8` for `fileIndex * 40`)
-
-**Step 7 — Post-install cleanup**
-- Creates `_gog_manifest.json` in install dir (title, gameId, version, installDirectory)
-- Deletes `.gog_chunks/` temp directory
-- Writes SP keys to `bh_gog_prefs`:
-  - `gog_dir_{gameId}` = `installDirectory` string
-  - `gog_exe_{gameId}` = full absolute path to discovered exe
-  - `gog_cover_{gameId}` = absolute path to cover image (if downloaded)
-  - `gog_gen_{gameId}` = `"1"` or `"2"`
-- Posts Toast "Install complete" via `GogDownloadManager$2`
-- Calls `postProgress(100, "✓ Complete")` → triggers `$3.run()` on main thread
-
-**Gen 1 fallback**
-If Step 1 returns empty builds (no Gen 2 manifest), `run()` switches to the legacy GOG endpoint:
+GET https://gog-cdn-fastly.gog.com/content-system/v2/meta/{AA}/{BB}/{fullHash}
+Authorization: Bearer {accessToken}
 ```
-GET https://api.gog.com/products/{gameId}?expand=downloads
+
+Response: same zlib/gzip-compressed JSON. Decompressed structure:
+```json
+{
+  "depot": {
+    "items": [
+      {
+        "type": "DepotFile",
+        "path": "Binaries\\Win64\\Game.exe",
+        "md5": "abc123...",
+        "sha256": "...",
+        "flags": [],
+        "productId": "1234567890",
+        "chunks": [
+          {
+            "compressedMd5": "deadbeef...",
+            "md5": "cafebabe...",
+            "size": 1048576,
+            "compressedSize": 524288
+          }
+        ]
+      },
+      { "type": "DepotDirectory", "path": "Binaries\\Win64" },
+      { "type": "DepotLink", "path": "link", "target": "target" }
+    ]
+  }
+}
 ```
-Parses `downloads.installers[]` for Windows entries → picks the largest `total_size` entry → direct download URL. Downloads as a single file (no chunking).
 
-### httpGet / fetchBytes helpers
+Path separators: backslashes are normalized to forward slashes; leading `/` is stripped.
 
-`httpGet(url, token)` — opens `HttpURLConnection`, optionally sets `Authorization: Bearer {token}`, reads response as UTF-8 string. Returns null on non-200 or exception.
+Support files (redistributables) are identified by `flags: ["support"]`.
 
-`fetchBytes(url, token)` — same but reads raw bytes into `byte[]`. Used for compressed manifests and image downloads.
+### Step 5 — Separate and Filter Files
 
-`decompressZlib(byte[])` — `java.util.zip.Inflater`, iterates `inflate()` until `finished()`. Returns decompressed `byte[]`.
+- **Base vs DLC**: files with `productId == null` or `productId == baseProductId` are base game;
+  others are DLC (included only if `withDlcs=true`)
+- **Support files**: `flags.contains("support")` — separated; installed to `supportDir` if provided
+- **Incremental**: files already on disk with matching size AND MD5 are skipped
+- **Placeholder productId**: `productId == "2147483047"` is treated as a placeholder and replaced
+  with the depot's own `productId`
+
+### Step 6 — Get Secure CDN Links
+
+One call per owned product ID (base game + each owned DLC):
+
+```
+GET https://content-system.gog.com/products/{productId}/secure_link
+  ?_version=2&generation=2&path=/
+Authorization: Bearer {accessToken}
+```
+
+Response:
+```json
+{
+  "urls": [
+    {
+      "url_format": "https://gog-cdn-fastly.gog.com/token=nva={expires}&.../{path}",
+      "parameters": { "expires_at": "...", ... }
+    }
+  ]
+}
+```
+
+URL construction: replace all `{param}` placeholders with values from `parameters`, unescape `\/` → `/`.
+
+These are time-limited CDN base URLs. The first URL in the array is used as the CDN base.
+
+### Step 7 — Build Chunk URL Map
+
+For each chunk's `compressedMd5` hash:
+```
+chunkUrl = "{secureBaseUrl}/{hash[0..1]}/{hash[2..3]}/{fullHash}"
+```
+
+Each chunk is mapped to the CDN URL of its owning product (base game or DLC), using
+`chunkToProductMap` built in step 6 mapping.
+
+### Step 8 — Download Chunks
+
+Parallel downloads, 4 at a time (`MAX_PARALLEL_DOWNLOADS = 4`).
+Chunks are cached in `{installPath}/.gog_chunks/` as `{compressedMd5}.chunk`.
+
+Per chunk:
+1. Check if `{hash}.chunk` already exists and MD5 of its contents matches `compressedMd5` — skip if so
+2. `GET {chunkUrl}` with `User-Agent: GOG Galaxy`
+3. Verify `MD5(responseBytes) == compressedMd5` (compressed-data integrity check)
+4. Write raw compressed bytes to `.chunk` file
+5. Update `DownloadInfo.bytesDownloaded`
+
+**Retry logic**: up to 3 attempts (`MAX_CHUNK_RETRIES`) with exponential backoff (1s, 2s, 4s).
+
+**Expired link detection**: if any chunk in a batch fails with HTTP 401/403/404, the secure links
+for all products are refreshed (re-calling `getSecureLink` for each product) and the entire
+failing batch is retried with new URLs. This is transparent to the caller.
+
+**Download in-progress marker**: `DOWNLOAD_IN_PROGRESS_MARKER` is written to the install
+directory before chunk downloading begins and removed on success or failure. This lets
+reinstall/verification logic detect partial installs.
+
+### Step 9 — Assemble Files
+
+For each `DepotFile`:
+1. Create output file at `{installDir}/{file.path}` (parent dirs created as needed)
+2. For each chunk in `file.chunks` (in order):
+   a. Read `{hash}.chunk` from cache dir
+   b. If `chunk.compressedSize == null`: data is uncompressed, write directly
+   c. Otherwise: zlib-decompress using `java.util.zip.Inflater`
+   d. Verify `MD5(decompressedBytes) == chunk.md5`
+   e. Write decompressed bytes to output file
+3. Optionally verify `MD5(outputFile) == file.md5` — mismatch logs a warning but does NOT fail
+   (some GOG games ship incorrect MD5s in their manifests)
+
+### Step 10 — Finalize
+
+1. Clean up `.gog_chunks/` cache directory
+2. Write `_gog_manifest.json` to install directory
+3. Update DB: `isInstalled=true`, `installPath`, `installSize` (calculated by recursive dir walk)
+4. Remove `DOWNLOAD_IN_PROGRESS_MARKER`, add `DOWNLOAD_COMPLETE_MARKER`
+5. Emit `AndroidEvent.DownloadStatusChanged(gameId, false)`
+6. Emit `AndroidEvent.LibraryInstallStatusChanged(gameId)` (triggers UI refresh)
 
 ---
 
-## 12. Progress Updates — GogDownloadManager$3
+## 7. Download Pipeline — Gen 1 (Legacy)
 
-UI-thread `Runnable` posted by `$1.postProgress(int, String)` via the main-thread `Handler`.
+For older games. Detected when `selectedBuild.generation == 1` and
+`gameManifest.productTimestamp != null`.
 
-Fields: `a:ProgressBar`, `b:TextView (statusTV)`, `c:Button (Add)`, `d:int (progress)`, `e:String (message)`, `f:TextView (checkmark)`
+### Key Differences from Gen 2
 
-`run()` logic:
-- Always: `progressBar.setProgress(progress)`
-- If message non-null: `statusTV.setText(message)`
-- If `progress >= 100`:
-  - ProgressBar → GONE
-  - statusTV → GONE
-  - Add button → VISIBLE + enabled
-  - checkmark → VISIBLE
-
-The checkmark ref is passed all the way from `GogGamesFragment$2` through `$6 → $8 → GogDownloadManager.startDownload → $1 → postProgress → $3` to ensure the exact TextView created at card-build time is the one made visible.
-
----
-
-## 13. Toast — GogDownloadManager$2
-
-Simple `Runnable` holding `Context` and `String`. `run()` calls `Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()`. Posted to main thread Handler by `$1.showToast(msg)`.
-
----
-
-## 14. Add Button — GogGamesFragment$7
-
-`View.OnClickListener` on the Add button (shown after install).
-
-`onClick()`:
-1. Opens `bh_gog_prefs`
-2. Reads `gog_exe_{gameId}` → full absolute exe path
-3. `check-cast` context field (`a`) to `LandscapeLauncherMainActivity`
-4. Calls `LandscapeLauncherMainActivity.B3(exePath)` — GameHub's built-in Import Game entry point
-5. `B3()` opens `EditImportedGameInfoDialog` where the user fills in the game name and confirms
-
-The exe path is the full absolute Android path, e.g.:
-```
-/data/data/banner.hub/files/gog_games/Witcher3/bin/x64/witcher3.exe
-```
-
-This is what GameHub's import dialog expects — it maps the path into the Wine prefix and creates a game entry.
-
----
-
-## 15. Uninstall — GogGamesFragment$10
-
-`View.OnClickListener` on the Uninstall button inside the detail dialog.
-
-`onClick()`:
-1. Reads `gog_dir_{gameId}` from SP → reconstructs install dir path via `GogInstallPath.getInstallDir(ctx, dirName)`
-2. Recursively deletes the install directory
-3. Removes SP keys: `gog_dir_{gameId}`, `gog_exe_{gameId}`, `gog_cover_{gameId}`, `gog_gen_{gameId}`
-4. Resets card views:
-   - Install button → VISIBLE
-   - Add button → GONE
-   - checkmark → GONE
-   - ProgressBar → GONE
-   - statusTV → GONE
-5. Dismisses the detail dialog
-
----
-
-## 16. Install Path — GogInstallPath
-
-```
-static File getInstallDir(Context ctx, String installDirectory):
-    return new File(new File(ctx.getFilesDir(), "gog_games"), installDirectory)
-```
-
-Example: `/data/data/banner.hub/files/gog_games/TheWitcher3`
-
-The `installDirectory` value comes directly from the GOG build manifest JSON. It is also what is stored in `gog_dir_{gameId}` in SP so uninstall can reconstruct the path.
-
----
-
-## 17. SharedPreferences Layout
-
-**SP file:** `bh_gog_prefs` (MODE_PRIVATE)
-
-| Key | Type | Set by | Content |
-|---|---|---|---|
-| `access_token` | String | GogLoginActivity$2, GogTokenRefresh | GOG Bearer token |
-| `refresh_token` | String | GogLoginActivity$2, GogTokenRefresh | GOG refresh token |
-| `user_id` | String | GogLoginActivity$2 | GOG numeric user ID |
-| `bh_gog_login_time` | Int | GogLoginActivity$2, GogTokenRefresh | Unix timestamp (seconds) of last token issue |
-| `bh_gog_expires_in` | Int | GogLoginActivity$2, GogTokenRefresh | Token lifetime in seconds (3600) |
-| `gog_dir_{gameId}` | String | GogDownloadManager$1 | `installDirectory` from build manifest |
-| `gog_exe_{gameId}` | String | GogDownloadManager$1 | Absolute path to game exe |
-| `gog_cover_{gameId}` | String | GogDownloadManager$1 | Absolute path to cover.jpg |
-| `gog_gen_{gameId}` | String | GogDownloadManager$1 | `"1"` or `"2"` |
-
----
-
-## 18. GOG API Reference
-
-| Endpoint | Auth | Purpose |
+| | Gen 1 | Gen 2 |
 |---|---|---|
-| `https://auth.gog.com/auth?...` | None | Opens login WebView |
-| `GET https://auth.gog.com/token?grant_type=authorization_code&...` | None | Exchange auth code for tokens |
-| `GET https://auth.gog.com/token?grant_type=refresh_token&...` | None | Refresh access token |
-| `GET https://embed.gog.com/user/data/games` | Bearer | Get owned game ID list |
-| `GET https://api.gog.com/products/{id}?expand=downloads,description` | Bearer | Per-game metadata |
-| `GET https://content-system.gog.com/products/{id}/os/windows/builds?generation=2` | Bearer | Gen 2 build manifest URL |
-| `GET {buildLink}` | None | Zlib-compressed build manifest JSON |
-| `GET https://gog-cdn-fastly.gog.com/content-system/v2/meta/{AA}/{BB}/{hash}` | None | Zlib-compressed depot meta (file+chunk list) |
-| `GET https://content-system.gog.com/products/{id}/secure_link?generation=2&_version=2&path=/` | Bearer | Time-limited signed CDN base URL |
-| `GET {cdnBaseUrl}/{AA}/{BB}/{compressedMd5}` | None | Individual file chunk download |
+| Files | Direct byte-range reads from one `main.bin` | Chunked, content-addressed |
+| Manifest | `product.depots[]` with `manifest` hash + `timestamp` | `depots[]` with `manifest` hash only |
+| CDN path | `/content-system/v1/manifests/{productId}/{platform}/{timestamp}/{hash}` | `/content-system/v2/meta/{AA}/{BB}/{hash}` |
+| Secure link path | `/{platform}/{timestamp}/` | `/` |
+| Download | `Range: bytes={offset}-{offset+size-1}` on `main.bin` | Separate chunk files |
+| Compression | None (raw bytes) | zlib per chunk |
+| Verification | MD5 of full file | MD5 per chunk (compressed + decompressed) |
+
+### Gen 1 Flow
+
+1. Build manifest has `product.productTimestamp` (used in all CDN paths)
+2. Depot manifest URL:
+   ```
+   GET https://gog-cdn-fastly.gog.com/content-system/v1/manifests
+     /{productId}/{platform}/{timestamp}/{manifestHash}
+   Authorization: Bearer {accessToken}
+   ```
+   Response: plain JSON with `depot.files[]`:
+   ```json
+   {
+     "depot": {
+       "files": [
+         { "path": "Bin/game.exe", "size": 12345, "hash": "abc...",
+           "offset": 0, "support": false }
+       ]
+     }
+   }
+   ```
+3. Secure link uses path `/{platform}/{timestamp}/` (generation=1):
+   ```
+   GET https://content-system.gog.com/products/{productId}/secure_link
+     ?_version=2&type=depot&path=/{platform}/{timestamp}/
+   ```
+4. Append `/main.bin` to secure CDN base URL → `{secureBase}/main.bin`
+5. Per file: `GET {main.bin url}` with `Range: bytes={offset}-{offset+size-1}`
+6. Stream response directly to output file using `DigestOutputStream` (MD5 computed on-the-fly)
+7. Verify `MD5(file) == file.hash` and `file.length() == file.size`
+8. Progress reported every 512KB
+
+Files with `support: true` go to `supportDir` instead of `installPath`.
 
 ---
 
-## 19. Smali Register Constraints and Solutions
+## 8. Dependencies Pipeline
 
-### 4-bit register limit
+GOG games declare runtime dependencies (MSVC, DirectX, GOG Script Interpreter, etc.) in the
+build manifest's `dependencies[]` array. These are downloaded separately after game files.
 
-All standard smali instructions (`invoke-virtual`, `invoke-direct`, `new-instance`, `iget-object`, `iput-object`, `move-object`, etc.) accept only **v0–v15**. This is a hard architectural limit of the DEX format for non-range instructions.
+### Step 1 — Fetch Dependency Repository
 
-### v16 as a local
+```
+GET https://content-system.gog.com/dependencies/repository?generation=2
+Authorization: Bearer {accessToken}
+```
 
-With `.locals 17`, registers are: v0–v16 as locals, p0=v17. v16 is a valid local but **cannot appear in any standard instruction**.
+Response: `{ "repository_manifest": "https://...", "generation": 2, "build_id": "..." }`
 
-Valid uses of v16:
-- `move-object/from16 v16, v13` — write TO v16 (8-bit destination, format `22x` — valid up to v255)
-- `move-object/from16 v13, v16` — read FROM v16 into a 4-bit register
-- `invoke-direct/range {v10 .. v16}` — range endpoint (uses 16-bit register index)
+The `repository_manifest` URL points to a compressed JSON listing all known dependencies.
 
-This is how the checkmark TextView ref is persisted across the card-build code in `GogGamesFragment$2`.
+### Step 2 — Fetch Dependency Manifest
 
-### Range invokes
+```
+GET {repositoryManifest}
+Authorization: Bearer {accessToken}
+```
 
-When a constructor takes more than 5 args (filling v0–v15 completely), use `invoke-direct/range` with consecutive registers. The range instruction uses 16-bit register indices, so v16 is valid as the end of the range.
+Response: zlib/gzip compressed JSON. Decompressed:
+```json
+{
+  "depots": [
+    {
+      "dependencyId": "MSVC2017",
+      "readableName": "Microsoft Visual C++ 2017 Redistributable",
+      "manifest": "abcdef...",
+      "compressedSize": 1234,
+      "size": 5678,
+      "languages": ["*"],
+      "osBitness": ["32", "64"],
+      "signature": "...",
+      "executable": { "path": "__redist/MSVC2017/VC_redist.x86.exe", "arguments": "/q" },
+      "internal": false
+    }
+  ]
+}
+```
 
-Example: `GogGamesFragment$8` constructor (7 args + new-instance = 8 regs) uses `{v6..v13}`.
+Filtered to only the `dependencyId` values listed in the game manifest's `dependencies[]`.
 
-### mul-int vs mul-int/lit8
+### Step 3 — Get Open Links (No Auth Required)
 
-`mul-int` (opcode 0x92, format `23x`) takes **three register operands** — cannot take an immediate. For multiplying by a small constant, use `mul-int/lit8` (opcode 0xd2, format `22b`) which takes two registers + an 8-bit immediate literal. Used in the download percentage calculation: `mul-int/lit8 v13, v9, 0x28` (fileIndex × 40).
+```
+GET https://content-system.gog.com/open_link
+  ?generation=2&_version=2&path=/dependencies/store/
+Authorization: Bearer {accessToken}
+```
 
-### p0 in range invokes
+Returns the same `url_format` + `parameters` structure as `getSecureLink`. Constructed URLs
+are used as CDN base for dependency chunk downloads — no per-request auth needed.
 
-With `.locals N`, `p0 = vN`. If `N > 15`, p0 is not 4-bit accessible. In `GogGamesFragment$5.onClick()` (`.locals 21`, p0=v21), a non-range `invoke-static {p0}` would fail. Solution: `invoke-static/range {p0 .. p0}`.
+### Step 4 — Fetch Dependency Depot Manifests
+
+```
+GET https://gog-cdn-fastly.gog.com/content-system/v2/dependencies/meta/{AA}/{BB}/{hash}
+(no auth header — uses open link)
+```
+
+Same format as game depot manifests.
+
+### Step 5 — Download and Assemble
+
+Same chunk download and assembly process as Gen 2 game files, but:
+- Simpler `downloadChunksSimple()` — no expired-link retry (open links don't expire the same way)
+- Install target: if `depot.executable.path` starts with `"__redist"` → goes to `supportDir`;
+  otherwise → goes to `gameDir`
+- Paths prefixed with `__redist/` are stripped when installing to `supportDir`
 
 ---
 
-## 20. Progress Band Map
+## 9. API Reference Summary
 
-| Band | Progress value | Status text |
+| Purpose | Method | URL |
 |---|---|---|
-| Token check + builds fetch | 5% | "Fetching build info..." |
-| Build manifest decompressed | 20% | "Reading manifest..." |
-| All depot metas collected | 40% | "Reading depot..." |
-| Secure CDN link obtained | 45% | "Preparing download..." |
-| File download loop | 45%–85% | "Downloading: {filename} {pct}%" |
-| Manifest written, chunks cleaned | 90% | "Finishing..." |
-| Complete | 100% | "✓ Complete" |
+| OAuth login page | WebView | `https://auth.gog.com/auth?client_id=...&layout=galaxy` |
+| Exchange auth code | GET | `https://auth.gog.com/token?grant_type=authorization_code&code=...` |
+| Refresh token | GET | `https://auth.gog.com/token?grant_type=refresh_token&refresh_token=...` |
+| Owned game IDs | GET | `https://embed.gog.com/user/data/games` |
+| Game metadata | GET | `https://api.gog.com/products/{id}?expand=downloads,description,screenshots` |
+| Available builds | GET | `https://content-system.gog.com/products/{id}/os/windows/builds?generation=2` |
+| Build manifest | GET | `{build.link}` (URL from builds response) |
+| Gen 2 depot manifest | GET | `https://gog-cdn-fastly.gog.com/content-system/v2/meta/{AA}/{BB}/{hash}` |
+| Gen 1 depot manifest | GET | `https://gog-cdn-fastly.gog.com/content-system/v1/manifests/{id}/{platform}/{ts}/{hash}` |
+| Secure CDN links (Gen 2) | GET | `https://content-system.gog.com/products/{id}/secure_link?_version=2&generation=2&path=/` |
+| Secure CDN links (Gen 1) | GET | `https://content-system.gog.com/products/{id}/secure_link?_version=2&type=depot&path=/{platform}/{ts}/` |
+| Chunk download | GET | `{secureBaseUrl}/{AA}/{BB}/{compressedMd5}` |
+| Gen 1 file download | GET | `{secureBaseUrl}/main.bin` with `Range:` header |
+| Dependency repository | GET | `https://content-system.gog.com/dependencies/repository?generation=2` |
+| Dependency manifest | GET | `{repositoryManifest}` |
+| Dependency open links | GET | `https://content-system.gog.com/open_link?generation=2&_version=2&path=/dependencies/store/` |
+| Dependency depot manifest | GET | `https://gog-cdn-fastly.gog.com/content-system/v2/dependencies/meta/{AA}/{BB}/{hash}` |
+
+All requests except dependency chunk downloads use `Authorization: Bearer {accessToken}`.
 
 ---
 
-## 21. DEX Placement
+## 10. Key Constants and Configuration
 
-All GOG classes live in `patches/smali_classes16/`.
+| Constant | Value | Notes |
+|---|---|---|
+| `GOG_CLIENT_ID` | `46899977096215655` | Public Galaxy app client ID |
+| `GOG_CLIENT_SECRET` | `9d85c43b1482497...` | Public Galaxy app secret (same as heroic-gogdl) |
+| `GOG_REDIRECT_URI` | `https://embed.gog.com/on_login_success?origin=client` | OAuth redirect |
+| `GOG_BASE_API_URL` | `https://api.gog.com` | Game metadata API |
+| `GOG_EMBED_URL` | `https://embed.gog.com` | Owned games list |
+| `GOG_AUTH_URL` | `https://auth.gog.com` | Authentication |
+| `GOG_CDN` | `https://gog-cdn-fastly.gog.com` | Content delivery |
+| `GOG_CONTENT_SYSTEM` | `https://content-system.gog.com` | Build/depot metadata |
+| `MAX_PARALLEL_DOWNLOADS` | `4` | Concurrent chunk downloads |
+| `MAX_CHUNK_RETRIES` | `3` | Per-chunk retry attempts |
+| `RETRY_DELAY_MS` | `1000` ms (exponential) | 1s, 2s, 4s |
+| `CHUNK_BUFFER_SIZE` | `1 MB` | Read buffer for assembly |
+| `REFRESH_BATCH_SIZE` | `10` | Library sync DB batch size |
+| Internal games path | `{dataDir}/GOG/games/common/` | Default install location |
+| External games path | `{externalStoragePath}/GOG/games/common/` | External SD card path |
+| Auth file | `{filesDir}/gog_auth.json` | Token storage |
+| Manifest file | `{installDir}/_gog_manifest.json` | Post-install launch metadata |
+| Chunk cache | `{installDir}/.gog_chunks/` | Temp, deleted after assembly |
 
-- `smali_classes9` — at 65535 DEX method index limit; do NOT add
-- `smali_classes11` — near limit; do NOT add
-- `smali_classes12` — **bypassed** in all 3 CI workflows (original `classes12.dex` extracted from base APK and zip-injected after rebuild; `smali_classes12/` deleted before apktool rebuild so it is never reassembled)
-- `smali_classes16` — safe overflow DEX, used for all BannerHub additions
+### CDN Path Format
+
+```
+hash "abcdef1234abcdef..." -> "ab/cd/abcdef1234abcdef..."
+                               ^^  ^^  ^^^^^^^^^^^^^^^^
+                           [0..1] [2..3] [full hash]
+```
+
+Used for both manifests and chunk files.
+
+### Language Code Mapping (selected)
+
+Container language → GOG manifest codes (tried in order):
+```
+"english"  -> ["english",  "en-US", "en"]
+"german"   -> ["german",   "de-DE", "de"]
+"french"   -> ["french",   "fr-FR", "fr"]
+"russian"  -> ["russian",  "ru-RU", "ru"]
+"schinese" -> ["schinese", "zh-Hans", "zh_Hans", "zh", "cn"]
+```
+Unknown language → falls back to English codes.
+Depots with `"*"` language are always included regardless of language selection.
 
 ---
 
-## 22. CI and Build Notes
+## Notes on Known Issues (from source code comments)
 
-The GOG feature adds no new external dependencies. All HTTP, JSON, file I/O, and decompression use Android framework classes or libraries already bundled in GameHub:
+1. **Secure link expiry during download** — the code explicitly handles 401/403/404 mid-download
+   and refreshes links, but the comment in `downloadGame()` states "We have issues here" at steps
+   3 and 4, suggesting this is still an area of active work.
 
-- `java.net.HttpURLConnection` — HTTP (no OkHttp obfuscation concern)
-- `org.json.JSONObject` / `JSONArray` — Android framework, always available
-- `java.util.zip.Inflater` — zlib decompression, Android framework
-- `java.io.FileOutputStream` / `FileInputStream` — file I/O, Android framework
-- `android.graphics.BitmapFactory` — image decode, Android framework
+2. **Incorrect MD5s in manifests** — file-level MD5 mismatches after assembly are logged as
+   warnings but not treated as errors, because some GOG titles ship broken MD5 values in their
+   depot manifests.
 
-The CI workflow (`build.yml` for stable, `build-quick.yml` for pre-release) requires no changes for the GOG feature. All new smali files in `patches/smali_classes16/` are picked up automatically by the `Apply patches` step which runs `cp -r patches/* apktool_out/`.
+3. **Placeholder productId `2147483047`** — a known placeholder value used in some depot files.
+   Code TODO notes this logic should eventually always use `depotProductId` instead.
+
+4. **Library refresh is sequential** — the comment in `refreshLibrary()` explicitly notes that
+   parallel fetching was considered but not implemented to avoid GOG API rate limiting.
+
+---
+
+## 11. Service Layer — GOGService
+
+File: `GOGService.kt`
+
+`GOGService` is an Android foreground `Service` that acts as the single entry point for all GOG
+operations from the UI layer. Everything is exposed as `companion object` static methods so the UI
+never needs a bound service reference — it calls `GOGService.someMethod(context)` directly.
+
+### Lifecycle
+
+- Started via `GOGService.start(context)` — calls `startForegroundService`
+- Runs as a sticky foreground service (returns `START_STICKY`) — Android restarts it if killed
+- Holds a `CoroutineScope(Dispatchers.IO + SupervisorJob())` for all async work
+- Stores singleton instance in `private var instance: GOGService?` — accessed via `getInstance()`
+- Destroyed on `AndroidEvent.EndProcess` (app exit)
+
+### Sync Throttling
+
+- First start always syncs immediately
+- Subsequent starts check `timeSinceLastSync >= 15 minutes` before triggering sync
+- `triggerLibrarySync(context)` bypasses throttle (manual user refresh)
+- Sync state tracked with `syncInProgress: Boolean` and `backgroundSyncJob: Job?`
+
+### Download Tracking
+
+Downloads are tracked in a `ConcurrentHashMap<String, DownloadInfo>` keyed by `gameId`. Key methods:
+
+| Method | What it does |
+|---|---|
+| `downloadGame(context, gameId, installPath, containerLanguage)` | Creates `DownloadInfo`, launches download coroutine in service scope, returns `DownloadInfo` immediately |
+| `getDownloadInfo(gameId)` | Returns live `DownloadInfo` for progress polling |
+| `cancelDownload(gameId)` | Calls `downloadInfo.cancel()` and removes from map |
+| `hasActiveDownload()` | True if any download is running |
+| `getCurrentlyDownloadingGame()` | Returns first active `gameId` |
+| `cleanupDownload(gameId)` | Removes stale entry after completion |
+
+`downloadGame()` always passes `withDlcs=true` and `commonRedist` (`{installPath}/_CommonRedist`)
+as `supportDir` — meaning dependencies always go to `_CommonRedist` in the game folder.
+
+### Static Delegate Methods
+
+Every manager method is re-exposed as a static companion method:
+
+```
+GOGService.authenticateWithCode()    -> GOGAuthManager.authenticateWithCode()
+GOGService.hasStoredCredentials()    -> GOGAuthManager.hasStoredCredentials()
+GOGService.refreshLibrary()          -> GOGManager.refreshLibrary()
+GOGService.isGameInstalled()         -> GOGManager.verifyInstallation() [also checks DB]
+GOGService.getInstallPath()          -> GOGManager.getGameFromDbById().installPath
+GOGService.getInstalledExe()         -> GOGManager.getInstalledExe()
+GOGService.getLaunchExecutable()     -> GOGManager.getLaunchExecutable()
+GOGService.getGogWineStartCommand()  -> GOGManager.getGogWineStartCommand()
+GOGService.deleteGame()              -> GOGManager.deleteGame()
+GOGService.syncCloudSaves()          -> GOGCloudSavesManager.syncSaves()
+GOGService.logout()                  -> clears credentials + DB + stops service
+```
+
+### Logout
+
+`GOGService.logout()`:
+1. Calls `GOGAuthManager.clearStoredCredentials()` — deletes `gog_auth.json`
+2. Calls `GOGManager.deleteAllNonInstalledGames()` — removes uninstalled game records from DB
+   (installed games are kept so the user keeps their data)
+3. Stops the service
+
+---
+
+## 12. Game Launch — Executable Discovery and Wine Command
+
+File: `GOGManager.kt`
+
+### Executable Discovery (`getInstalledExe`)
+
+GOG games ship a `goggame-{gameId}.info` JSON file inside the install directory. This file
+contains a `playTasks` array:
+
+```json
+{
+  "playTasks": [
+    {
+      "isPrimary": true,
+      "path": "Bin\\Game.exe",
+      "workingDir": ""
+    }
+  ]
+}
+```
+
+Discovery strategy:
+1. Look for `goggame-*.info` in the game directory (recursive, up to 3 levels deep)
+2. Parse `playTasks`, find the entry with `isPrimary: true`
+3. Resolve the `path` relative to the game dir using case-insensitive file search
+   (`FileUtils.findFileCaseInsensitive`) — important because Windows paths are case-insensitive
+   but Android's filesystem is not
+4. Return the path **relative to the install root** (not absolute)
+
+Two install directory structures are checked:
+- **V2** — `game_{gameId}/` subdirectory inside the install root
+- **V1** — install root itself, then top-level subdirectories (excluding `saves/` and `_CommonRedist/`)
+
+If no `.info` file or no primary task is found, returns empty string and Wine opens `explorer.exe`
+as fallback.
+
+### Wine Launch Command (`getGogWineStartCommand`)
+
+Steps:
+1. Verify installation (`verifyInstallation` — checks DB + directory exists + non-empty)
+2. Use `container.executablePath` if already configured, otherwise auto-detect via `getInstalledExe`
+   and save the result back to the container for future launches
+3. Find which Wine drive letter maps to the game's install path by iterating `container.drives`
+4. Build the Windows path: `{driveLetter}:\{relativePath}` with forward slashes → backslashes
+5. Set `guestProgramLauncherComponent.workingDir` to the exe's parent directory
+6. Set `envVars.WINEPATH` to `{driveLetter}:\`
+
+The result is a quoted Windows path string like `"A:\Bin\Game.exe"` passed directly to Wine's
+`winestart` command.
+
+### `goggame-*.info` File — Full Structure Used
+
+```json
+{
+  "gameId": "1234567890",
+  "clientId": "...",
+  "playTasks": [
+    {
+      "isPrimary": true,
+      "path": "relative\\path\\to\\game.exe",
+      "workingDir": ""
+    }
+  ]
+}
+```
+
+The `gameId` field is also used during installation detection (`detectGameFromDirectory`) to
+match an install directory back to a DB record.
+
+The `clientId` field is used for cloud saves — it is the per-game OAuth client ID needed to
+obtain game-scoped credentials.
+
+---
+
+## 13. Post-Install Steps — Script Interpreter and Dependencies
+
+### What is the GOG Script Interpreter?
+
+Some GOG games require a post-install setup step that runs a Windows executable called
+`scriptinterpreter.exe` (dependency ID: `"ISI"`). This creates registry keys, sets up game paths,
+etc. — essentially the game's own Windows installer. It must run inside Wine on first launch,
+before the game itself starts.
+
+### Detection
+
+`GOGManifestUtils.needsScriptInterpreter(installDir)`:
+- Reads `{installDir}/_gog_manifest.json`
+- Returns `root.optBoolean("scriptInterpreter", false)`
+
+This flag is set during download from `gameManifest.scriptInterpreter` in the build manifest.
+
+### `ISI` Dependency
+
+The script interpreter executable arrives as the `"ISI"` dependency via the dependencies
+pipeline (see §8). It is installed to:
+```
+{installDir}/_CommonRedist/ISI/scriptinterpreter.exe
+```
+
+Satisfaction check: `File(gameInstallDir, "_CommonRedist/ISI/scriptinterpreter.exe").exists()`
+
+### `rootdir` Symlink
+
+`ensureScriptInterpreterRootDirSymlink(gameInstallDir)`:
+- Creates `{installDir}/_CommonRedist/ISI/rootdir` as a **symlink** pointing to `{installDir}`
+- This allows `scriptinterpreter.exe` to reference the game root via a stable Wine path
+  (`A:\_CommonRedist\ISI\rootdir`) even though the actual directory is wherever the game is installed
+
+### Launch Command Assembly (`getScriptInterpreterPartsForLaunch`)
+
+For each product in `_gog_manifest.json`, generates a Wine command:
+```
+A:\_CommonRedist\ISI\scriptinterpreter.exe
+  /VERYSILENT
+  /DIR=A:\_CommonRedist\ISI\rootdir
+  /Language=English
+  /LANG=English
+  /ProductId={productId}
+  /galaxyclient
+  /buildId={buildId}
+  /versionName={versionName}
+  /lang-code={langCode}
+  /supportDir=A:\_CommonRedist\ISI\rootdir
+  /nodesktopshortcut
+```
+
+`lang-code` is normalized: if the stored language is 2 chars (e.g. `"en"`) it becomes `"en-US"`.
+
+These commands are returned as a `List<String>` and joined with `" & "` so multiple products
+each run their own setup in sequence within the same Wine session.
+
+### `GogScriptInterpreterDependency` (Launch-time check)
+
+`LaunchDependency` implementation that runs before game launch:
+- `appliesTo()`: true if `GameSource.GOG` + container is GLIBC + `needsScriptInterpreter()` is true
+- `isSatisfied()`: true if `_CommonRedist/ISI/scriptinterpreter.exe` exists
+- `install()`: calls `downloadDependenciesWithProgress(dependencies=["ISI"], ...)` if not present
+- Shows loading message: `"Downloading GOG script interpreter"`
+
+### `GogScriptInterpreterStep` (Pre-launch step)
+
+`PreInstallStep` that runs after `LaunchDependency` is satisfied but before the game exe:
+- `buildCommand()`: calls `getScriptInterpreterPartsForLaunch(appId)` and joins with `" & "`
+- Writes marker `Marker.GOG_SCRIPT_INSTALLED` after running so it only runs once per install
+
+### `GOGDependencyFix` (Per-game dependency injection)
+
+`KeyedGameFix` used to force-download specific dependencies for games that need them but whose
+manifest `dependencies[]` array may be incomplete. Constructor takes `dependencyIds: List<String>`.
+
+Satisfaction check per dependency: looks for the sentinel file from
+`GOGConstants.GOG_DEPENDENCY_INSTALLED_PATH`:
+```kotlin
+val pathMap = mapOf(
+    "ISI"          to "ISI/scriptinterpreter.exe",
+    "MSVC2017"     to "MSVC2017/VC_redist.x86.exe",
+    "MSVC2017_x64" to "MSVC2017_x64/VC_redist.x64.exe",
+)
+// Checked under {installPath}/_CommonRedist/
+```
+
+If any dependency is missing, calls `downloadDependenciesWithProgress(...)` at launch time
+to fetch and install it on demand.
+
+---
+
+## 14. Uninstall / Delete
+
+File: `GOGManager.deleteGame()`
+
+Steps:
+1. Delete manifest file at `{filesDir}/manifests/{gameId}` (if exists)
+2. `installDir.deleteRecursively()` — deletes all game files
+3. Remove `DOWNLOAD_COMPLETE_MARKER` and `DOWNLOAD_IN_PROGRESS_MARKER` from the install path
+4. Update DB: `isInstalled=false`, `installPath=""`
+5. `ContainerUtils.deleteContainer(context, libraryItem.appId)` — removes the Wine container
+   associated with this game (runs on Main dispatcher)
+6. Emit `AndroidEvent.LibraryInstallStatusChanged(gameId)` to trigger UI refresh
+
+The DB record itself is **not deleted** — the game remains in the library as uninstalled,
+ready to be downloaded again.
+
+---
+
+## 15. Installation Verification
+
+File: `GOGManager.verifyInstallation(gameId)`
+
+Lightweight check (does not re-read manifests or hash files):
+1. Game must be in DB with `isInstalled=true` and non-null `installPath`
+2. `File(installPath).exists()` must be true
+3. `File(installPath).isDirectory()` must be true
+4. `installDir.listFiles()` must be non-null and non-empty
+
+Returns `Pair<Boolean, String?>` — second element is a human-readable error message if false.
+
+`GOGService.isGameInstalled()` calls `verifyInstallation()` and additionally cross-checks with
+the DB flag. If verification fails but DB says installed, logs a warning (disk and DB are out
+of sync — this happens if files are deleted externally).
+
+**Marker-based approach** (used in `GOGManager.isGameInstalled(context, libraryItem)`):
+- `DOWNLOAD_COMPLETE_MARKER` present AND `DOWNLOAD_IN_PROGRESS_MARKER` absent → installed
+- Updates DB if the marker state differs from the stored `isInstalled` flag
+
+---
+
+## 16. Game Fixes (Per-Title Overrides)
+
+File: `gamefixes/GOG_*.kt`
+
+GOG games can have per-title launch argument overrides and dependency injections.
+The pattern is a `KeyedGameFix` — an interface keyed by `(gameSource, gameId)` that applies
+extra configuration at launch time.
+
+### `KeyedLaunchArgFix`
+
+Appends fixed command-line arguments to the game's Wine launch command.
+
+Example — Mars: War Logs (`GOG_1129934535`):
+```kotlin
+KeyedLaunchArgFix(
+    gameSource = GameSource.GOG,
+    gameId = "1129934535",
+    launchArgs = "-lang=eng",
+)
+```
+
+All known GOG game fixes in the repo:
+| Game ID | Title (approximate) | Fix |
+|---|---|---|
+| `1129934535` | Mars: War Logs | `-lang=eng` |
+| `1141086411` | (unknown) | launch args |
+| `1177610018` | (unknown) | launch args |
+| `1454315831` | (unknown) | launch args |
+| `1454587428` | (unknown) | launch args |
+| `1458058109` | (unknown) | launch args |
+| `1589319779` | (unknown) | launch args |
+| `1635627436` | (unknown) | launch args |
+| `1787707874` | (unknown) | launch args |
+| `2147483047` | (unknown) | launch args |
+
+### `GOGDependencyFix`
+
+Forces specific runtime dependency download for games that need it.
+Applied at launch if the dependency's sentinel file is absent under `_CommonRedist/`.
+
+---
+
+## 17. BannerHub Integration Guide
+
+This section maps what BannerHub already has and what needs to be built, based on everything
+above and the current gog-beta branch state.
+
+### What BannerHub Already Has (gog-beta branch)
+
+- `GogMainActivity` — side menu item (ID=10), WebView-based OAuth2 login
+- GOG session stored in `bh_gog_prefs` SharedPreferences
+- Classes in `smali_classes5` (no DEX overflow)
+- Cover art loading fixed (v2.7.0-beta18): JSON escaped slash issue + correct CDN suffix
+  `_product_card_v2_mobile_slider_639.jpg`
+
+### Auth — What to Reuse
+
+The existing `GogMainActivity` WebView login can stay as-is. You need to add token exchange
+after the redirect is intercepted:
+
+1. Watch for redirect to `embed.gog.com/on_login_success`
+2. Extract `?code=` from the URL
+3. POST/GET to `https://auth.gog.com/token` with:
+   ```
+   client_id=46899977096215655
+   client_secret=9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9
+   grant_type=authorization_code
+   code={extracted_code}
+   redirect_uri=https://embed.gog.com/on_login_success?origin=client
+   ```
+4. Store `access_token`, `refresh_token`, `expires_in`, `loginTime` in `bh_gog_prefs`
+
+Token refresh: check `System.currentTimeMillis()/1000 >= loginTime + expiresIn` before any
+API call. If expired, call `grant_type=refresh_token` with the stored `refresh_token`.
+
+### Library Sync — Minimum Steps
+
+1. `GET https://embed.gog.com/user/data/games` → `owned[]` array of game IDs
+2. For each ID, `GET https://api.gog.com/products/{id}?expand=downloads,description`
+3. Extract: `title`, `images.logo2x`/`images.logo` (prefix `https:` if `//`), `images.icon`,
+   `description.lead`, `release_date`, `developers[0].name`, `genres[].name`,
+   `downloads.installers[0].total_size`, `is_secret`, `game_type`
+4. Skip if `is_secret=true`, `game_type="dlc"`, `total_size=0`, or title is placeholder
+5. Store in local DB / SharedPreferences / smali-accessible storage
+
+For BannerHub's smali context: a simple JSON file per game stored in a known directory is
+easier than a full Room database. GameNative uses Room but that requires the full Android
+architecture library stack.
+
+### Cover Art URL — Correct Format
+
+From GameNative's bug fix (v2.7.0-beta18), the correct image URL construction:
+
+Raw API response `images.logo2x` comes as: `"//images.gog.com/5b2/abc123..."`
+- Step 1: Unescape JSON slashes if needed (`\/` → `/`)
+- Step 2: Prepend `https:` if starts with `//`
+- Result: `https://images.gog.com/5b2/abc123...`
+
+For the card thumbnail specifically, GameNative appends a CDN suffix to get the right size:
+```
+https://images.gog.com/{path}_product_card_v2_mobile_slider_639.jpg
+```
+
+The `logo2x` field from the API is often a bare path without extension. The suffix is what
+triggers GOG's image server to return the correctly-sized variant. Without it, you get a blank
+or missing image.
+
+Available CDN suffixes (GOG's image server supports these):
+- `_product_card_v2_mobile_slider_639.jpg` — card thumbnail (~639px wide)
+- `_product_card_v2_mobile_slider_305.jpg` — smaller card
+- `_logo2x.png` — full logo (PNG, transparent background)
+- `_glx_logo_2x.jpg` — GOG Galaxy logo variant
+
+### Download Pipeline — What to Port
+
+For BannerHub, the full Gen 2 download pipeline is needed. The minimum viable implementation:
+
+**Phase 1 — Get the file list:**
+```
+1. GET /products/{id}/os/windows/builds?generation=2  →  build.link
+2. GET {build.link}                                    →  decompress zlib/gzip  →  manifest JSON
+3. For each depot in manifest.depots (language="*" or "en-US"):
+     GET gog-cdn-fastly.gog.com/content-system/v2/meta/{AA}/{BB}/{hash}
+     →  decompress  →  list of {path, chunks[{compressedMd5, md5, size, compressedSize}]}
+```
+
+**Phase 2 — Get CDN access:**
+```
+4. GET /products/{id}/secure_link?_version=2&generation=2&path=/
+   →  construct base CDN URL from url_format + parameters
+```
+
+**Phase 3 — Download + assemble:**
+```
+5. For each chunk:
+     GET {baseUrl}/{AA}/{BB}/{compressedMd5}   (User-Agent: GOG Galaxy)
+     Verify MD5(response) == compressedMd5
+     Cache as {compressedMd5}.chunk
+6. For each file:
+     Concatenate its chunks in order:
+       - Inflate with zlib (java.util.zip.Inflater)
+       - Verify MD5(decompressed) == chunk.md5
+     Write to {installDir}/{file.path}
+```
+
+**Compression detection** (same for manifests and chunks):
+```java
+byte[] b = ...; // first 2 bytes
+boolean isGzip = b[0] == 0x1f && b[1] == (byte)0x8b;
+boolean isZlib = b[0] == 0x78 && (b[1] == (byte)0x9c || b[1] == 0x01 || b[1] == (byte)0xda);
+// if neither: plain text/JSON
+```
+
+### Smali Implementation Notes for BannerHub
+
+Since BannerHub patches smali rather than writing Kotlin source:
+
+1. **HTTP client**: GameHub's obfuscated OkHttp is already available — use the same client
+   patterns used elsewhere in the app. Alternatively, `java.net.HttpURLConnection` avoids any
+   obfuscation concerns.
+
+2. **JSON parsing**: `org.json.JSONObject` and `JSONArray` are part of the Android framework —
+   no extra dependency needed.
+
+3. **Zlib decompression**:
+   ```smali
+   new-instance v0, Ljava/util/zip/Inflater;
+   invoke-direct {v0}, Ljava/util/zip/Inflater;-><init>()V
+   invoke-virtual {v0, dataBytes}, Ljava/util/zip/Inflater;->setInput([B)V
+   # then loop: inflate into buffer until finished()
+   ```
+   `java.util.zip.Inflater` is always available on Android.
+
+4. **Gzip decompression**:
+   ```smali
+   new-instance v0, Ljava/util/zip/GZIPInputStream;
+   # wrap ByteArrayInputStream around the bytes
+   ```
+
+5. **MD5 verification**:
+   ```smali
+   invoke-static {v_algo_string}, Ljava/security/MessageDigest;->getInstance(Ljava/lang/String;)Ljava/security/MessageDigest;
+   # "MD5" as string constant
+   ```
+
+6. **File I/O**: `java.io.FileOutputStream` for writing chunks and assembled files.
+   Create parent dirs with `File.mkdirs()` before writing.
+
+7. **Threading**: Use `AsyncTask` or a `Thread` + `Handler` (simpler for smali than coroutines).
+   GameHub's existing download infrastructure (`ComponentDownloadActivity`) already shows this
+   pattern with `$3` (download runnable) and `$5` (inject on UI thread via Looper).
+
+8. **Progress**: Reuse the existing `ProgressBar` + status text pattern from
+   `ComponentDownloadActivity` — "Downloading: filename" pattern is already proven working.
+
+### DEX Placement
+
+All new GOG download classes should go in `smali_classes16` (the safe overflow DEX):
+- `smali_classes9` is at the 65535 limit — do not add
+- `smali_classes12` is bypassed entirely — do not add
+- `smali_classes16` is used for all new BannerHub additions
+
+### SharedPreferences Key Naming
+
+Follow the existing BannerHub pattern for GOG session data in `bh_gog_prefs`:
+```
+bh_gog_access_token
+bh_gog_refresh_token
+bh_gog_user_id
+bh_gog_expires_in
+bh_gog_login_time
+```
+
+### Integration Point with Existing GogMainActivity
+
+The WebView in `GogMainActivity` currently stores the session. The download feature should:
+1. Read credentials from `bh_gog_prefs` at download time
+2. Refresh the token if `currentTime >= loginTime + expiresIn`
+3. Trigger from the GOG game list UI (new Activity or extend `GogMainActivity`)
+4. Install games to a predictable path that GameHub can discover — either:
+   - The same `files/usr/home/components/` path (if treating GOG game data as a component), or
+   - A dedicated `files/usr/home/gog_games/{title}/` directory
+
+### Minimum HTTP Calls for a Working GOG Download
+
+| Call | Purpose |
+|---|---|
+| `embed.gog.com/user/data/games` | Get owned game IDs |
+| `api.gog.com/products/{id}?expand=downloads` | Get title, image, size |
+| `content-system.gog.com/products/{id}/os/windows/builds?generation=2` | Get build manifest URL |
+| `{build.link}` | Get depot list (zlib/gzip compressed) |
+| `gog-cdn-fastly.gog.com/content-system/v2/meta/{AA}/{BB}/{hash}` | Get file+chunk list per depot |
+| `content-system.gog.com/products/{id}/secure_link?...` | Get time-limited CDN base URL |
+| `{secureBaseUrl}/{AA}/{BB}/{compressedMd5}` | Download each chunk |
+
+That is 6 distinct API call patterns. The secure link and chunk downloads are the most
+performance-sensitive. Handle 401/403/404 on chunk downloads by re-calling `secure_link` and
+retrying — this is the most common failure mode.
