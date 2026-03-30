@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -176,7 +177,7 @@ public class BhWineLaunchHelper {
                     writeDebug(ctx, log.append("FAIL: wine binary not found\n").toString());
                     return;
                 }
-                String[] env = getWineEnviron();
+                String[] env = stripWineServerSocket(getWineEnviron());
                 log.append("env entries=").append(env == null ? "null" : env.length).append("\n");
                 // "start /unix" tells Wine to launch the path as a Unix filesystem path
                 // and attach to the already-running wineserver/session.
@@ -202,6 +203,22 @@ public class BhWineLaunchHelper {
                 writeDebug(ctx, log.toString());
             }
         }).start();
+    }
+
+    /**
+     * Remove WINESERVERSOCKET from the environment before exec.
+     * WineActivity passes Wine children a pre-opened socket fd via this var.
+     * That fd is not inherited through Java's Runtime.exec(), so wine dies with
+     * "Bad server socket N : Bad file descriptor".  Removing the var makes wine
+     * fall back to connecting via the socket file in WINEPREFIX/.wineserver/.
+     */
+    private static String[] stripWineServerSocket(String[] env) {
+        if (env == null) return null;
+        ArrayList<String> out = new ArrayList<>(env.length);
+        for (String e : env) {
+            if (!e.startsWith("WINESERVERSOCKET=")) out.add(e);
+        }
+        return out.toArray(new String[0]);
     }
 
     private static void writeDebug(Context ctx, String text) {
