@@ -808,7 +808,7 @@
     if-nez v7, :no_up
 
     # Parent = p1.substring(0, lastIndexOf('/'))
-    const/4 v4, 0x2f    # '/' char code
+    const/16 v4, 0x2f    # '/' char code
     invoke-virtual {p1, v4}, Ljava/lang/String;->lastIndexOf(I)I
     move-result v7
     if-lez v7, :no_up

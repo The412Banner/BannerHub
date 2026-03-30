@@ -32,7 +32,7 @@
     iget-object v1, p0, Lcom/xj/winemu/sidebar/BhExeLaunchListener;->exePath:Ljava/lang/String;
 
     # Extract filename: find last '/' then substring from there+1
-    const/4 v4, 0x2f    # '/'
+    const/16 v4, 0x2f    # '/'
     invoke-virtual {v1, v4}, Ljava/lang/String;->lastIndexOf(I)I
     move-result v4
     if-ltz v4, :use_full_path
