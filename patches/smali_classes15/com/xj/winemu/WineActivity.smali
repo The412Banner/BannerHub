@@ -6108,68 +6108,6 @@
     invoke-virtual {v3, v4, v5}, Landroid/os/PerformanceHintManager$Session;->reportActualWorkDuration(J)V
 
     :cond_perf_1
-    # --- BannerHub: Sustained Performance Mode (no-root API + root governor) ---
-    :try_start_bh_perf
-    const-string v2, "bh_prefs"
-    const/4 v3, 0x0
-    invoke-virtual {v1, v2, v3}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-    move-result-object v2
-    const-string v3, "sustained_perf"
-    const/4 v4, 0x0
-    invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-    move-result v2
-    if-eqz v2, :cond_bh_spm_skip
-    invoke-virtual {v1}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
-    move-result-object v2
-    const/4 v3, 0x1
-    invoke-virtual {v2, v3}, Landroid/view/Window;->setSustainedPerformanceMode(Z)V
-    const/4 v2, 0x3
-    new-array v2, v2, [Ljava/lang/String;
-    const/4 v3, 0x0
-    const-string v4, "su"
-    aput-object v4, v2, v3
-    const/4 v3, 0x1
-    const-string v4, "-c"
-    aput-object v4, v2, v3
-    const/4 v3, 0x2
-    const-string v4, "for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo performance > $f; done"
-    aput-object v4, v2, v3
-    invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
-    move-result-object v3
-    invoke-virtual {v3, v2}, Ljava/lang/Runtime;->exec([Ljava/lang/String;)Ljava/lang/Process;
-    :cond_bh_spm_skip
-    # --- end BannerHub Sustained Performance Mode ---
-
-    # --- BannerHub: re-apply Max Adreno Clocks on launch ---
-    const-string v2, "bh_prefs"
-    const/4 v3, 0x0
-    invoke-virtual {v1, v2, v3}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-    move-result-object v2
-    const-string v3, "max_adreno_clocks"
-    const/4 v4, 0x0
-    invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-    move-result v2
-    if-eqz v2, :cond_bh_adreno_skip
-    const/4 v2, 0x3
-    new-array v2, v2, [Ljava/lang/String;
-    const/4 v3, 0x0
-    const-string v4, "su"
-    aput-object v4, v2, v3
-    const/4 v3, 0x1
-    const-string v4, "-c"
-    aput-object v4, v2, v3
-    const/4 v3, 0x2
-    const-string v4, "cat /sys/class/kgsl/kgsl-3d0/devfreq/max_freq > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq"
-    aput-object v4, v2, v3
-    invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
-    move-result-object v3
-    invoke-virtual {v3, v2}, Ljava/lang/Runtime;->exec([Ljava/lang/String;)Ljava/lang/Process;
-    :cond_bh_adreno_skip
-    # --- end BannerHub Max Adreno on launch ---
-    :try_end_bh_perf
-    .catch Ljava/lang/Exception; {:try_start_bh_perf .. :try_end_bh_perf} :catch_bh_perf
-    :catch_bh_perf
-    # BannerHub: exception swallowed — unsupported device or no root; container launch continues
     .line 6
     .line 7
     .line 8
@@ -8717,9 +8655,6 @@
     .line 24
     .line 25
     :cond_1
-    # ── BannerHub: inject/sync HUD overlay on every resume ──
-    invoke-static {p0}, Lcom/xj/winemu/sidebar/BhHudInjector;->injectOrUpdate(Landroid/app/Activity;)V
-
     sget-object p0, Lcom/xj/winemu/external/PcInGameDelegateManager;->a:Lcom/xj/winemu/external/PcInGameDelegateManager;
 
     .line 26
