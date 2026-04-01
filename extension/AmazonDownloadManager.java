@@ -128,42 +128,31 @@ public class AmazonDownloadManager {
             List<AmazonManifest.ManifestFile> files = manifest.allFiles;
 
             ExecutorService pool = Executors.newFixedThreadPool(MAX_PARALLEL);
+            List<Future<Boolean>> futures = new ArrayList<>();
+            for (AmazonManifest.ManifestFile file : files) {
+                final String dlUrl = spec.downloadUrl;
+                final String tkn   = accessToken;
+                futures.add(pool.submit(() -> downloadFileWithRetry(
+                        file, dlUrl, tkn, installDir,
+                        downloaded, lastEmit, manifest.totalInstallSize,
+                        lastSpeedMs, lastSpeedBytes, currentSpeedBps,
+                        progress, cancel)));
+            }
+            pool.shutdown();
             try {
-                for (int batchStart = 0; batchStart < files.size(); batchStart += MAX_PARALLEL) {
-                    // Cancellation check between batches
-                    if (cancel != null && cancel.isCancelled()) {
-                        log("Cancelled between batches");
-                        cleanupTmpFiles(installDir);
+                for (Future<Boolean> f : futures) {
+                    if (!f.get()) {
+                        log("A file failed — aborting download");
+                        pool.shutdownNow();
                         deleteMarker(installDir, IN_PROGRESS_MARKER);
                         return false;
                     }
-
-                    int batchEnd = Math.min(batchStart + MAX_PARALLEL, files.size());
-                    List<AmazonManifest.ManifestFile> batch = files.subList(batchStart, batchEnd);
-                    List<Callable<Boolean>> tasks = new ArrayList<>();
-
-                    for (AmazonManifest.ManifestFile file : batch) {
-                        final String dlUrl  = spec.downloadUrl;
-                        final String tkn    = accessToken;
-                        tasks.add(() -> downloadFileWithRetry(
-                                file, dlUrl, tkn, installDir,
-                                downloaded, lastEmit, manifest.totalInstallSize,
-                                lastSpeedMs, lastSpeedBytes, currentSpeedBps,
-                                progress, cancel));
-                    }
-
-                    List<Future<Boolean>> futures = pool.invokeAll(tasks);
-                    for (Future<Boolean> f : futures) {
-                        if (!f.get()) {
-                            log("A file in batch failed — aborting download");
-                            pool.shutdownNow();
-                            deleteMarker(installDir, IN_PROGRESS_MARKER);
-                            return false;
-                        }
-                    }
                 }
-            } finally {
+            } catch (Exception e) {
+                Log.e(TAG, "Download pool error", e);
                 pool.shutdownNow();
+                deleteMarker(installDir, IN_PROGRESS_MARKER);
+                return false;
             }
 
             // Step 5: Cache manifest and mark installed

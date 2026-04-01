@@ -21,7 +21,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.Inflater;
@@ -320,46 +326,69 @@ public final class GogDownloadManager {
             File chunksDir = new File(installPath, ".gog_chunks");
             chunksDir.mkdirs();
 
-            // Download + assemble each file
-            int total = files.size(), done = 0;
-            long speedWindowStart = System.currentTimeMillis();
-            long speedWindowBytes = 0;
-            long speedBps = 0;
-            for (DepotFile df : files) {
-                if (cancelled.get()) return "cancelled";
-                int pct = 15 + (int) ((done / (float) total) * 80);
-                String speedStr = formatSpeed(speedBps);
-                cb.onProgress("Downloading: " + df.relativePath
-                        + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
-                File outFile = new File(installPath, df.relativePath);
-                outFile.getParentFile().mkdirs();
+            // Download + assemble files — 6 parallel threads
+            final int total = files.size();
+            final AtomicInteger doneCount    = new AtomicInteger(0);
+            final AtomicLong    totalBytes   = new AtomicLong(0);
+            final AtomicLong    lastSpeedMs  = new AtomicLong(System.currentTimeMillis());
+            final AtomicLong    lastSpeedB   = new AtomicLong(0);
+            final AtomicLong    speedBps     = new AtomicLong(0);
+            final AtomicBoolean anyFailed    = new AtomicBoolean(false);
+            final String        fCdnBase     = cdnBase;
 
-                long fileBytes = 0;
-                try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                    for (DepotFile.ChunkRef chunk : df.chunks) {
-                        if (cancelled.get()) return "cancelled";
-                        String cdnPath = buildCdnPath(chunk.hash);
-                        String chunkUrl = cdnBase + "/" + cdnPath;
-                        byte[] chunkRaw = fetchBytes(chunkUrl, null);
-                        if (chunkRaw == null) {
-                            Log.w(TAG, "Chunk download failed: " + chunk.hash);
-                            continue;
+            ExecutorService pool = Executors.newFixedThreadPool(6);
+            List<Future<Void>> futures = new ArrayList<>();
+            for (DepotFile df : files) {
+                futures.add(pool.submit((Callable<Void>) () -> {
+                    if (cancelled.get() || anyFailed.get()) return null;
+                    File outFile = new File(installPath, df.relativePath);
+                    outFile.getParentFile().mkdirs();
+                    long fileBytes = 0;
+                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                        for (DepotFile.ChunkRef chunk : df.chunks) {
+                            if (cancelled.get() || anyFailed.get()) return null;
+                            String chunkUrl = fCdnBase + "/" + buildCdnPath(chunk.hash);
+                            byte[] chunkRaw = fetchBytes(chunkUrl, null);
+                            if (chunkRaw == null) {
+                                Log.w(TAG, "Chunk download failed: " + chunk.hash);
+                                anyFailed.set(true);
+                                return null;
+                            }
+                            fileBytes += chunkRaw.length;
+                            byte[] inflated = inflateZlib(chunkRaw);
+                            if (inflated == null) inflated = chunkRaw;
+                            fos.write(inflated);
                         }
-                        fileBytes += chunkRaw.length;
-                        byte[] inflated = inflateZlib(chunkRaw);
-                        if (inflated == null) inflated = chunkRaw; // not compressed
-                        fos.write(inflated);
                     }
-                }
-                done++;
-                speedWindowBytes += fileBytes;
-                long elapsed = System.currentTimeMillis() - speedWindowStart;
-                if (elapsed >= 1000) {
-                    speedBps = speedWindowBytes * 1000L / elapsed;
-                    speedWindowStart = System.currentTimeMillis();
-                    speedWindowBytes = 0;
-                }
+                    int done = doneCount.incrementAndGet();
+                    long tb  = totalBytes.addAndGet(fileBytes);
+                    int pct  = 15 + (int) ((done / (float) total) * 80);
+                    // Speed update (one thread wins CAS per 500ms)
+                    long nowMs = System.currentTimeMillis();
+                    long prevMs = lastSpeedMs.get();
+                    if (nowMs - prevMs >= 500 && lastSpeedMs.compareAndSet(prevMs, nowMs)) {
+                        long prevB = lastSpeedB.getAndSet(tb);
+                        long dt = nowMs - prevMs;
+                        if (dt > 0) speedBps.set((tb - prevB) * 1000L / dt);
+                    }
+                    String speedStr = formatSpeed(speedBps.get());
+                    String name = df.relativePath.contains("/")
+                            ? df.relativePath.substring(df.relativePath.lastIndexOf('/') + 1)
+                            : df.relativePath;
+                    cb.onProgress("Downloading: " + name
+                            + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
+                    return null;
+                }));
             }
+            pool.shutdown();
+            try {
+                for (Future<Void> f : futures) f.get();
+            } catch (Exception e) {
+                pool.shutdownNow();
+                return "parallel download error: " + e;
+            }
+            if (cancelled.get()) return "cancelled";
+            if (anyFailed.get()) return "one or more chunks failed to download";
 
             // Write manifest marker
             String manifestMarker = "{\"gameId\":\"" + game.gameId
@@ -677,7 +706,7 @@ public final class GogDownloadManager {
             int total = conn.getContentLength();
             try (InputStream is = conn.getInputStream();
                  FileOutputStream fos = new FileOutputStream(out)) {
-                byte[] buf = new byte[32768];
+                byte[] buf = new byte[131072];
                 int n, downloaded = 0;
                 long speedWindowStart = System.currentTimeMillis();
                 long speedWindowBytes = 0;
