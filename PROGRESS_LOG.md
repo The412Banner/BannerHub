@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [perf] — v2.8.2-pre2 — 8 threads all stores; GOG Gen1 parallelized (2026-04-01)
+**Branch:** `main`  |  **Tag:** v2.8.2-pre2
+**Commit:** `ad3d617f2`  |  **CI:** queued
+**What changed:**
+- GOG Gen1: sequential loop → 8-thread pool; downloadRange returns boolean; 32KB → 128KB buffer
+- GOG Gen2, Epic, Amazon: 6 → 8 parallel threads
+
+---
+
 ## [perf] — v2.8.2-pre — Parallel GOG downloads, fix Amazon batch stall, 128KB buffer (2026-04-01)
 **Branch:** `main`  |  **Tag:** v2.8.2-pre
 **Commit:** `3d51b5c47`  |  **CI:** queued
