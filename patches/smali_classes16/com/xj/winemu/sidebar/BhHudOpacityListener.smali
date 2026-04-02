@@ -56,9 +56,18 @@
     const-string v1, "bh_detailed_hud"
     invoke-virtual {v3, v1}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
     move-result-object v1
-    if-eqz v1, :done
+    if-eqz v1, :try_konkr
     check-cast v1, Lcom/xj/winemu/sidebar/BhDetailedHud;
     invoke-virtual {v1, p2}, Lcom/xj/winemu/sidebar/BhDetailedHud;->applyBackgroundOpacity(I)V
+
+    # Update BhKonkrHud if present
+    :try_konkr
+    const-string v1, "bh_konkr_hud"
+    invoke-virtual {v3, v1}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
+    move-result-object v1
+    if-eqz v1, :done
+    check-cast v1, Lcom/xj/winemu/sidebar/BhKonkrHud;
+    invoke-virtual {v1, p2}, Lcom/xj/winemu/sidebar/BhKonkrHud;->applyBackgroundOpacity(I)V
 
     :done
     return-void
