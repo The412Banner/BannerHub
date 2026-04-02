@@ -202,7 +202,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(0, 1, 1f);
         spacer.setLayoutParams(sLp);
 
-        LinearLayout.LayoutParams vLp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams vLp = new LinearLayout.LayoutParams(-2, -2);
         vLp.gravity = Gravity.CENTER_VERTICAL | Gravity.END;
 
         row.addView(tvLabel);
@@ -234,15 +234,15 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
 
         TextView batLabel = makeLabel("BAT", COL_WHITE);
         batLabel.setBackgroundColor(BG_BAT);
-        batFillLp = new LinearLayout.LayoutParams(0, WRAP_CONTENT, 0f);
+        batFillLp = new LinearLayout.LayoutParams(0, -2, 0f);
         batFillLp.gravity = Gravity.CENTER_VERTICAL;
         batRow.addView(batLabel, batFillLp);
 
         View spacer = new View(getContext());
-        batSpaceLp = new LinearLayout.LayoutParams(0, WRAP_CONTENT, 100f);
+        batSpaceLp = new LinearLayout.LayoutParams(0, -2, 100f);
         batRow.addView(spacer, batSpaceLp);
 
-        LinearLayout.LayoutParams pLp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams pLp = new LinearLayout.LayoutParams(-2, -2);
         pLp.gravity = Gravity.CENTER_VERTICAL;
         tvBatPct = makeVal("--%", COL_WHITE);
         batRow.addView(tvBatPct, pLp);
@@ -261,21 +261,21 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         fpsCol.addView(fpsHeader, wrapLp());
 
         tvFpsVal = makeBigVal("--");
-        LinearLayout.LayoutParams bigLp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams bigLp = new LinearLayout.LayoutParams(-2, -2);
         bigLp.gravity = Gravity.CENTER_HORIZONTAL;
         fpsCol.addView(tvFpsVal, bigLp);
 
         tvFpsMin = makeVal("--", COL_GRAY);
-        LinearLayout.LayoutParams minLp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams minLp = new LinearLayout.LayoutParams(-2, -2);
         minLp.gravity = Gravity.CENTER_HORIZONTAL;
         fpsCol.addView(tvFpsMin, minLp);
 
         tvFpsCpuTmp = makeVal("--\u00b0C", COL_ORANGE);
-        LinearLayout.LayoutParams tmpLp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams tmpLp = new LinearLayout.LayoutParams(-2, -2);
         tmpLp.gravity = Gravity.CENTER_HORIZONTAL;
         fpsCol.addView(tvFpsCpuTmp, tmpLp);
 
-        addView(fpsCol, new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
+        addView(fpsCol, new LinearLayout.LayoutParams(-2, -1));
         addView(makeSepCol());
 
         // ── Col 1: CPU block ──
@@ -299,7 +299,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         // Pad 4th row to match FPS col height
         cpuCol.addView(new View(getContext()), new LinearLayout.LayoutParams(0, 0, 1f));
 
-        addView(cpuCol, new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
+        addView(cpuCol, new LinearLayout.LayoutParams(-2, -1));
         addView(makeSepCol());
 
         // ── Col 2: GPU block ──
@@ -326,7 +326,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tvGpuTemp = makeVal("--\u00b0C", COL_ORANGE);
         gpuCol.addView(tvGpuTemp, wrapLp());
 
-        addView(gpuCol, new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
+        addView(gpuCol, new LinearLayout.LayoutParams(-2, -1));
         addView(makeSepCol());
 
         // ── Col 3: Thermal labels ──
@@ -335,7 +335,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         thermLabelCol.addView(makeLabel("FAN",  COL_WHITE), wrapLp());
         thermLabelCol.addView(makeLabel("SKN",  COL_WHITE), wrapLp());
         thermLabelCol.addView(makeLabel("PWR",  COL_WHITE), wrapLp());
-        addView(thermLabelCol, new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
+        addView(thermLabelCol, new LinearLayout.LayoutParams(-2, -1));
 
         // ── Col 4: Thermal values ──
         LinearLayout thermValCol = makeVCol();
@@ -347,7 +347,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         thermValCol.addView(tvFanVal,  wrapLp());
         thermValCol.addView(tvSknVal,  wrapLp());
         thermValCol.addView(tvPwrVal,  wrapLp());
-        addView(thermValCol, new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
+        addView(thermValCol, new LinearLayout.LayoutParams(-2, -1));
         addView(makeSepCol());
 
         // ── Col 5: Memory labels (with colored backgrounds) ──
@@ -370,7 +370,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         memLabelCol.addView(batLbl, wrapLp());
 
         memLabelCol.addView(makeLabel("TIME", COL_WHITE), wrapLp());
-        addView(memLabelCol, new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
+        addView(memLabelCol, new LinearLayout.LayoutParams(-2, -1));
 
         // ── Col 6: Memory values ──
         LinearLayout memValCol = makeVCol();
@@ -382,7 +382,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         memValCol.addView(tvSwapVal, wrapLp());
         memValCol.addView(tvBatPct,  wrapLp());
         memValCol.addView(tvTimeVal, wrapLp());
-        addView(memValCol, new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
+        addView(memValCol, new LinearLayout.LayoutParams(-2, -1));
     }
 
     // ── View helpers ──────────────────────────────────────────────────────────
@@ -426,7 +426,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tv.setTextSize(9f);
         tv.setPadding(dp(3), 0, dp(3), 0);
         tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.gravity = Gravity.CENTER_VERTICAL;
         tv.setLayoutParams(lp);
         return tv;
@@ -440,7 +440,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tv.setTextSize(9f);
         tv.setPadding(dp(3), 0, dp(3), 0);
         tv.setTypeface(Typeface.MONOSPACE);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.gravity = Gravity.CENTER_VERTICAL;
         tv.setLayoutParams(lp);
         return tv;
@@ -463,20 +463,20 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tv.setTextColor(COL_DIM);
         tv.setTextSize(8f);
         tv.setPadding(dp(2), 0, dp(2), 0);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.gravity = Gravity.CENTER_VERTICAL;
         tv.setLayoutParams(lp);
         return tv;
     }
 
     private LinearLayout.LayoutParams rowLp() {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.bottomMargin = dp(1);
         return lp;
     }
 
     private LinearLayout.LayoutParams wrapLp() {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.bottomMargin = dp(1);
         return lp;
     }
