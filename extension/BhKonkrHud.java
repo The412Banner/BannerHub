@@ -807,6 +807,8 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         }
         v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage");
         if (v != null) { try { return Integer.parseInt(v.trim().replaceAll("[^0-9]", "")); } catch (NumberFormatException ignored) {} }
+        v = readSysfsLine("/sys/kernel/gpu/gpu_busy");
+        if (v != null) { try { return Integer.parseInt(v.trim().replaceAll("[^0-9]", "")); } catch (NumberFormatException ignored) {} }
         v = readSysfsLine("/sys/class/misc/mali0/device/utilisation");
         if (v != null) { try { return Integer.parseInt(v.trim().replaceAll("[^0-9]", "")); } catch (NumberFormatException ignored) {} }
         return 0;
