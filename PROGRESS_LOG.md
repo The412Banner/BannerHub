@@ -2935,3 +2935,24 @@ manifest download, install, launch, SDK cache + update checker.
 - Same pattern Epic/Amazon already used; GOG was missed causing javac ')' expected error
 #### Files touched
 - extension/GogGamesActivity.java
+
+### [stable] — v2.8.3 — Extra Detailed HUD + controller nav (2026-04-02)
+**Commit:** `bba9c10b7`  |  **Tag:** v2.8.3
+#### What changed
+- Extra Detailed HUD (BhDetailedHud) — replaces Normal HUD when Winlator HUD + Extra Detailed checkbox both enabled
+  - Metrics: FPS+graph (spanning both rows in horizontal), CPU%, GPU%, RAM, SWAP used/total GB, CPU/GPU/BAT temps
+  - Horizontal layout: column-group design with solid vertical dividers; vertical layout: one row per metric
+  - Opacity slider works for both HUDs; text shadow/halo at <10% and <30% opacity
+  - Extra Detailed checkbox disabled/grayed when Winlator HUD is off
+  - BhHudInjector.injectOrUpdate() as single source of truth for all HUD visibility
+  - Shadow clipping fix: setClipChildren/setClipToPadding(false) on all container LinearLayouts
+- Controller D-pad navigation highlights on all store cards (GOG/Epic/Amazon) — all 3 view modes, A-button confirm
+- README.md updated with Extra Detailed HUD section
+#### Files touched
+- extension/BhDetailedHud.java (new)
+- patches/smali_classes16/com/xj/winemu/sidebar/BhHudInjector.smali
+- patches/smali_classes16/com/xj/winemu/sidebar/BhHudExtraDetailListener.smali
+- patches/smali_classes16/com/xj/winemu/sidebar/BhHudStyleSwitchListener.smali
+- patches/smali_classes16/com/xj/winemu/sidebar/BhHudOpacityListener.smali
+- patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali
+- README.md

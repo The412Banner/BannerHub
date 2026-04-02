@@ -1,6 +1,6 @@
 # BannerHub
 
-**GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, Winlator HUD overlay, in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
+**GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, Winlator HUD overlay (Normal + Extra Detailed with CPU/GPU/RAM/SWAP/temp metrics), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
 
 ## AI Disclaimer
 
@@ -28,7 +28,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Component Manager](#component-manager)
   - [In-App Component Downloader](#in-app-component-downloader)
   - [BCI Launcher Button](#bci-launcher-button)
-  - [Winlator HUD Overlay](#winlator-hud-overlay)
+  - [Winlator HUD Overlay](#winlator-hud-overlay) (Normal + Extra Detailed)
   - [Performance Sidebar Toggles](#performance-sidebar-toggles)
   - [RTS Touch Controls](#rts-touch-controls)
   - [VRAM Limit Unlock](#vram-limit-unlock)
@@ -283,17 +283,36 @@ BCI is a companion app that provides SAF-based component management without root
 
 An in-game heads-up display that shows real-time performance metrics while a game is running. Accessible from the in-game **Performance sidebar**.
 
-#### Metrics Displayed
+Two HUD modes are available:
 
-- **FPS** — current frames per second
+#### Normal HUD
+
+- **FPS** — current frames per second with a live frame-time graph
 - **Frame time** — milliseconds per frame
 - **Resolution** — current render resolution
 
-#### Configuration
+#### Extra Detailed HUD
 
-- **Opacity slider** — adjusts the transparency of the entire HUD overlay from fully opaque to nearly invisible
-- **Text outline** — a black shadow/outline is automatically applied to all HUD text when opacity drops below 30%, ensuring readability against any background color
-- **Position** — choose from multiple screen corners/positions
+A second, expanded overlay that replaces the Normal HUD when the **Extra Detailed** checkbox is enabled. Displays a richer set of metrics:
+
+- **FPS** — current frames per second with frame-time graph (spans both rows in horizontal layout)
+- **CPU usage** — overall CPU load percentage
+- **GPU usage** — GPU load percentage
+- **RAM** — used / total memory
+- **SWAP** — swap used / total in GB
+- **CPU temperature** — thermal zone reading for the main CPU cluster
+- **GPU temperature** — Adreno GPU thermal reading
+- **Battery temperature** — battery thermal reading
+
+Available in both **horizontal** (metrics displayed side-by-side in two aligned rows) and **vertical** (one metric per row) layouts — toggled with the same Orientation switch as the Normal HUD.
+
+The *Extra Detailed* checkbox is automatically grayed out and disabled when the Winlator HUD toggle is off.
+
+#### Configuration (both modes)
+
+- **Opacity slider** — adjusts transparency of the active HUD overlay from fully opaque to nearly invisible
+- **Text shadow/halo** — a centered shadow is automatically applied to all HUD text when opacity drops below 30% (stronger at <10%), ensuring readability against any background
+- **Position** — drag to reposition on screen
 - **Orientation** — horizontal or vertical layout
 
 All position, orientation, and opacity settings are persisted in SharedPreferences and restored automatically the next time the Performance sidebar is opened.

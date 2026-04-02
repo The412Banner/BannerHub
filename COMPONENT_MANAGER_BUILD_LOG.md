@@ -4166,3 +4166,18 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 - `patches/AndroidManifest.xml` (3 Epic activities)
 
 **CI:** queued — artifact-only build on epic-integration branch push
+
+### [475] — v2.8.3 stable — Extra Detailed HUD release (2026-04-02)
+**Commit:** `bba9c10b7`  |  **Tag:** v2.8.3
+
+**Root-cause context:** BhDetailedHud (new class, classes18.dex) renders expanded performance metrics. Shadow clipping was the hardest bug — `setShadowLayer()` renders beyond TextView bounds but every parent LinearLayout clips by default. Fix: `setClipChildren(false)` + `setClipToPadding(false)` on root and all helper-created containers (addColGroup, addSepCol, inlineRow, row). BhHudInjector.injectOrUpdate() centralized to prevent dual-HUD-visible-on-launch race.
+
+**Files:**
+- `extension/BhDetailedHud.java` — horizontal column-group layout + vertical layout; applyBackgroundOpacity with shadow rules; buildLayout calls applyBackgroundOpacity at end
+- `patches/smali_classes16/.../BhHudInjector.smali` — create-on-demand for both HUDs; reads winlator_hud + hud_extra_detail; single point of HUD visibility
+- `patches/smali_classes16/.../BhHudExtraDetailListener.smali` — guard against winlator_hud=off; delegates to injectOrUpdate
+- `patches/smali_classes16/.../BhHudStyleSwitchListener.smali` — full rewrite; clears hud_extra_detail on HUD off; updates checkbox enabled/alpha; delegates to injectOrUpdate
+- `patches/smali_classes16/.../BhHudOpacityListener.smali` — updated to also find bh_detailed_hud and call applyBackgroundOpacity
+- `patches/smali_classes16/.../BhPerfSetupDelegate.smali` — inline injection replaced with injectOrUpdate call; checkbox restore logic
+
+**CI:** ✅ run 23894058893 — 9 APKs
