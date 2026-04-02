@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — v2.8.2-pre — Grid/poster focus highlight clipped by setClipToOutline (2026-04-01)
+**Branch:** `main`  |  **Tag:** v2.8.2-pre (retagged)
+**Commit:** `70b981a24`  |  **CI:** ✅ run 23877451621
+**What changed:**
+- Root cause: `tile.setClipToOutline(true)` clips the stroke to the outline boundary — stroke was invisible in all grid/poster views
+- Fix: each tile now wrapped in a transparent `focusWrapper` FrameLayout (no `clipToOutline`) that carries the gold border; inner tile keeps `clipToOutline` for art corner clipping
+- Applies to all 3 stores × grid + poster view modes
+
+---
+
 ## [feat] — v2.8.2-pre5 — Controller focus highlight: gold border + bg tint on GOG/Epic/Amazon cards (2026-04-01)
 **Branch:** `main`  |  **Tag:** v2.8.2-pre5 (retagged)
 **Commit:** `84e4c4920`  |  **CI:** queued
