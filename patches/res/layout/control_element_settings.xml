@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:background="#66252525" android:paddingTop="@dimen/mw_24dp" android:paddingBottom="@dimen/mw_33dp" android:layout_width="fill_parent" android:layout_height="fill_parent" android:paddingStart="@dimen/mw_12dp" android:paddingEnd="@dimen/mw_24dp"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ScrollView android:layout_width="fill_parent" android:layout_height="fill_parent" android:fillViewport="true">
+        <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/type" />
+            <Spinner android:id="@id/SType" android:layout_width="fill_parent" android:layout_marginTop="@dimen/mw_6dp" style="@style/ComboBox" />
+            <LinearLayout android:orientation="vertical" android:id="@id/LLShape" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp">
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/shape" />
+                <Spinner android:id="@id/SShape" android:layout_width="fill_parent" android:layout_marginTop="@dimen/mw_6dp" style="@style/ComboBox" />
+            </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp">
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="@dimen/mw_0dp" android:layout_height="wrap_content" android:text="@string/scale" android:layout_weight="1.0" />
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="@color/comm_white" android:id="@id/TVScale" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
+            <com.litao.slider.NiftySlider android:value="0" android:id="@id/SBScale" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_6dp" android:valueFrom="50" android:valueTo="300" app:thumbColor="#ffffffff" app:thumbHeight="@dimen/mw_14dp" app:thumbWidth="@dimen/mw_14dp" app:trackColor="#ff4d8fff" app:trackColorInactive="#33ffffff" app:trackCornersRadius="@dimen/mw_36dp" app:trackHeight="@dimen/mw_4dp" />
+            <LinearLayout android:orientation="vertical" android:id="@id/LLRangeOptions" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp">
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/range" />
+                <Spinner android:id="@id/SRange" android:layout_width="fill_parent" android:layout_marginTop="@dimen/mw_6dp" style="@style/ComboBox" />
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp" android:text="@string/orientation" />
+                <LinearLayout android:orientation="horizontal" android:id="@id/RGOrientation" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_8dp">
+                    <com.xj.lib.shape.layout.ShapeFrameLayout android:orientation="horizontal" android:id="@id/RBHorizontalFl" android:layout_width="@dimen/mw_0dp" android:layout_height="@dimen/mw_32dp" android:layout_weight="1.0" android:paddingStart="@dimen/mw_12dp" android:paddingEnd="@dimen/mw_12dp" app:xj_shape_radius="@dimen/mw_8dp" app:xj_shape_solidColor="@color/comm_transparent" app:xj_shape_solidSelectedColor="#755a6375" app:xj_shape_type="rectangle">
+                        <TextView android:textSize="@dimen/mw_14sp" android:textColor="#ffffffff" android:layout_gravity="start|center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/horizontal" />
+                        <ImageView android:layout_gravity="end|center" android:id="@id/RBHorizontal" android:layout_width="@dimen/mw_24dp" android:layout_height="@dimen/mw_24dp" android:src="@drawable/icon_un_check_profile" />
+                    </com.xj.lib.shape.layout.ShapeFrameLayout>
+                    <com.xj.lib.shape.layout.ShapeFrameLayout android:orientation="horizontal" android:id="@id/RBVerticalFl" android:layout_width="@dimen/mw_0dp" android:layout_height="@dimen/mw_32dp" android:layout_weight="1.0" android:paddingStart="@dimen/mw_12dp" android:paddingEnd="@dimen/mw_12dp" android:layout_marginStart="@dimen/mw_20dp" app:xj_shape_radius="@dimen/mw_8dp" app:xj_shape_solidColor="@color/comm_transparent" app:xj_shape_solidSelectedColor="#755a6375" app:xj_shape_type="rectangle">
+                        <TextView android:textSize="@dimen/mw_14sp" android:textColor="#ffffffff" android:layout_gravity="start|center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/vertical" />
+                        <ImageView android:layout_gravity="end|center" android:id="@id/RBVertical" android:layout_width="@dimen/mw_24dp" android:layout_height="@dimen/mw_24dp" android:src="@drawable/icon_un_check_profile" />
+                    </com.xj.lib.shape.layout.ShapeFrameLayout>
+                </LinearLayout>
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp" android:text="@string/columns" />
+                <com.xj.pcvirtualbtn.inputcontrols.NumberPicker android:id="@id/NPColumns" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp" app:maxValue="8" app:minValue="3" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:id="@id/LLBindings" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp" />
+            <LinearLayout android:orientation="vertical" android:id="@id/LLDPadBindings" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/binding_up" />
+                <Spinner android:id="@id/SBindingUp" android:layout_width="fill_parent" android:layout_marginTop="@dimen/mw_6dp" style="@style/ComboBox" />
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/binding_right" />
+                <Spinner android:id="@id/SBindingRight" android:layout_width="fill_parent" android:layout_marginTop="@dimen/mw_6dp" style="@style/ComboBox" />
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/binding_down" />
+                <Spinner android:id="@id/SBindingDown" android:layout_width="fill_parent" android:layout_marginTop="@dimen/mw_6dp" style="@style/ComboBox" />
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/binding_left" />
+                <Spinner android:id="@id/SBindingLeft" android:layout_width="fill_parent" android:layout_marginTop="@dimen/mw_6dp" style="@style/ComboBox" />
+            </LinearLayout>
+            <FrameLayout android:id="@id/CBToggleSwitchFl" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp">
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffffffff" android:layout_gravity="start|center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/toggle_switch" />
+                <ImageView android:layout_gravity="end|center" android:id="@id/CBToggleSwitch" android:focusable="false" android:focusableInTouchMode="false" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/pc_stream_switch_off_focus" android:layout_marginEnd="@dimen/mw_16dp" />
+            </FrameLayout>
+            <LinearLayout android:orientation="vertical" android:id="@id/LLCustomTextIcon" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp">
+                <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/custom_text" />
+                <EditText android:textColor="@color/comm_white" android:textColorHint="@color/comm_white" android:id="@id/ETCustomText" android:layout_width="fill_parent" android:layout_marginTop="@dimen/mw_6dp" android:hint="@string/none" android:maxLength="8" android:inputType="textCapCharacters" style="@style/EditText" />
+                <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_12dp">
+                    <TextView android:textSize="@dimen/mw_12sp" android:textColor="#ffb8bbc2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/icon" />
+                    <HorizontalScrollView android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mw_6dp">
+                        <LinearLayout android:orientation="horizontal" android:id="@id/LLIconList" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    </HorizontalScrollView>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
