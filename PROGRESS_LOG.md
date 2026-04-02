@@ -2967,3 +2967,12 @@ manifest download, install, launch, SDK cache + update checker.
 #### Files touched
 - extension/BhContainerCleanup.java (new)
 - patches/smali_classes3/com/xj/game/UninstallGameHelper.smali
+
+### [docs] — v2.8.4-pre — README virtual container section (2026-04-02)
+**Commit:** `ab7122c45`  |  **Tag:** v2.8.4-pre
+#### What changed
+- README: new "Virtual Container Cleanup on Uninstall" section
+- README: ToC entry added
+- v2.8.4-pre release description updated
+#### Files touched
+- README.md
