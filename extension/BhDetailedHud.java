@@ -93,85 +93,95 @@ public class BhDetailedHud extends LinearLayout implements Runnable {
         else buildVertical();
     }
 
-    /** Two-row horizontal layout with FPS+graph spanning full height on the right. */
+    /**
+     * Two-row horizontal layout built as vertical column groups so separators
+     * align perfectly between row 1 and row 2.
+     *
+     * Each "column" is a VERTICAL LinearLayout:  [row1 cell]
+     *                                             [row2 cell]
+     * Android auto-sizes each column to the wider of its two cells, so the
+     * "|" separator columns line up as a solid vertical divider between rows.
+     */
     private void buildHorizontal() {
         setOrientation(HORIZONTAL);
+        setPadding(6, 4, 6, 4);
 
-        // ── Left block: two stacked rows ─────────────────────────────────────
-        LinearLayout statsBlock = new LinearLayout(getContext());
-        statsBlock.setOrientation(VERTICAL);
-
-        // Row 1: TIME | CPU%/TMP | C0 | C2 | C4 | C6 | BAT/TMP
-        LinearLayout row1 = new LinearLayout(getContext());
-        row1.setOrientation(HORIZONTAL);
-        row1.setPadding(0, 2, 0, 1);
-
+        // Create all TextViews first
         tvTime   = makeLabel("--:--",    0xFFFFFFFF);
+        tvApi    = makeLabel("API",      0xFFCE93D8);
+
         tvCpu    = makeLabel("CPU --%",  0xFFFFFFFF);
         tvCpuTmp = makeLabel("/--°C",    0xFFEF9A9A);
-        tvCores[0] = makeLabel("C0:----", 0xFFCCCCCC);
-        tvCores[2] = makeLabel("C2:----", 0xFFCCCCCC);
-        tvCores[4] = makeLabel("C4:----", 0xFFCCCCCC);
-        tvCores[6] = makeLabel("C6:----", 0xFFCCCCCC);
+        tvGpu    = makeLabel("GPU --%",  0xFFFFAB91);
+        tvGpuTmp = makeLabel("/--°C",    0xFFEF9A9A);
+
+        for (int i = 0; i < 8; i++)
+            tvCores[i] = makeLabel("C" + i + ":----", 0xFFCCCCCC);
+
         tvBat    = makeLabel("BAT --W",  0xFFFFD54F);
         tvBatTmp = makeLabel("/--°C",    0xFFEF9A9A);
+        tvRam    = makeLabel("RAM --%",  0xFF90CAF9);
 
-        row1.addView(tvTime);       row1.addView(sep());
-        row1.addView(tvCpu);        row1.addView(tvCpuTmp);   row1.addView(sep());
-        row1.addView(tvCores[0]);   row1.addView(sep());
-        row1.addView(tvCores[2]);   row1.addView(sep());
-        row1.addView(tvCores[4]);   row1.addView(sep());
-        row1.addView(tvCores[6]);   row1.addView(sep());
-        row1.addView(tvBat);        row1.addView(tvBatTmp);
+        // Col 0: TIME / API
+        addColGroup(tvTime, tvApi);
+        addSepCol();
 
-        // Row 2: API | GPU%/TMP | C1 | C3 | C5 | C7 | RAM%
-        LinearLayout row2 = new LinearLayout(getContext());
-        row2.setOrientation(HORIZONTAL);
-        row2.setPadding(0, 1, 0, 2);
+        // Col 1: CPU%/TMP (inline) / GPU%/TMP (inline)
+        addColGroup(inlineRow(tvCpu, tvCpuTmp), inlineRow(tvGpu, tvGpuTmp));
+        addSepCol();
 
-        tvApi    = makeLabel("API",       0xFFCE93D8);
-        tvGpu    = makeLabel("GPU --%",   0xFFFFAB91);
-        tvGpuTmp = makeLabel("/--°C",     0xFFEF9A9A);
-        tvCores[1] = makeLabel("C1:----", 0xFFCCCCCC);
-        tvCores[3] = makeLabel("C3:----", 0xFFCCCCCC);
-        tvCores[5] = makeLabel("C5:----", 0xFFCCCCCC);
-        tvCores[7] = makeLabel("C7:----", 0xFFCCCCCC);
-        tvRam    = makeLabel("RAM --%",   0xFF90CAF9);
+        // Cols 2-5: paired cores C0/C1, C2/C3, C4/C5, C6/C7
+        for (int i = 0; i < 8; i += 2) {
+            addColGroup(tvCores[i], tvCores[i + 1]);
+            addSepCol();
+        }
 
-        row2.addView(tvApi);        row2.addView(sep());
-        row2.addView(tvGpu);        row2.addView(tvGpuTmp);   row2.addView(sep());
-        row2.addView(tvCores[1]);   row2.addView(sep());
-        row2.addView(tvCores[3]);   row2.addView(sep());
-        row2.addView(tvCores[5]);   row2.addView(sep());
-        row2.addView(tvCores[7]);   row2.addView(sep());
-        row2.addView(tvRam);
+        // Col 6: BAT W/TMP (inline) / RAM%
+        addColGroup(inlineRow(tvBat, tvBatTmp), tvRam);
 
-        statsBlock.addView(row1, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        statsBlock.addView(row2, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        // ── Right block: FPS label on top, graph fills below (full height of 2 rows) ─
+        // FPS block: label (row1) + graph (row2), spans full height via MATCH_PARENT
         LinearLayout fpsBlock = new LinearLayout(getContext());
         fpsBlock.setOrientation(VERTICAL);
-        fpsBlock.setPadding(dp(6), 2, 0, 2);
+        fpsBlock.setPadding(dp(6), 0, 0, 0);
 
         tvFps = makeLabel("FPS --", 0xFF76FF03);
-        LinearLayout.LayoutParams fpsLabelLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        LinearLayout.LayoutParams fpsLabelLp = new LinearLayout.LayoutParams(-2, -2);
         fpsLabelLp.gravity = Gravity.CENTER_HORIZONTAL;
         fpsBlock.addView(tvFps, fpsLabelLp);
 
         fpsGraph = new FpsGraphView(getContext());
         LinearLayout.LayoutParams graphLp = new LinearLayout.LayoutParams(dp(56), 0, 1f);
-        graphLp.topMargin = dp(2);
+        graphLp.topMargin = dp(1);
         fpsBlock.addView(fpsGraph, graphLp);
 
-        addView(statsBlock, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        // MATCH_PARENT height so fpsBlock fills the combined height of the two rows
-        addView(fpsBlock, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
+        addView(fpsBlock, new LinearLayout.LayoutParams(-2, -1)); // MATCH_PARENT height
+    }
+
+    /** Wraps two views in a VERTICAL LinearLayout (one column, two rows). */
+    private void addColGroup(View top, View bottom) {
+        LinearLayout col = new LinearLayout(getContext());
+        col.setOrientation(VERTICAL);
+        col.addView(top,    new LinearLayout.LayoutParams(-2, -2));
+        col.addView(bottom, new LinearLayout.LayoutParams(-2, -2));
+        addView(col, new LinearLayout.LayoutParams(-2, -2));
+    }
+
+    /** Adds a separator column — two stacked "|" chars, one per row. */
+    private void addSepCol() {
+        LinearLayout col = new LinearLayout(getContext());
+        col.setOrientation(VERTICAL);
+        col.addView(sep(), new LinearLayout.LayoutParams(-2, -2));
+        col.addView(sep(), new LinearLayout.LayoutParams(-2, -2));
+        addView(col, new LinearLayout.LayoutParams(-2, -2));
+    }
+
+    /** Wraps two views side-by-side in a HORIZONTAL LinearLayout (for inline stat+temp). */
+    private LinearLayout inlineRow(View a, View b) {
+        LinearLayout ll = new LinearLayout(getContext());
+        ll.setOrientation(HORIZONTAL);
+        ll.addView(a, new LinearLayout.LayoutParams(-2, -2));
+        ll.addView(b, new LinearLayout.LayoutParams(-2, -2));
+        return ll;
     }
 
     /** Single-column vertical layout. */
