@@ -4095,6 +4095,41 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 **CI Phase 4:** ✅ run 23707604129  |  **CI Phase 5:** ✅ run 23707686644
 
 ---
+## Entry 129 — feat: BhDetailedHud extra detail overlay (v2.8.3-pre, 2026-04-02)
+
+**Branch:** main | **Commit:** `5ab0566be` | **Tag:** v2.8.3-pre | **CI:** ✅ run 23882828021
+
+**Root cause / motivation:** Extra Detailed checkbox was grayed out permanently. User wanted a proper second HUD that shows per-core MHz, per-stat temperatures, and SWAP alongside all existing stats, replacing the normal HUD only when both toggles are on.
+
+**Files created:**
+- `[NEW] extension/BhDetailedHud.java` — new Java class compiled to classes18.dex
+  - `BhDetailedHud(Context)` — constructor: builds layout, sets drag touch listener
+  - `buildLayout()` — resets all view refs, calls buildHorizontal() or buildVertical()
+  - `buildHorizontal()` — 2-row stats block + MATCH_PARENT height FPS block (right)
+  - `buildVertical()` — single-column, all stats including GPU MHz + SWAP
+  - `toggleOrientation()` — flip isVertical, rebuild layout, reclampPosition()
+  - `reclampPosition()` — measure unconstrained, clamp leftMargin + translationY
+  - `makeDragListener()` — tap=toggle, drag=reposition+persist (hud_detail_pos_x/y)
+  - `onAttachedToWindow()` — restore orientation+position from prefs, start update thread
+  - `run()` — 1-second loop: read all stats, post UI updates
+  - `readCpuTemp()` — scan thermal_zone*/type for cpu-cluster/cpu0-thermal/cpu
+  - `readGpuTemp()` — kgsl sysfs /sys/class/kgsl/kgsl-3d0/temp, then thermal zone scan
+  - `readBatTemp()` — /sys/class/power_supply/battery/temp / 10
+  - `readSwap()` — /proc/meminfo SwapTotal/SwapFree → [usedGB, totalGB]
+
+**Files modified:**
+- `[MOD] patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
+  - Label changed: "Extra Detailed (coming soon)" → "Extra Detailed"
+  - `:cond_extra_cb_exists` block rewritten: re-reads winlator_hud pref; if ON: enable, 1.0 alpha, restore hud_extra_detail, wire BhHudExtraDetailListener; if OFF: disable, 0.5 alpha, force unchecked
+- `[MOD] patches/smali_classes16/com/xj/winemu/sidebar/BhHudInjector.smali`
+  - Full rewrite of `injectOrUpdate()`: .locals 7→11; now reads both winlator_hud + hud_extra_detail prefs; manages BhFrameRating AND BhDetailedHud (bh_detailed_hud tag) visibility with create-if-needed logic
+- `[MOD] patches/smali_classes16/com/xj/winemu/sidebar/BhHudStyleSwitchListener.smali`
+  - .locals 6→8; after BhFrameRating visibility update: finds bh_hud_extra_cb, on HUD-off: disable+0.5alpha+uncheck+clear hud_extra_detail pref+hide BhDetailedHud; on HUD-on: enable+1.0alpha
+- `[MOD] patches/smali_classes16/com/xj/winemu/sidebar/BhHudExtraDetailListener.smali`
+  - Full rewrite: .locals 3→10; saves pref then gets DecorView, finds both HUDs by tag; checked → hide BhFrameRating + show/create BhDetailedHud; unchecked → show BhFrameRating + hide BhDetailedHud
+
+---
+
 ## Entry 128 — perf: parallel GOG downloads, fix Amazon batch stall, 128KB buffer (v2.8.2-pre, 2026-04-01)
 
 **Branch:** main | **Commit:** `3d51b5c47` | **Tag:** v2.8.2-pre | **CI:** queued

@@ -4,6 +4,22 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [feat] — v2.8.3-pre — Extra Detailed HUD overlay (2026-04-02)
+**Branch:** `main`  |  **Tag:** v2.8.3-pre
+**Commit:** `5ab0566be`  |  **CI:** ✅ run 23882828021
+**What changed:**
+- New `BhDetailedHud.java` (classes18.dex): 2-row horizontal HUD + vertical tap-toggle
+  - Horizontal: TIME/CPU%/CPU°C/cores C0-C7/BAT W/BAT°C (row1) + API/GPU%/GPU°C/RAM%/FPS graph (row2)
+  - Vertical: all stats in one column including GPU MHz, SWAP used/total GB
+  - Per-stat individual temperatures (CPU cluster, GPU kgsl, battery)
+  - Drag to reposition, position persists (hud_detail_pos_x/y), shared hud_opacity
+- `BhPerfSetupDelegate.smali`: Extra Detail checkbox enabled only when HUD is ON; wires listener
+- `BhHudInjector.smali`: manages both HUDs — shows correct one based on both prefs
+- `BhHudStyleSwitchListener.smali`: HUD toggle off clears/disables Extra Detail, hides BhDetailedHud
+- `BhHudExtraDetailListener.smali`: swaps BhFrameRating ↔ BhDetailedHud on checkbox change
+
+---
+
 ## [stable] — v2.8.2 — Controller navigation, store UI polish, perf improvements (2026-04-02)
 **Branch:** `main`  |  **Tag:** v2.8.2
 **Commit:** `6a2c8d160`  |  **CI:** ✅ run 23879145996 (9 APKs)
