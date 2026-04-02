@@ -116,73 +116,74 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
 
     private void buildVertical() {
         setOrientation(VERTICAL);
-        setMinimumWidth(dp(170));
 
-        // FPS — label normal size, value large
+        // ── FPS section ──────────────────────────────────────────────────────
         tvFpsVal = makeBigVal("--");
         addView(makeTwoColRow("FPS", COL_WHITE, 0, false, tvFpsVal), rowLp());
+        addView(makeDivider());
 
-        // CPU% + temp inline
+        // ── CPU section ───────────────────────────────────────────────────────
         tvCpuPct  = makeVal("--%", COL_WHITE);
         tvCpuTemp = makeVal("--\u00b0C", COL_ORANGE);
-        LinearLayout cpuRow = makeInlineRow("CPU", tvCpuPct, tvCpuTemp);
-        addView(cpuRow, rowLp());
+        addView(makeInlineRow("CPU", tvCpuPct, tvCpuTemp), rowLp());
 
-        // Per-core MHz
         for (int i = 0; i < 8; i++) {
             tvCores[i] = makeVal("----MHz", COL_GRAY);
             addView(makeTwoColRow("CPU" + i, COL_GRAY, 0, true, tvCores[i]), rowLp());
         }
+        addView(makeDivider());
 
-        // GPU% + temp inline
+        // ── GPU section ───────────────────────────────────────────────────────
         tvGpuPct  = makeVal("--%", COL_WHITE);
         tvGpuTemp = makeVal("--\u00b0C", COL_ORANGE);
         addView(makeInlineRow("GPU", tvGpuPct, tvGpuTemp), rowLp());
 
-        // GPU name (full width label row)
+        // GPU name (left) + MHz (right) on same row — no indent
         tvGpuName = makeVal("Adreno", COL_GRAY);
-        LinearLayout gpuNameRow = makeFullRow();
-        gpuNameRow.addView(makeLabel("   ", COL_DIM)); // indent
-        gpuNameRow.addView(tvGpuName);
-        addView(gpuNameRow, rowLp());
-
-        // GPU freq | res
         tvGpuFreq = makeVal("--MHz", COL_GRAY);
-        tvGpuRes  = makeVal("", COL_GRAY);
-        LinearLayout gpuFreqRow = makeFullRow();
-        gpuFreqRow.addView(makeLabel("   ", COL_DIM));
-        gpuFreqRow.addView(tvGpuFreq);
-        gpuFreqRow.addView(makeSepView());
-        gpuFreqRow.addView(tvGpuRes);
-        addView(gpuFreqRow, rowLp());
+        addView(makeTwoColRow2(tvGpuName, tvGpuFreq), rowLp());
 
-        // MODE
+        // Resolution on its own row, right-aligned
+        tvGpuRes = makeVal("----x----", COL_GRAY);
+        LinearLayout resRow = makeFullRow();
+        View resSpacer = new View(getContext());
+        resRow.addView(resSpacer, new LinearLayout.LayoutParams(0, 1, 1f));
+        resRow.addView(tvGpuRes, new LinearLayout.LayoutParams(-2, -2));
+        addView(resRow, rowLp());
+        addView(makeDivider());
+
+        // ── Thermal / Power section ───────────────────────────────────────────
         tvModeVal = makeVal("NORM", COL_WHITE);
         addView(makeTwoColRow("MODE", COL_WHITE, 0, false, tvModeVal), rowLp());
 
-        // FAN
         tvFanVal = makeVal("---", COL_WHITE);
         addView(makeTwoColRow("FAN", COL_WHITE, 0, false, tvFanVal), rowLp());
 
-        // SKN
         tvSknVal = makeVal("--\u00b0C", COL_ORANGE);
         addView(makeTwoColRow("SKN", COL_WHITE, 0, false, tvSknVal), rowLp());
 
-        // PWR
-        tvPwrVal = makeVal("\u26a1--W", COL_WHITE);
+        tvPwrVal = makeVal("--W", COL_WHITE);
         addView(makeTwoColRow("PWR", COL_WHITE, 0, false, tvPwrVal), rowLp());
+        addView(makeDivider());
 
-        // RAM (brown label background)
+        // ── Memory section ────────────────────────────────────────────────────
+        // RAM — entire row has brown background
         tvRamVal = makeVal("--G/--G", COL_WHITE);
-        addView(makeTwoColRow("RAM", COL_WHITE, BG_RAM, false, tvRamVal), rowLp());
+        LinearLayout ramRow = makeTwoColRow("RAM", COL_WHITE, 0, false, tvRamVal);
+        ramRow.setBackgroundColor(BG_RAM);
+        addView(ramRow, rowLp());
 
-        // SWAP (gray label background)
+        // SWAP — entire row has gray background
         tvSwapVal = makeVal("--G/--G", COL_WHITE);
-        addView(makeTwoColRow("SWAP", COL_WHITE, BG_SWAP, false, tvSwapVal), rowLp());
+        LinearLayout swapRow = makeTwoColRow("SWAP", COL_WHITE, 0, false, tvSwapVal);
+        swapRow.setBackgroundColor(BG_SWAP);
+        addView(swapRow, rowLp());
 
-        // BAT (blue proportional fill)
+        // BAT — blue proportional fill spanning full row width
         tvBatPct = makeVal("--%", COL_WHITE);
         addView(makeBatRowView(), rowLp());
+
+        addView(makeDivider());
 
         // TIME
         tvTimeVal = makeVal("--:--", COL_WHITE);
@@ -211,6 +212,18 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         return row;
     }
 
+    /** Two-value row: [val1 (left)] [spacer] [val2 (right)] — no bold label */
+    private LinearLayout makeTwoColRow2(TextView left, TextView right) {
+        LinearLayout row = makeFullRow();
+        row.addView(left, new LinearLayout.LayoutParams(-2, -2));
+        View spacer = new View(getContext());
+        row.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
+        LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(-2, -2);
+        rLp.gravity = Gravity.CENTER_VERTICAL | Gravity.END;
+        row.addView(right, rLp);
+        return row;
+    }
+
     /** Inline row: [label min width] [val1] [sep] [val2] with spacer at end for alignment */
     private LinearLayout makeInlineRow(String label, TextView val1, TextView val2) {
         LinearLayout row = makeFullRow();
@@ -223,6 +236,17 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         View spacer = new View(getContext());
         row.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
         return row;
+    }
+
+    /** Thin horizontal section divider */
+    private View makeDivider() {
+        View v = new View(getContext());
+        v.setBackgroundColor(0x44FFFFFF);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(1));
+        lp.topMargin = dp(1);
+        lp.bottomMargin = dp(1);
+        v.setLayoutParams(lp);
+        return v;
     }
 
     /** BAT row: [blue fill (weighted)] [spacer (weighted)] [pct value] */
@@ -342,7 +366,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tvModeVal = makeVal("NORM", COL_WHITE);
         tvFanVal  = makeVal("---",  COL_WHITE);
         tvSknVal  = makeVal("--\u00b0C", COL_ORANGE);
-        tvPwrVal  = makeVal("\u26a1--W", COL_WHITE);
+        tvPwrVal  = makeVal("--W", COL_WHITE);
         thermValCol.addView(tvModeVal, wrapLp());
         thermValCol.addView(tvFanVal,  wrapLp());
         thermValCol.addView(tvSknVal,  wrapLp());
@@ -727,7 +751,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
                         if (tvFanVal != null) tvFanVal.setText(fan > 0 ? String.valueOf(fan) : "---");
                         if (tvSknVal != null) tvSknVal.setText(skn > 0 ? skn + "\u00b0C" : "--\u00b0C");
                         if (tvPwrVal != null) tvPwrVal.setText(
-                                pwr > 0 ? String.format("\u26a1%.1fW", pwr) : "\u26a1--W");
+                                pwr > 0 ? String.format("%.1fW", pwr) : "--W");
 
                         // RAM / SWAP
                         if (tvRamVal != null)
