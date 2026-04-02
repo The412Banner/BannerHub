@@ -91,6 +91,12 @@ public class BhDetailedHud extends LinearLayout implements Runnable {
         fpsGraph = null;
         if (!isVertical) buildHorizontal();
         else buildVertical();
+        // Re-apply opacity rules to freshly created TextViews (covers orientation toggles)
+        try {
+            int opacity = getContext().getSharedPreferences("bh_prefs", 0)
+                    .getInt("hud_opacity", 80);
+            applyBackgroundOpacity(opacity);
+        } catch (Exception ignored) {}
     }
 
     /**

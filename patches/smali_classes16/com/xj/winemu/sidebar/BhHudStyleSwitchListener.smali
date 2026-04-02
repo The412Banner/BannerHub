@@ -2,11 +2,11 @@
 .super Ljava/lang/Object;
 .source "SourceFile"
 
-# Toggles between GameHub HUD (UnifiedHUDView) and Winlator-style HUD (BhFrameRating).
-# When Winlator HUD is turned on:  shows BhFrameRating, hides GameHub hudLayer.
-# When Winlator HUD is turned off: hides BhFrameRating (hudLayer stays as-is).
+# Toggles the Winlator HUD.
+# Saves winlator_hud pref, clears hud_extra_detail when turning off,
+# updates Extra Detail checkbox state, delegates all HUD visibility to
+# BhHudInjector.injectOrUpdate(), and hides the GameHub hudLayer when ON.
 
-# interfaces
 .implements Lkotlin/jvm/functions/Function0;
 
 .annotation system Ldalvik/annotation/Signature;
@@ -18,11 +18,9 @@
     }
 .end annotation
 
-# instance fields
 .field public final synthetic a:Lcom/xj/winemu/view/SidebarSwitchItemView;
 .field public final synthetic b:Landroid/content/Context;
 
-# direct methods
 .method public synthetic constructor <init>(Lcom/xj/winemu/view/SidebarSwitchItemView;Landroid/content/Context;)V
     .locals 0
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -31,108 +29,88 @@
     return-void
 .end method
 
-# virtual methods
 .method public final invoke()Ljava/lang/Object;
     .locals 8
 
-    # Toggle switch state
+    # ── Toggle switch, v1 = new state (1=on, 0=off) ──────────────────────────
     iget-object v0, p0, Lcom/xj/winemu/sidebar/BhHudStyleSwitchListener;->a:Lcom/xj/winemu/view/SidebarSwitchItemView;
     invoke-virtual {v0}, Lcom/xj/winemu/view/SidebarSwitchItemView;->getSwitchState()Z
     move-result v1
     xor-int/lit8 v1, v1, 0x1
     invoke-virtual {v0, v1}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setSwitch(Z)V
 
-    # Save "winlator_hud" pref
+    # ── Get SharedPreferences (v3) ────────────────────────────────────────────
     iget-object v2, p0, Lcom/xj/winemu/sidebar/BhHudStyleSwitchListener;->b:Landroid/content/Context;
     const-string v3, "bh_prefs"
     const/4 v4, 0x0
     invoke-virtual {v2, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
     move-result-object v3
+
+    # ── Save winlator_hud pref ────────────────────────────────────────────────
     invoke-interface {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
-    move-result-object v3
-    const-string v4, "winlator_hud"
-    invoke-interface {v3, v4, v1}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
-    invoke-interface {v3}, Landroid/content/SharedPreferences$Editor;->apply()V
-
-    # Get DecorView
-    iget-object v2, p0, Lcom/xj/winemu/sidebar/BhHudStyleSwitchListener;->b:Landroid/content/Context;
-    check-cast v2, Landroid/app/Activity;
-    invoke-virtual {v2}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
-    move-result-object v2
-    invoke-virtual {v2}, Landroid/view/Window;->getDecorView()Landroid/view/View;
-    move-result-object v2
-
-    # Update BhFrameRating visibility
-    const-string v3, "bh_frame_rating"
-    invoke-virtual {v2, v3}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
-    move-result-object v3
-    if-eqz v3, :cond_hud_layer
-
-    if-eqz v1, :fr_gone
-    const/4 v4, 0x0
-    goto :fr_set_vis
-    :fr_gone
-    const/16 v4, 0x8
-    :fr_set_vis
-    invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
-
-    # ── Update Extra Detail checkbox enabled/disabled state ───────────────
-    const-string v3, "bh_hud_extra_cb"
-    invoke-virtual {v2, v3}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
-    move-result-object v3
-    if-eqz v3, :cond_hud_layer
-
-    check-cast v3, Landroid/widget/CheckBox;
-
-    if-nez v1, :cb_enable_hud
-
-    # HUD turning OFF: disable checkbox, half-alpha, force unchecked, clear pref
-    const/4 v4, 0x0
-    invoke-virtual {v3, v4}, Landroid/widget/CompoundButton;->setChecked(Z)V
-    invoke-virtual {v3, v4}, Landroid/view/View;->setEnabled(Z)V
-    const v4, 0x3f000000
-    invoke-virtual {v3, v4}, Landroid/view/View;->setAlpha(F)V
-
-    # Clear hud_extra_detail pref so next HUD-on starts unchecked
-    iget-object v4, p0, Lcom/xj/winemu/sidebar/BhHudStyleSwitchListener;->b:Landroid/content/Context;
-    const-string v5, "bh_prefs"
-    const/4 v6, 0x0
-    invoke-virtual {v4, v5, v6}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
     move-result-object v4
-    invoke-interface {v4}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    const-string v5, "winlator_hud"
+    invoke-interface {v4, v5, v1}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+    invoke-interface {v4}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # ── If HUD turning OFF: clear hud_extra_detail pref ──────────────────────
+    if-nez v1, :get_decor
+
+    invoke-interface {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
     move-result-object v4
     const-string v5, "hud_extra_detail"
     const/4 v6, 0x0
     invoke-interface {v4, v5, v6}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
     invoke-interface {v4}, Landroid/content/SharedPreferences$Editor;->apply()V
 
-    # Hide BhDetailedHud if it exists
-    const-string v4, "bh_detailed_hud"
-    invoke-virtual {v2, v4}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
+    # ── Get DecorView (v4) ────────────────────────────────────────────────────
+    :get_decor
+    iget-object v2, p0, Lcom/xj/winemu/sidebar/BhHudStyleSwitchListener;->b:Landroid/content/Context;
+    check-cast v2, Landroid/app/Activity;
+    invoke-virtual {v2}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
     move-result-object v4
-    if-eqz v4, :cond_hud_layer
-    const/16 v5, 0x8
-    invoke-virtual {v4, v5}, Landroid/view/View;->setVisibility(I)V
-    goto :cond_hud_layer
+    invoke-virtual {v4}, Landroid/view/Window;->getDecorView()Landroid/view/View;
+    move-result-object v4
 
-    :cb_enable_hud
-    # HUD turning ON: enable checkbox, full alpha
-    const/4 v4, 0x1
-    invoke-virtual {v3, v4}, Landroid/view/View;->setEnabled(Z)V
-    const v4, 0x3f800000
-    invoke-virtual {v3, v4}, Landroid/view/View;->setAlpha(F)V
+    # ── Update Extra Detail checkbox enabled/alpha state ─────────────────────
+    const-string v5, "bh_hud_extra_cb"
+    invoke-virtual {v4, v5}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
+    move-result-object v5
+    if-eqz v5, :update_huds
 
-    # If turning Winlator HUD on: hide GameHub hudLayer to avoid double overlay
-    :cond_hud_layer
+    check-cast v5, Landroid/widget/CheckBox;
+
+    if-nez v1, :cb_enable
+
+    # HUD OFF: disable, half-alpha, force unchecked
+    const/4 v6, 0x0
+    invoke-virtual {v5, v6}, Landroid/widget/CompoundButton;->setChecked(Z)V
+    invoke-virtual {v5, v6}, Landroid/view/View;->setEnabled(Z)V
+    const v6, 0x3f000000
+    invoke-virtual {v5, v6}, Landroid/view/View;->setAlpha(F)V
+    goto :update_huds
+
+    :cb_enable
+    # HUD ON: enable, full alpha
+    const/4 v6, 0x1
+    invoke-virtual {v5, v6}, Landroid/view/View;->setEnabled(Z)V
+    const v6, 0x3f800000
+    invoke-virtual {v5, v6}, Landroid/view/View;->setAlpha(F)V
+
+    # ── Delegate all HUD creation/visibility to BhHudInjector ────────────────
+    :update_huds
+    invoke-static {v2}, Lcom/xj/winemu/sidebar/BhHudInjector;->injectOrUpdate(Landroid/app/Activity;)V
+
+    # ── If HUD ON: hide GameHub hudLayer to avoid double overlay ─────────────
     if-eqz v1, :done
 
-    const v3, 0x7f0a050b
-    invoke-virtual {v2, v3}, Landroid/view/View;->findViewById(I)Landroid/view/View;
-    move-result-object v3
-    if-eqz v3, :done
+    const v5, 0x7f0a050b
+    invoke-virtual {v4, v5}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    move-result-object v5
+    if-eqz v5, :done
 
-    const/16 v4, 0x8
-    invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
+    const/16 v6, 0x8
+    invoke-virtual {v5, v6}, Landroid/view/View;->setVisibility(I)V
 
     :done
     sget-object v0, Lkotlin/Unit;->a:Lkotlin/Unit;
