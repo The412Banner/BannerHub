@@ -155,8 +155,8 @@
     const-string v4, "bh_hud_extra_cb"
     invoke-virtual {v3, v4}, Landroid/view/View;->setTag(Ljava/lang/Object;)V
 
-    # setText("Extra Detailed (coming soon)")
-    const-string v4, "Extra Detailed (coming soon)"
+    # setText("Extra Detailed")
+    const-string v4, "Extra Detailed"
     invoke-virtual {v3, v4}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
     # setTextColor(gray — grayed out, feature not yet ready)
@@ -187,12 +187,41 @@
     :cond_extra_cb_exists
     check-cast v3, Landroid/widget/CheckBox;
 
-    # Grayed out / disabled — feature coming soon; force unchecked and disable
-    const/4 v4, 0x0
-    invoke-virtual {v3, v4}, Landroid/widget/CompoundButton;->setChecked(Z)V
-    invoke-virtual {v3, v4}, Landroid/view/View;->setEnabled(Z)V
+    # Re-read winlator_hud pref to decide enabled state
+    const-string v4, "winlator_hud"
+    const/4 v5, 0x0
+    invoke-interface {v2, v4, v5}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v4
 
-    # No listener — disabled checkbox should not fire changes
+    if-eqz v4, :cb_disable
+
+    # HUD is ON: enable checkbox, full alpha, restore pref state, set listener
+    const/4 v5, 0x1
+    invoke-virtual {v3, v5}, Landroid/view/View;->setEnabled(Z)V
+    const v5, 0x3f800000
+    invoke-virtual {v3, v5}, Landroid/view/View;->setAlpha(F)V
+
+    const-string v5, "hud_extra_detail"
+    const/4 v6, 0x0
+    invoke-interface {v2, v5, v6}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v5
+    invoke-virtual {v3, v5}, Landroid/widget/CompoundButton;->setChecked(Z)V
+
+    new-instance v5, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;
+    invoke-direct {v5, v1}, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;-><init>(Landroid/content/Context;)V
+    invoke-virtual {v3, v5}, Landroid/widget/CompoundButton;->setOnCheckedChangeListener(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V
+
+    goto :cb_done
+
+    :cb_disable
+    # HUD is OFF: disable, half-alpha, force unchecked
+    const/4 v5, 0x0
+    invoke-virtual {v3, v5}, Landroid/widget/CompoundButton;->setChecked(Z)V
+    invoke-virtual {v3, v5}, Landroid/view/View;->setEnabled(Z)V
+    const v5, 0x3f000000
+    invoke-virtual {v3, v5}, Landroid/view/View;->setAlpha(F)V
+
+    :cb_done
 
     # ── HUD Opacity label ────────────────────────────────────────────────────
     const-string v3, "bh_hud_opacity_label"

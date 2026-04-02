@@ -33,7 +33,7 @@
 
 # virtual methods
 .method public final invoke()Ljava/lang/Object;
-    .locals 6
+    .locals 8
 
     # Toggle switch state
     iget-object v0, p0, Lcom/xj/winemu/sidebar/BhHudStyleSwitchListener;->a:Lcom/xj/winemu/view/SidebarSwitchItemView;
@@ -75,6 +75,52 @@
     const/16 v4, 0x8
     :fr_set_vis
     invoke-virtual {v3, v4}, Landroid/view/View;->setVisibility(I)V
+
+    # ── Update Extra Detail checkbox enabled/disabled state ───────────────
+    const-string v3, "bh_hud_extra_cb"
+    invoke-virtual {v2, v3}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
+    move-result-object v3
+    if-eqz v3, :cond_hud_layer
+
+    check-cast v3, Landroid/widget/CheckBox;
+
+    if-nez v1, :cb_enable_hud
+
+    # HUD turning OFF: disable checkbox, half-alpha, force unchecked, clear pref
+    const/4 v4, 0x0
+    invoke-virtual {v3, v4}, Landroid/widget/CompoundButton;->setChecked(Z)V
+    invoke-virtual {v3, v4}, Landroid/view/View;->setEnabled(Z)V
+    const v4, 0x3f000000
+    invoke-virtual {v3, v4}, Landroid/view/View;->setAlpha(F)V
+
+    # Clear hud_extra_detail pref so next HUD-on starts unchecked
+    iget-object v4, p0, Lcom/xj/winemu/sidebar/BhHudStyleSwitchListener;->b:Landroid/content/Context;
+    const-string v5, "bh_prefs"
+    const/4 v6, 0x0
+    invoke-virtual {v4, v5, v6}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v4
+    invoke-interface {v4}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v4
+    const-string v5, "hud_extra_detail"
+    const/4 v6, 0x0
+    invoke-interface {v4, v5, v6}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+    invoke-interface {v4}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # Hide BhDetailedHud if it exists
+    const-string v4, "bh_detailed_hud"
+    invoke-virtual {v2, v4}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
+    move-result-object v4
+    if-eqz v4, :cond_hud_layer
+    const/16 v5, 0x8
+    invoke-virtual {v4, v5}, Landroid/view/View;->setVisibility(I)V
+    goto :cond_hud_layer
+
+    :cb_enable_hud
+    # HUD turning ON: enable checkbox, full alpha
+    const/4 v4, 0x1
+    invoke-virtual {v3, v4}, Landroid/view/View;->setEnabled(Z)V
+    const v4, 0x3f800000
+    invoke-virtual {v3, v4}, Landroid/view/View;->setAlpha(F)V
 
     # If turning Winlator HUD on: hide GameHub hudLayer to avoid double overlay
     :cond_hud_layer
