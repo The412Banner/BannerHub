@@ -258,7 +258,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
     private void buildHorizontal() {
         setOrientation(HORIZONTAL);
 
-        // ── Col 0: FPS block ──
+        // ── Col 0: FPS block ── (label + big number only, matching original)
         LinearLayout fpsCol = makeVCol();
 
         TextView fpsHeader = makeLabel("FPS", COL_WHITE);
@@ -269,24 +269,25 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         bigLp.gravity = Gravity.CENTER_HORIZONTAL;
         fpsCol.addView(tvFpsVal, bigLp);
 
-        tvFpsMin = makeVal("--", COL_GRAY);
-        LinearLayout.LayoutParams minLp = new LinearLayout.LayoutParams(-2, -2);
-        minLp.gravity = Gravity.CENTER_HORIZONTAL;
-        fpsCol.addView(tvFpsMin, minLp);
-
-        tvFpsCpuTmp = makeVal("--\u00b0C", COL_ORANGE);
-        LinearLayout.LayoutParams tmpLp = new LinearLayout.LayoutParams(-2, -2);
-        tmpLp.gravity = Gravity.CENTER_HORIZONTAL;
-        fpsCol.addView(tvFpsCpuTmp, tmpLp);
-
-        addView(fpsCol, new LinearLayout.LayoutParams(-2, -2)); // WRAP_CONTENT height — drives HUD height (tallest col)
+        addView(fpsCol, new LinearLayout.LayoutParams(-2, -2)); // WRAP_CONTENT height — drives HUD height
         addView(makeSepCol());
 
-        // ── Col 1: CPU block ──
+        // ── Col 1: CPU block ── (label / % / temp stacked, matching original)
         LinearLayout cpuCol = makeVCol();
 
-        tvCpuPct = makeVal("CPU --%", COL_WHITE);
+        cpuCol.addView(makeLabel("CPU", COL_WHITE), wrapLp());
+
+        tvCpuPct = makeVal("--%", COL_WHITE);
         cpuCol.addView(tvCpuPct, wrapLp());
+
+        tvCpuTemp = makeVal("--\u00b0C", COL_ORANGE);
+        cpuCol.addView(tvCpuTemp, wrapLp());
+
+        addView(cpuCol, new LinearLayout.LayoutParams(-2, -1));
+        addView(makeSepCol());
+
+        // ── Col 2: CPU cores ── (2 rows of 4, matching original)
+        LinearLayout coreCol = makeVCol();
 
         // 8 cores in 2 rows of 4
         LinearLayout coreRow1 = makeHRow();
@@ -297,13 +298,10 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
             if (i < 4) coreRow1.addView(tvCores[i], wrapLp());
             else        coreRow2.addView(tvCores[i], wrapLp());
         }
-        cpuCol.addView(coreRow1, wrapLp());
-        cpuCol.addView(coreRow2, wrapLp());
+        coreCol.addView(coreRow1, wrapLp());
+        coreCol.addView(coreRow2, wrapLp());
 
-        // Pad 4th row to match FPS col height
-        cpuCol.addView(new View(getContext()), new LinearLayout.LayoutParams(0, 0, 1f));
-
-        addView(cpuCol, new LinearLayout.LayoutParams(-2, -1));
+        addView(coreCol, new LinearLayout.LayoutParams(-2, -1));
         addView(makeSepCol());
 
         // ── Col 2: GPU block ──
