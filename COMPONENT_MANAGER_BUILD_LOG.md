@@ -4225,4 +4225,4 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 - `.github/workflows/build-quick.yml` — new "Apply Settings Import/Export smali patch" step
 - `.github/workflows/build.yml` — same step in prepare job
 
-**CI:** ⏳
+**CI:** ⏳ run 23953526581

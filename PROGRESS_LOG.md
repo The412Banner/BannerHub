@@ -3070,4 +3070,4 @@ manifest download, install, launch, SDK cache + update checker.
 **Feature:** Users can share game configs via JSON. "Export Config" saves `pc_g_setting<id>` SP to `/sdcard/BannerHub/configs/<gamename>-<devicename>.json`. "Import Config" lists available files and applies selected one's settings to the current game.
 **Access:** Two new options in the game "..." settings menu (My Games → long-press → settings).
 **Files:** `extension/BhSettingsExporter.java`, `patches/smali/…/BhExportLambda.smali`, `patches/smali/…/BhImportLambda.smali`, both CI workflows (new smali patch step).
-**CI:** ⏳
+**CI:** ⏳ run 23953526581
