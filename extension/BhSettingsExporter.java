@@ -13,11 +13,13 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -30,9 +32,10 @@ import java.util.Map;
  * BhSettingsExporter — per-game settings import/export with component bundling.
  *
  * Export: reads pc_g_setting<gameId> SharedPreferences + installed custom components
- *         → JSON saved as /sdcard/BannerHub/configs/<gamename>-<model>.json
+ *         → JSON saved locally and/or uploaded to community backend
  *
- * Import: applies settings, detects missing components, offers to download+inject them.
+ * Import: from local file or community download → applies settings,
+ *         detects missing components, offers to download+inject them.
  */
 public class BhSettingsExporter {
     private static final String SP_PREFIX    = "pc_g_setting";
@@ -41,9 +44,30 @@ public class BhSettingsExporter {
     private static final String INJECTOR_CLS =
             "com.xj.landscape.launcher.ui.menu.ComponentInjectorHelper";
 
-    // ─── Export ──────────────────────────────────────────────────────────────
+    private static final String WORKER_BASE  =
+            "https://bannerhub-configs-worker.the412banner.workers.dev";
+    private static final String AUTH_SECRET  = "gyNvMJCsUTT2ICR2FgLaHGCzVdqgWbDw";
 
+    // ─── Export entry point ──────────────────────────────────────────────────
+
+    public static void showExportDialog(Context ctx, int gameId, String gameName) {
+        new AlertDialog.Builder(ctx)
+                .setTitle("Export Config — " + gameName)
+                .setItems(new String[]{"Save Locally", "Save Locally + Share Online"},
+                        (dialog, which) -> {
+                            boolean share = (which == 1);
+                            doExport(ctx, gameId, gameName, share);
+                        })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // kept for backward compatibility (called from existing smali injection)
     public static void exportConfig(Context ctx, int gameId, String gameName) {
+        showExportDialog(ctx, gameId, gameName);
+    }
+
+    private static void doExport(Context ctx, int gameId, String gameName, boolean share) {
         try {
             // Game settings
             SharedPreferences sp = ctx.getSharedPreferences(SP_PREFIX + gameId, Context.MODE_PRIVATE);
@@ -59,18 +83,68 @@ public class BhSettingsExporter {
             json.put("settings", settings);
             json.put("components", components);
 
-            String safeName      = gameName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-            String manufacturer  = Build.MANUFACTURER.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-            String deviceName    = Build.MODEL.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-            String fileName      = safeName + "-" + manufacturer + "-" + deviceName + ".json";
+            String safeName     = gameName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            String manufacturer = Build.MANUFACTURER.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            String deviceName   = Build.MODEL.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            long   ts           = System.currentTimeMillis() / 1000;
+            String fileName     = safeName + "-" + manufacturer + "-" + deviceName + "-" + ts + ".json";
 
+            // Save locally
             File dir = new File(Environment.getExternalStorageDirectory(), EXPORT_DIR);
             dir.mkdirs();
-            FileWriter fw = new FileWriter(new File(dir, fileName));
+            File localFile = new File(dir, fileName);
+            FileWriter fw = new FileWriter(localFile);
             fw.write(json.toString(2));
             fw.close();
+            Toast.makeText(ctx, "Saved: " + fileName, Toast.LENGTH_LONG).show();
 
-            Toast.makeText(ctx, "Exported: " + fileName, Toast.LENGTH_LONG).show();
+            if (share) {
+                // Upload in background
+                String jsonStr = json.toString();
+                new Thread(() -> {
+                    Handler ui = new Handler(Looper.getMainLooper());
+                    try {
+                        // base64-encode content
+                        byte[] bytes = jsonStr.getBytes("UTF-8");
+                        String b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP);
+
+                        JSONObject body = new JSONObject();
+                        body.put("game", safeName);
+                        body.put("filename", fileName);
+                        body.put("content", b64);
+                        body.put("secret", AUTH_SECRET);
+
+                        HttpURLConnection conn = (HttpURLConnection)
+                                new URL(WORKER_BASE + "/upload").openConnection();
+                        conn.setRequestMethod("POST");
+                        conn.setDoOutput(true);
+                        conn.setConnectTimeout(20000);
+                        conn.setReadTimeout(20000);
+                        conn.setRequestProperty("Content-Type", "application/json");
+
+                        byte[] bodyBytes = body.toString().getBytes("UTF-8");
+                        conn.getOutputStream().write(bodyBytes);
+
+                        int code = conn.getResponseCode();
+                        InputStream is = (code >= 200 && code < 300)
+                                ? conn.getInputStream() : conn.getErrorStream();
+                        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                        StringBuilder sb2 = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null) sb2.append(line);
+                        br.close();
+
+                        JSONObject resp = new JSONObject(sb2.toString());
+                        boolean ok = resp.optBoolean("success", false);
+                        ui.post(() -> Toast.makeText(ctx,
+                                ok ? "Shared online: " + fileName : "Upload failed: " + resp.optString("error"),
+                                Toast.LENGTH_LONG).show());
+                    } catch (Exception e) {
+                        ui.post(() -> Toast.makeText(ctx,
+                                "Upload error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    }
+                }).start();
+            }
         } catch (Exception e) {
             Toast.makeText(ctx, "Export failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
@@ -82,11 +156,10 @@ public class BhSettingsExporter {
         JSONArray arr = new JSONArray();
         for (Map.Entry<String, ?> e : sp.getAll().entrySet()) {
             String key = e.getKey();
-            // Component name keys are plain strings (no prefix/suffix markers)
             if (key.startsWith("dl:") || key.startsWith("url_for:") || key.endsWith(":type")) continue;
             String name = key;
             String url  = sp.getString("url_for:" + name, "");
-            if (url.isEmpty()) continue;  // no tracked URL → skip (manually imported)
+            if (url.isEmpty()) continue;
             String type = sp.getString(name + ":type", "");
             JSONObject comp = new JSONObject();
             comp.put("name", name);
@@ -97,9 +170,23 @@ public class BhSettingsExporter {
         return arr;
     }
 
-    // ─── Import ──────────────────────────────────────────────────────────────
+    // ─── Import entry point ──────────────────────────────────────────────────
 
     public static void showImportDialog(final Context ctx, final int gameId, final String gameName) {
+        new AlertDialog.Builder(ctx)
+                .setTitle("Import Config — " + gameName)
+                .setItems(new String[]{"My Device", "Browse Community"},
+                        (dialog, which) -> {
+                            if (which == 0) showLocalImportDialog(ctx, gameId, gameName);
+                            else            showCommunityImportDialog(ctx, gameId, gameName);
+                        })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // ─── Local import ────────────────────────────────────────────────────────
+
+    private static void showLocalImportDialog(Context ctx, int gameId, String gameName) {
         try {
             File dir = new File(Environment.getExternalStorageDirectory(), EXPORT_DIR);
             if (!dir.exists()) {
@@ -116,14 +203,101 @@ public class BhSettingsExporter {
             final File[] finalFiles = files;
 
             new AlertDialog.Builder(ctx)
-                    .setTitle("Import Config for " + gameName)
-                    .setItems(names, (dialog, which) -> applyConfig(ctx, gameId, gameName, finalFiles[which]))
+                    .setTitle("Device Configs for " + gameName)
+                    .setItems(names, (dialog, which) ->
+                            applyConfig(ctx, gameId, gameName, finalFiles[which]))
                     .setNegativeButton("Cancel", null)
                     .show();
         } catch (Exception e) {
             Toast.makeText(ctx, "Import error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+
+    // ─── Community import ────────────────────────────────────────────────────
+
+    private static void showCommunityImportDialog(Context ctx, int gameId, String gameName) {
+        Toast.makeText(ctx, "Fetching community configs...", Toast.LENGTH_SHORT).show();
+        String safeName = gameName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+
+        new Thread(() -> {
+            Handler ui = new Handler(Looper.getMainLooper());
+            try {
+                String listUrl = WORKER_BASE + "/list?game=" + android.net.Uri.encode(safeName);
+                HttpURLConnection conn = (HttpURLConnection) new URL(listUrl).openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                br.close();
+
+                JSONArray arr = new JSONArray(sb.toString());
+                if (arr.length() == 0) {
+                    ui.post(() -> Toast.makeText(ctx,
+                            "No community configs for " + gameName, Toast.LENGTH_LONG).show());
+                    return;
+                }
+
+                // Build display labels: "Device — Date"
+                String[] labels = new String[arr.length()];
+                String[] dlUrls = new String[arr.length()];
+                String[] fnames = new String[arr.length()];
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject entry = arr.getJSONObject(i);
+                    String device = entry.optString("device", "Unknown");
+                    String date   = entry.optString("date", "");
+                    labels[i] = device + (date.isEmpty() ? "" : "  (" + date + ")");
+                    dlUrls[i] = entry.optString("download_url", "");
+                    fnames[i] = entry.optString("filename", "config.json");
+                }
+
+                ui.post(() -> new AlertDialog.Builder(ctx)
+                        .setTitle("Community Configs — " + gameName)
+                        .setItems(labels, (dialog, which) ->
+                                downloadAndImport(ctx, gameId, gameName, dlUrls[which], fnames[which]))
+                        .setNegativeButton("Cancel", null)
+                        .show());
+
+            } catch (Exception e) {
+                ui.post(() -> Toast.makeText(ctx,
+                        "Fetch error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private static void downloadAndImport(Context ctx, int gameId, String gameName,
+                                          String downloadUrl, String filename) {
+        Toast.makeText(ctx, "Downloading config...", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            Handler ui = new Handler(Looper.getMainLooper());
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(downloadUrl).openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                br.close();
+
+                // Save to local cache then apply
+                File dir = new File(Environment.getExternalStorageDirectory(), EXPORT_DIR);
+                dir.mkdirs();
+                File localFile = new File(dir, filename);
+                FileWriter fw = new FileWriter(localFile);
+                fw.write(sb.toString());
+                fw.close();
+
+                ui.post(() -> applyConfig(ctx, gameId, gameName, localFile));
+            } catch (Exception e) {
+                ui.post(() -> Toast.makeText(ctx,
+                        "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    // ─── Apply config ────────────────────────────────────────────────────────
 
     private static void applyConfig(Context ctx, int gameId, String gameName, File configFile) {
         try {
@@ -237,7 +411,6 @@ public class BhSettingsExporter {
                     in.close();
                     fos.close();
 
-                    // Inject on UI thread (injectComponent shows Toast — needs UI thread)
                     Uri uri = Uri.fromFile(dest);
                     int contentType = typeNameToInt(type);
                     final String fn = name;
@@ -247,7 +420,7 @@ public class BhSettingsExporter {
                     ui.post(() -> injectAndRegister(ctx, fn, fu, ft, fd, uri, contentType));
                     success++;
 
-                    Thread.sleep(600); // let UI thread process between components
+                    Thread.sleep(600);
                 } catch (Exception e) {
                     final String msg = e.getMessage();
                     ui.post(() -> Toast.makeText(ctx,
@@ -255,8 +428,6 @@ public class BhSettingsExporter {
                             Toast.LENGTH_LONG).show());
                 }
             }
-            // All injectAndRegister posts are already queued before this post,
-            // so onComplete runs after all injections complete on the UI thread
             final int done = success;
             ui.post(() -> {
                 Toast.makeText(ctx,
@@ -270,13 +441,10 @@ public class BhSettingsExporter {
     private static void injectAndRegister(Context ctx, String name, String url,
                                           String type, File dest, Uri uri, int contentType) {
         try {
-            // Call ComponentInjectorHelper.injectComponent via reflection
-            // (it lives in smali_classes16, not available at javac compile time)
             Class<?> cls = Class.forName(INJECTOR_CLS);
             Method m = cls.getMethod("injectComponent", Context.class, Uri.class, int.class);
             m.invoke(null, ctx, uri, contentType);
 
-            // Register in banners_sources SP (same keys ComponentDownloadActivity$5 writes)
             SharedPreferences.Editor ed = ctx.getSharedPreferences(SOURCES_SP, Context.MODE_PRIVATE).edit();
             ed.putString(name, "BannerHub");
             ed.putString("dl:" + url, "1");
