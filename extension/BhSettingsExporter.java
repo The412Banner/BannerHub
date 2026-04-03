@@ -136,6 +136,7 @@ public class BhSettingsExporter {
             // Support both old flat format and new {settings, components} format
             JSONObject settings = json.has("settings") ? json.getJSONObject("settings") : json;
 
+            // Build editor but don't apply yet — apply after component choice
             SharedPreferences.Editor editor = ctx.getSharedPreferences(
                     SP_PREFIX + gameId, Context.MODE_PRIVATE).edit();
             Iterator<String> keys = settings.keys();
@@ -148,17 +149,28 @@ public class BhSettingsExporter {
                 else if (val instanceof Double)  editor.putFloat(key, ((Double) val).floatValue());
                 else if (val instanceof String)  editor.putString(key, (String) val);
             }
-            editor.apply();
-            Toast.makeText(ctx, "Config applied from " + configFile.getName(), Toast.LENGTH_LONG).show();
 
-            // Check for missing components
-            if (!json.has("components")) return;
+            final String fileName = configFile.getName();
+            Runnable applySettings = () -> {
+                editor.apply();
+                Toast.makeText(ctx, "Config applied from " + fileName, Toast.LENGTH_LONG).show();
+            };
+
+            // No components section — apply immediately
+            if (!json.has("components")) {
+                applySettings.run();
+                return;
+            }
             JSONArray components = json.getJSONArray("components");
-            if (components.length() == 0) return;
-
             List<String[]> missing = findMissingComponents(ctx, components);
-            if (missing.isEmpty()) return;
 
+            // No missing components — apply immediately
+            if (missing.isEmpty()) {
+                applySettings.run();
+                return;
+            }
+
+            // Show dialog — apply after user choice
             StringBuilder sb = new StringBuilder("This config requires ")
                     .append(missing.size()).append(" component(s) not installed:\n\n");
             for (String[] c : missing) {
@@ -171,8 +183,9 @@ public class BhSettingsExporter {
             new AlertDialog.Builder(ctx)
                     .setTitle("Missing Components")
                     .setMessage(sb.toString())
-                    .setPositiveButton("Download All", (d, w) -> downloadMissingComponents(ctx, missing))
-                    .setNegativeButton("Skip", null)
+                    .setPositiveButton("Download All", (d, w) ->
+                            downloadMissingComponents(ctx, missing, applySettings))
+                    .setNegativeButton("Skip", (d, w) -> applySettings.run())
                     .show();
 
         } catch (Exception e) {
@@ -197,7 +210,8 @@ public class BhSettingsExporter {
 
     // ─── Download + Inject ───────────────────────────────────────────────────
 
-    private static void downloadMissingComponents(Context ctx, List<String[]> components) {
+    private static void downloadMissingComponents(Context ctx, List<String[]> components,
+                                                   Runnable onComplete) {
         Toast.makeText(ctx, "Downloading " + components.size() + " component(s)...", Toast.LENGTH_LONG).show();
         new Thread(() -> {
             Handler ui = new Handler(Looper.getMainLooper());
@@ -240,10 +254,15 @@ public class BhSettingsExporter {
                             Toast.LENGTH_LONG).show());
                 }
             }
+            // All injectAndRegister posts are already queued before this post,
+            // so onComplete runs after all injections complete on the UI thread
             final int done = success;
-            ui.post(() -> Toast.makeText(ctx,
-                    done + "/" + components.size() + " component(s) installed",
-                    Toast.LENGTH_SHORT).show());
+            ui.post(() -> {
+                Toast.makeText(ctx,
+                        done + "/" + components.size() + " component(s) installed",
+                        Toast.LENGTH_SHORT).show();
+                onComplete.run();
+            });
         }).start();
     }
 
