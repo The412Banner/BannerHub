@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre] — v2.8.9-pre1 — SOC detection via gpu_model sysfs (2026-04-04)
+**Commit:** `9abbf8031`  |  **Tag:** v2.8.9-pre1
+**CI:** ✅ run 23981281809 (artifact only)
+#### What changed
+- `detectSoc()` helper reads `/sys/class/kgsl/kgsl-3d0/gpu_model` first (returns e.g. `Adreno33v2` on AYANEO Pocket FIT / OCed SD8G3)
+- Falls back to `Build.SOC_MODEL` (API 31+, skips "unknown") then `Build.HARDWARE`
+- Both `meta.soc` in JSON and the config filename now use this value
+#### Files touched
+- extension/BhSettingsExporter.java
+
+---
+
 ## [stable] — v2.8.8 — Community Game Configs browser (2026-04-04)
 **Branch:** `main`  |  **Tag:** v2.8.8
 **Commit:** `b2c789300`  |  **CI:** ✅ run 23969711793 (9 APKs)

@@ -4358,3 +4358,14 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 - `.github/workflows/build.yml` — same step in prepare job
 
 **CI:** ⏳ run 23953526581
+
+---
+
+### Entry 053 — SOC detection via gpu_model sysfs (2026-04-04)
+**Commit:** `9abbf8031`  |  **Tag:** v2.8.9-pre1  |  **CI:** ✅ run 23981281809
+
+**Files changed:**
+- `extension/BhSettingsExporter.java` — added `detectSoc()` static helper; reads `/sys/class/kgsl/kgsl-3d0/gpu_model` first (Qualcomm sysfs, no root required; returns e.g. `Adreno33v2` on OCed SD8G3); falls back to `Build.SOC_MODEL` (API 31+, skips "unknown") then `Build.HARDWARE`. Both `meta.soc` JSON field and config filename now use this value.
+
+**Root cause / design:**
+- `Build.SOC_MODEL` returns "unknown" on many devices even on API 31+ (OEMs don't populate it). `Build.HARDWARE` returns "qcom" on Qualcomm — not useful. `gpu_model` sysfs gives the actual Adreno model string without root.
