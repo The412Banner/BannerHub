@@ -92,7 +92,6 @@ public class BhGameConfigsActivity extends Activity {
     private TextView     headerTitle;
     private EditText     searchBox;
     private ListView     gamesListView, configsListView;
-    private Button       filterToggleBtn;
 
     // Screen 3 dynamic views
     private LinearLayout commentsContainer;
@@ -103,13 +102,11 @@ public class BhGameConfigsActivity extends Activity {
     // ── State ────────────────────────────────────────────────────────────────
     private List<String>     allGames       = new ArrayList<>();
     private List<String>     filteredGames  = new ArrayList<>();
-    private List<JSONObject> currentConfigs = new ArrayList<>();  // displayed (may be filtered)
-    private List<JSONObject> allConfigs     = new ArrayList<>();  // unfiltered master list
+    private List<JSONObject> currentConfigs = new ArrayList<>();
     private Map<String,Integer> gameCounts  = new HashMap<>();
     private String     selectedGame;
     private JSONObject selectedConfig;
     private int        currentScreen = 1; // 1=games, 2=configs, 3=detail
-    private boolean    filterByDevice = false;
     private String     currentSoc    = "";
 
     private final Map<String, Bitmap>     coverCache      = new HashMap<>();
@@ -352,7 +349,6 @@ public class BhGameConfigsActivity extends Activity {
         gamesListView.setAdapter(adapter);
         gamesListView.setOnItemClickListener((parent, view, pos, id) -> {
             selectedGame = snapshot.get(pos);
-            filterByDevice = false;
             showScreen(2);
             fetchConfigs(selectedGame, false);
         });
@@ -402,82 +398,13 @@ public class BhGameConfigsActivity extends Activity {
         s.setOrientation(LinearLayout.VERTICAL);
         s.setBackgroundColor(BG);
 
-        // Filter toggle bar
-        LinearLayout filterBar = new LinearLayout(this);
-        filterBar.setOrientation(LinearLayout.HORIZONTAL);
-        filterBar.setGravity(Gravity.CENTER_VERTICAL);
-        filterBar.setPadding(dp(12), dp(8), dp(12), dp(8));
-        filterBar.setBackgroundColor(SURFACE);
-
-        TextView filterLabel = new TextView(this);
-        filterLabel.setText("Filter:");
-        filterLabel.setTextColor(GREY);
-        filterLabel.setTextSize(12f);
-        LinearLayout.LayoutParams flLp = new LinearLayout.LayoutParams(-2, -2);
-        flLp.rightMargin = dp(8);
-        filterBar.addView(filterLabel, flLp);
-
-        GradientDrawable filterBg = new GradientDrawable();
-        filterBg.setColor(0xFF2A2A3A);
-        filterBg.setCornerRadius(dp(6));
-        filterBg.setStroke(dp(1), 0xFF444466);
-        filterToggleBtn = new Button(this);
-        filterToggleBtn.setText("My Device");
-        filterToggleBtn.setTextColor(WHITE);
-        filterToggleBtn.setBackground(filterBg);
-        filterToggleBtn.setTextSize(12f);
-        filterToggleBtn.setPadding(dp(10), dp(4), dp(10), dp(4));
-        filterToggleBtn.setFocusable(true);
-        filterToggleBtn.setOnFocusChangeListener((v, f) -> {
-            filterBg.setStroke(f ? dp(2) : dp(1), f ? GOLD : (filterByDevice ? ACCENT : 0xFF444466));
-        });
-        filterToggleBtn.setOnClickListener(v -> {
-            filterByDevice = !filterByDevice;
-            updateFilterToggle();
-            applyDeviceFilter();
-        });
-        filterBar.addView(filterToggleBtn);
-
-        View filterDivider = new View(this);
-        filterDivider.setBackgroundColor(DIVIDER);
-
         configsListView = new ListView(this);
         configsListView.setBackgroundColor(BG);
         configsListView.setDivider(null);
         configsListView.setSelector(new ColorDrawable(0));
 
-        s.addView(filterBar, new LinearLayout.LayoutParams(-1, -2));
-        s.addView(filterDivider, new LinearLayout.LayoutParams(-1, dp(1)));
-        s.addView(configsListView, new LinearLayout.LayoutParams(-1, 0, 1f));
+        s.addView(configsListView, matchLinearParams());
         return s;
-    }
-
-    private void updateFilterToggle() {
-        GradientDrawable d = (GradientDrawable) filterToggleBtn.getBackground();
-        if (filterByDevice) {
-            d.setColor(0xFF1A2A1A);
-            d.setStroke(dp(2), 0xFF4CAF50);
-            filterToggleBtn.setTextColor(0xFF4CAF50);
-        } else {
-            d.setColor(0xFF2A2A3A);
-            d.setStroke(dp(1), 0xFF444466);
-            filterToggleBtn.setTextColor(WHITE);
-        }
-    }
-
-    private void applyDeviceFilter() {
-        currentConfigs.clear();
-        if (filterByDevice && !currentSoc.isEmpty()) {
-            for (JSONObject c : allConfigs) {
-                if (isSOCMatch(c.optString("soc", ""))) currentConfigs.add(c);
-            }
-            if (currentConfigs.isEmpty()) {
-                Toast.makeText(this, "No configs match your SOC (" + currentSoc + ")", Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            currentConfigs.addAll(allConfigs);
-        }
-        refreshConfigsList();
     }
 
     private void refreshConfigsList() {
@@ -892,7 +819,7 @@ public class BhGameConfigsActivity extends Activity {
         String displayName = game.replace("_", " ");
         headerTitle.setText(displayName);
         if (refreshBtn != null) refreshBtn.setEnabled(false);
-        allConfigs.clear(); currentConfigs.clear();
+        currentConfigs.clear();
         refreshConfigsList();
         new Thread(() -> {
             try {
@@ -903,9 +830,6 @@ public class BhGameConfigsActivity extends Activity {
                 List<JSONObject> configs = new ArrayList<>();
                 for (int i = 0; i < arr.length(); i++) configs.add(arr.getJSONObject(i));
                 ui.post(() -> {
-                    allConfigs.clear(); allConfigs.addAll(configs);
-                    filterByDevice = false;
-                    updateFilterToggle();
                     currentConfigs.clear(); currentConfigs.addAll(configs);
                     refreshConfigsList();
                     if (refreshBtn != null) refreshBtn.setEnabled(true);
