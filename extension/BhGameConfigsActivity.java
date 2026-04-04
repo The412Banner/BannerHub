@@ -24,6 +24,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -97,6 +98,7 @@ public class BhGameConfigsActivity extends Activity {
     private EditText     searchBox;
     private ListView     gamesListView, configsListView, uploadsListView;
     private Button       myUploadsBtn;
+    private LinearLayout socFilterBar;
 
     // Screen 3 dynamic views
     private LinearLayout commentsContainer;
@@ -107,7 +109,9 @@ public class BhGameConfigsActivity extends Activity {
     // ── State ────────────────────────────────────────────────────────────────
     private List<String>     allGames       = new ArrayList<>();
     private List<String>     filteredGames  = new ArrayList<>();
+    private List<JSONObject> allConfigs     = new ArrayList<>();
     private List<JSONObject> currentConfigs = new ArrayList<>();
+    private String           selectedSocFilter = "";
     private Map<String,Integer> gameCounts  = new HashMap<>();
     private String     selectedGame;
     private JSONObject selectedConfig;
@@ -426,6 +430,20 @@ public class BhGameConfigsActivity extends Activity {
         s.setOrientation(LinearLayout.VERTICAL);
         s.setBackgroundColor(BG);
 
+        // SOC filter chips in a horizontal scroll bar
+        socFilterBar = new LinearLayout(this);
+        socFilterBar.setOrientation(LinearLayout.HORIZONTAL);
+        socFilterBar.setPadding(dp(8), dp(6), dp(8), dp(6));
+
+        HorizontalScrollView filterScroll = new HorizontalScrollView(this);
+        filterScroll.setHorizontalScrollBarEnabled(false);
+        filterScroll.addView(socFilterBar, new LinearLayout.LayoutParams(-2, -2));
+        s.addView(filterScroll, new LinearLayout.LayoutParams(-1, -2));
+
+        View divider = new View(this);
+        divider.setBackgroundColor(DIVIDER);
+        s.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
+
         configsListView = new ListView(this);
         configsListView.setBackgroundColor(BG);
         configsListView.setDivider(null);
@@ -536,6 +554,58 @@ public class BhGameConfigsActivity extends Activity {
             populateDetailScreen(selectedConfig);
             showScreen(3);
         });
+    }
+
+    /** Builds SOC filter chips from allConfigs unique soc values. Must run on UI thread. */
+    private void buildSocChips() {
+        socFilterBar.removeAllViews();
+        // Collect unique SOC values, preserving insertion order
+        java.util.LinkedHashSet<String> socs = new java.util.LinkedHashSet<>();
+        for (JSONObject c : allConfigs) {
+            String soc = c.optString("soc", "").trim();
+            if (!soc.isEmpty()) socs.add(soc);
+        }
+        // Always add "All" first
+        addSocChip("All", "");
+        for (String soc : socs) addSocChip(soc.replace("_", " "), soc);
+    }
+
+    private void addSocChip(String label, String filterValue) {
+        boolean selected = filterValue.equals(selectedSocFilter);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(16));
+        bg.setColor(selected ? ACCENT : 0xFF2A2A3A);
+        bg.setStroke(dp(1), selected ? ACCENT : 0xFF444466);
+
+        Button chip = new Button(this);
+        chip.setText(label);
+        chip.setTextColor(selected ? WHITE : GREY);
+        chip.setTextSize(12f);
+        chip.setPadding(dp(14), dp(4), dp(14), dp(4));
+        chip.setBackground(bg);
+        chip.setAllCaps(false);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(32));
+        lp.setMargins(dp(4), 0, dp(4), 0);
+        chip.setLayoutParams(lp);
+        chip.setOnClickListener(v -> {
+            selectedSocFilter = filterValue;
+            buildSocChips();
+            applyFilter();
+        });
+        socFilterBar.addView(chip);
+    }
+
+    private void applyFilter() {
+        currentConfigs.clear();
+        for (JSONObject c : allConfigs) {
+            if (selectedSocFilter.isEmpty()) {
+                currentConfigs.add(c);
+            } else {
+                String soc = c.optString("soc", "").trim();
+                if (selectedSocFilter.equalsIgnoreCase(soc)) currentConfigs.add(c);
+            }
+        }
+        refreshConfigsList();
     }
 
     /** Returns true if configSoc matches this device's currentSoc (case+separator insensitive). */
@@ -871,7 +941,9 @@ public class BhGameConfigsActivity extends Activity {
         String displayName = game.replace("_", " ");
         headerTitle.setText(displayName);
         if (refreshBtn != null) refreshBtn.setEnabled(false);
+        allConfigs.clear();
         currentConfigs.clear();
+        selectedSocFilter = "";
         refreshConfigsList();
         new Thread(() -> {
             try {
@@ -886,8 +958,9 @@ public class BhGameConfigsActivity extends Activity {
                 List<JSONObject> configs = new ArrayList<>();
                 for (int i = 0; i < arr.length(); i++) configs.add(arr.getJSONObject(i));
                 ui.post(() -> {
-                    currentConfigs.clear(); currentConfigs.addAll(configs);
-                    refreshConfigsList();
+                    allConfigs.clear(); allConfigs.addAll(configs);
+                    buildSocChips();
+                    applyFilter();
                     if (refreshBtn != null) refreshBtn.setEnabled(true);
                     if (configs.isEmpty())
                         Toast.makeText(this, "No configs for " + displayName, Toast.LENGTH_SHORT).show();
