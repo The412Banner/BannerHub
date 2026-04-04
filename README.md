@@ -32,6 +32,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Performance Sidebar Toggles](#performance-sidebar-toggles)
   - [RTS Touch Controls](#rts-touch-controls)
   - [VRAM Limit Unlock](#vram-limit-unlock)
+  - [Community Game Configs](#community-game-configs)
   - [Per-Game Config Export / Import](#per-game-config-export--import)
   - [Per-Game CPU Core Affinity](#per-game-cpu-core-affinity)
   - [PC Game Settings: Offline Mode](#pc-game-settings-offline-mode)
@@ -407,23 +408,67 @@ PC game settings → **VRAM Limit** now includes **6 GB, 8 GB, 12 GB, and 16 GB*
 
 ---
 
+### Community Game Configs
+
+Accessible via the left side menu → **Game Configs**. A four-screen community browser for sharing and downloading per-game Wine/DXVK/component configurations.
+
+#### Games list (Screen 1)
+
+- Searchable list of all games that have community configs — each game shows a config count badge
+- Populated from a pre-built `games.json` file refreshed every 30 minutes and on every new upload
+
+#### Configs list (Screen 2)
+
+- Lists all shared configs for the selected game — each card shows device model, SOC, upload date, vote count, and download count
+- **SOC filter chips** — a scrollable chip bar at the top lets you filter by GPU type (e.g. filter to only configs from Adreno 750 devices). Chips are built from the SOC values present in the loaded configs. "All" chip shows everything. Resets when switching games.
+- **✓ My SOC badge** — configs uploaded from a device with the same SOC as yours are tagged in green
+- **Age indicator** — configs older than 6 months are labeled "may be outdated"
+- **Upvote** — tap to vote for configs you find useful
+
+#### Config detail (Screen 3)
+
+- Full metadata card: device, SOC, BannerHub version, settings count, components count, uploader description, verified SOC badge
+- **Download to Device** — saves the config JSON locally
+- **View Settings & Components** — expands the raw settings and component list inline
+- **Share Config URL** — copies a direct download link to clipboard
+- **Report Config** — flag inappropriate or broken configs
+- **Comments** — read and post comments on any config
+
+#### My Uploads (Screen 4)
+
+- Lists all configs you have uploaded in this session
+- **Edit Description** — add or update a description visible to other users (token-authenticated, only the original uploader can edit)
+
+#### Backed by
+
+All configs are stored in **[The412Banner/bannerhub-game-configs](https://github.com/The412Banner/bannerhub-game-configs)**. The community is powered by a Cloudflare Worker — votes, downloads, descriptions, and comments are tracked without any account required.
+
+> The community database grows through contributions — if you find settings that work well for a game on your device, sharing them helps other users get a working config without trial and error.
+
+---
+
 ### Per-Game Config Export / Import
 
-PC game settings now include **Export Config** and **Import Config** options.
+PC game settings include **Export Config** and **Import Config** options.
 
-**Export Config** saves the game's current settings plus all your installed custom components (DXVK, VKD3D, Box64, FEXCore, GPU driver) to a JSON file. A dialog lets you choose:
+#### Export Config
+
+Opens a **preview dialog** showing what will be exported before any file is created:
+- Device model, SOC (GPU), settings count, components count
+
+Then choose:
 - **Save Locally** — saves to `/sdcard/BannerHub/configs/` on your device
-- **Save Locally + Share Online** — saves locally and uploads to the [BannerHub community config database](https://github.com/The412Banner/bannerhub-game-configs)
+- **Save Locally + Share Online** — saves locally and uploads to the community database
 
-**Import Config** loads a saved config and applies it. A dialog lets you choose:
-- **My Device** — pick from configs saved on your device
-- **Browse Community** — fetches all shared configs for the current game from the community database, sorted by date, showing device model and upload date
+The exported filename embeds the game name, device manufacturer, device model, and SOC (e.g. `GodOfWar-Samsung-SM_S928B-Adreno_750-1234567890.json`).
 
-If the config references components not currently installed, a dialog lists the missing ones and offers to download and install them automatically via the Component Manager before applying the settings.
+#### Import Config
 
-**Community config database:** All online-shared configs are stored publicly at **[The412Banner/bannerhub-game-configs](https://github.com/The412Banner/bannerhub-game-configs)**. You can browse, view, or download configs from that repo directly at any time.
+A dialog lets you choose:
+- **My Device** — lists `.json` files saved in `/sdcard/BannerHub/configs/`. Selecting a file shows a **preview card** (device, SOC, settings count, components count) with a **⚠ SOC mismatch warning** if the config was made on a different GPU. Tap Apply to proceed or Cancel.
+- **Browse Community** — opens the Community Game Configs browser (see above) filtered to the current game
 
-> The community database starts empty. It only grows through contributions — if you find settings that work well for a game on your device, sharing them helps other users, especially those new to PC game emulation, get a working config without trial and error.
+If a config references components not currently installed, a dialog lists the missing ones and offers to download and install them via the Component Manager before applying.
 
 ---
 
