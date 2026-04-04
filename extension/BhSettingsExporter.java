@@ -82,7 +82,7 @@ public class BhSettingsExporter {
             // Meta block — parsed and shown in BhGameConfigsActivity detail view
             JSONObject meta = new JSONObject();
             meta.put("device",           Build.MANUFACTURER + " " + Build.MODEL);
-            meta.put("soc",              detectSoc());
+            meta.put("soc",              detectSoc(ctx));
             meta.put("bh_version",       "2.8.8");
             meta.put("settings_count",   settings.length());
             meta.put("components_count", components.length());
@@ -95,7 +95,7 @@ public class BhSettingsExporter {
             String safeName     = gameName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
             String manufacturer = Build.MANUFACTURER.replaceAll("[^a-zA-Z0-9_\\-]", "_");
             String deviceName   = Build.MODEL.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-            String socModel     = detectSoc().replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            String socModel     = detectSoc(ctx).replaceAll("[^a-zA-Z0-9_\\-]", "_");
             long   ts           = System.currentTimeMillis() / 1000;
             String fileName     = safeName + "-" + manufacturer + "-" + deviceName + "-" + socModel + "-" + ts + ".json";
 
@@ -496,7 +496,15 @@ public class BhSettingsExporter {
         }
     }
 
-    private static String detectSoc() {
+    private static String detectSoc(Context ctx) {
+        // Primary: GameHub's own cached OpenGL renderer string in device_info.xml SP
+        try {
+            android.content.SharedPreferences sp =
+                    ctx.getSharedPreferences("device_info", android.content.Context.MODE_PRIVATE);
+            String gpu = sp.getString("gpu_renderer", "");
+            if (!gpu.isEmpty()) return gpu;
+        } catch (Exception ignored) {}
+        // Fallback: kernel sysfs kgsl node
         try {
             BufferedReader br = new BufferedReader(new FileReader("/sys/class/kgsl/kgsl-3d0/gpu_model"));
             String line = br.readLine();
