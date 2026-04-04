@@ -4,6 +4,17 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre] — v2.8.9-pre3 — Game configs worker crash fix + app JSON hardening (2026-04-04)
+**Commit:** `b839c7c1e`  |  **Tag:** v2.8.9-pre3 (retagged)
+**CI:** ✅ run 23982476410 (artifact only)
+#### What changed
+- Worker: KV write limit (1,000/day free tier) was exhausted → uncaught exception → CF 1101 crash; all `put`/`delete` calls now use `kvPut`/`kvDelete` helpers that catch quota errors silently; top-level try-catch added
+- App: `fetchGames()` and `fetchConfigs()` now parse via `JSONTokener` and validate root is JSONArray before casting; error objects show proper Toast instead of crashing
+- CF worker redeployed; confirmed working (89 games returned)
+#### Files touched
+- extension/BhGameConfigsActivity.java
+- Cloudflare Worker (bannerhub-configs-worker) redeployed
+
 ### [pre] — v2.8.9-pre3 — Apply to Game picker: shared_prefs scan instead of full ux_db (2026-04-04)
 **Commit:** `e0b5038ab`  |  **Tag:** v2.8.9-pre3
 **CI:** ✅ run 23982010393 (artifact only; first attempt ❌ run 23981926309 — var name collision)

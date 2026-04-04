@@ -30,6 +30,32 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 135 — fix: game configs worker KV write limit crash + app JSON hardening (v2.8.9-pre3 retag, main)
+**Date:** 2026-04-04
+**Branch:** main  |  **Tag:** v2.8.9-pre3 (retagged)  |  **Commit:** b839c7c1e
+
+### Root cause analysis
+Cloudflare KV free tier has a hard limit of 1,000 write operations per day. The `/games`
+endpoint writes a cache entry on every miss. With 89+ games and repeated requests, the
+daily write quota was exhausted. The raw `env.CONFIG_KV.put()` call threw an exception
+that propagated uncaught through the worker → CF error 1101 → app received HTML error
+page → `new JSONArray(body)` threw "cannot be converted to JSONArray" → crash.
+
+### Changes
+- **[MOD]** `/tmp/bannerhub-configs-worker.js` (CF deployed):
+  - New `kvPut(kv, key, value, opts)` / `kvDelete(kv, key)` async helpers — catch quota exceptions silently
+  - All `env.CONFIG_KV.put(...)` and `.delete(...)` calls replaced with helpers
+  - KV reads wrapped in try-catch (cache miss falls through to re-fetch gracefully)
+  - Top-level `try/catch` in `fetch` handler returns `{error}` JSON on any uncaught exception
+- **[MOD]** `extension/BhGameConfigsActivity.java`:
+  - `fetchGames()`: parse body via `JSONTokener.nextValue()`, validate root is `JSONArray`; if object, extract `error` field for Toast
+  - `fetchConfigs()`: same fix
+
+### CI
+- [CI✅] run 23982476410 — success (artifact only)
+
+---
+
 ## Entry 134 — fix: Apply to Game picker scans shared_prefs instead of full ux_db (v2.8.9-pre3, main)
 **Date:** 2026-04-04
 **Branch:** main  |  **Tag:** v2.8.9-pre3  |  **Commit:** e0b5038ab
