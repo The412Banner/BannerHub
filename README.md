@@ -443,6 +443,8 @@ Accessible via the left side menu → **Game Configs**. A four-screen community 
 
 All configs are stored in **[The412Banner/bannerhub-game-configs](https://github.com/The412Banner/bannerhub-game-configs)**. The community is powered by a Cloudflare Worker — votes, downloads, descriptions, and comments are tracked without any account required.
 
+You can also browse, search, filter, and download configs from the web at **[the412banner.github.io/bannerhub-game-configs](https://the412banner.github.io/bannerhub-game-configs/)** — no app required.
+
 > The community database grows through contributions — if you find settings that work well for a game on your device, sharing them helps other users get a working config without trial and error.
 
 ---
