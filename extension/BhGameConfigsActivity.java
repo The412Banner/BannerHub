@@ -2,6 +2,9 @@ package app.revanced.extension.gamehub;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -50,14 +53,15 @@ import java.util.Map;
  * BhGameConfigsActivity — community game config browser.
  *
  * Side menu ID=13. Three-screen flow managed via LinearLayout visibility:
- *   Screen 1: All games (search + list)
- *   Screen 2: Configs for selected game (vote count + date)
- *   Screen 3: Config detail (meta, vote, download, comments)
+ *   Screen 1: All games (search + list + config count badge)
+ *   Screen 2: Configs for selected game (filter + age indicator + verified badge)
+ *   Screen 3: Config detail (meta, vote, share, report, download, comments)
  *
  * Backend: bannerhub-configs-worker.the412banner.workers.dev
- *   GET  /games             — list all game folders
+ *   GET  /games             — list all game folders [{name,count}]
  *   GET  /list?game=X       — list configs for a game (includes votes)
  *   POST /vote              — upvote a config {sha, game, filename}
+ *   POST /report            — report a config {sha}
  *   GET  /comments?game=X&file=Y — fetch comments
  *   POST /comment           — add a comment {game, filename, text, device}
  */
@@ -67,24 +71,28 @@ public class BhGameConfigsActivity extends Activity {
     private static final String WORKER     = "https://bannerhub-configs-worker.the412banner.workers.dev";
     private static final String VOTES_SP   = "bh_config_votes";
     private static final String COVERS_SP  = "bh_steam_covers";
+    private static final String REPORTS_SP = "bh_config_reports";
     private static final String EXPORT_DIR = "BannerHub/configs";
-    // Steam store search (no API key required)
     private static final String STEAM_SEARCH = "https://store.steampowered.com/api/storesearch/?l=english&cc=us&term=";
     private static final String STEAM_HEADER = "https://cdn.akamai.steamstatic.com/steam/apps/%s/header.jpg";
 
     // ── Colors ───────────────────────────────────────────────────────────────
-    private static final int BG       = 0xFF0D0D0D;
-    private static final int SURFACE  = 0xFF1A1A1A;
-    private static final int ACCENT   = 0xFF6C63FF;
-    private static final int WHITE    = 0xFFFFFFFF;
-    private static final int GREY     = 0xFFAAAAAA;
-    private static final int DIVIDER  = 0xFF2A2A2A;
+    private static final int BG      = 0xFF0D0D0D;
+    private static final int SURFACE = 0xFF1A1A1A;
+    private static final int ACCENT  = 0xFF6C63FF;
+    private static final int WHITE   = 0xFFFFFFFF;
+    private static final int GREY    = 0xFFAAAAAA;
+    private static final int DIVIDER = 0xFF2A2A2A;
+    private static final int GREEN   = 0xFF2E7D32;
+    private static final int AMBER   = 0xFFFFB300;
+    private static final int GOLD    = 0xFFFFD700;
 
     // ── Views ────────────────────────────────────────────────────────────────
     private LinearLayout screenGames, screenConfigs, screenDetail;
     private TextView     headerTitle;
     private EditText     searchBox;
     private ListView     gamesListView, configsListView;
+    private Button       filterToggleBtn;
 
     // Screen 3 dynamic views
     private LinearLayout commentsContainer;
@@ -93,16 +101,18 @@ public class BhGameConfigsActivity extends Activity {
     private Button       refreshBtn;
 
     // ── State ────────────────────────────────────────────────────────────────
-    private List<String>     allGames      = new ArrayList<>();
-    private List<String>     filteredGames = new ArrayList<>();
-    private List<JSONObject> currentConfigs = new ArrayList<>();
+    private List<String>     allGames       = new ArrayList<>();
+    private List<String>     filteredGames  = new ArrayList<>();
+    private List<JSONObject> currentConfigs = new ArrayList<>();  // displayed (may be filtered)
+    private List<JSONObject> allConfigs     = new ArrayList<>();  // unfiltered master list
+    private Map<String,Integer> gameCounts  = new HashMap<>();
     private String     selectedGame;
     private JSONObject selectedConfig;
     private int        currentScreen = 1; // 1=games, 2=configs, 3=detail
+    private boolean    filterByDevice = false;
+    private String     currentSoc    = "";
 
-    // Cover art: in-memory Bitmap cache (game folder name → Bitmap)
-    private final Map<String, Bitmap>     coverCache     = new HashMap<>();
-    // Full config JSON cache (filename → JSONObject) — populated by fetchMeta
+    private final Map<String, Bitmap>     coverCache      = new HashMap<>();
     private final Map<String, JSONObject> configJsonCache = new HashMap<>();
 
     private Handler ui = new Handler(Looper.getMainLooper());
@@ -113,17 +123,25 @@ public class BhGameConfigsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Detect device SOC — Build.SOC_MODEL is API 31+
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                currentSoc = (String) android.os.Build.class.getField("SOC_MODEL").get(null);
+            }
+        } catch (Exception ignored) {}
+        if (currentSoc == null || currentSoc.isEmpty() || "unknown".equalsIgnoreCase(currentSoc)) {
+            currentSoc = android.os.Build.HARDWARE;
+        }
+
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(BG);
 
         LinearLayout wrapper = new LinearLayout(this);
         wrapper.setOrientation(LinearLayout.VERTICAL);
-
         wrapper.addView(buildHeader());
 
-        // Header / content divider
         View headerDivider = new View(this);
-        headerDivider.setBackgroundColor(0xFF3A3A5C); // purple-tinted accent line
+        headerDivider.setBackgroundColor(0xFF3A3A5C);
         wrapper.addView(headerDivider, new LinearLayout.LayoutParams(-1, dp(2)));
 
         FrameLayout body = new FrameLayout(this);
@@ -171,7 +189,7 @@ public class BhGameConfigsActivity extends Activity {
         back.setFocusable(true);
         back.setOnFocusChangeListener((v, f) -> {
             backBg.setColor(f ? 0xFF2A2A4E : 0x00000000);
-            backBg.setStroke(f ? dp(2) : 0, f ? 0xFFFFD700 : 0x00000000);
+            backBg.setStroke(f ? dp(2) : 0, f ? GOLD : 0x00000000);
         });
         back.setOnClickListener(v -> onBackPressed());
 
@@ -196,7 +214,7 @@ public class BhGameConfigsActivity extends Activity {
         refreshBtn.setFocusable(true);
         refreshBtn.setOnFocusChangeListener((v, f) -> {
             refreshBg.setColor(f ? 0xFF3A3A6E : 0xFF2A2A3A);
-            refreshBg.setStroke(f ? dp(2) : 0, f ? 0xFFFFD700 : 0x00000000);
+            refreshBg.setStroke(f ? dp(2) : 0, f ? GOLD : 0x00000000);
         });
         refreshBtn.setOnClickListener(v -> {
             if (currentScreen == 1) fetchGames(true);
@@ -216,7 +234,6 @@ public class BhGameConfigsActivity extends Activity {
         s.setOrientation(LinearLayout.VERTICAL);
         s.setBackgroundColor(BG);
 
-        // Search bar
         searchBox = new EditText(this);
         searchBox.setHint("Search games...");
         searchBox.setHintTextColor(GREY);
@@ -230,7 +247,6 @@ public class BhGameConfigsActivity extends Activity {
             public void afterTextChanged(Editable s) {}
         });
 
-        // Thin divider below search box
         View searchDivider = new View(this);
         searchDivider.setBackgroundColor(DIVIDER);
 
@@ -239,7 +255,7 @@ public class BhGameConfigsActivity extends Activity {
         gamesListView.setDivider(null);
         gamesListView.setDividerHeight(0);
         gamesListView.setPadding(0, dp(4), 0, dp(4));
-        gamesListView.setSelector(new ColorDrawable(0)); // transparent — we draw our own focus
+        gamesListView.setSelector(new ColorDrawable(0));
 
         s.addView(searchBox, new LinearLayout.LayoutParams(-1, -2));
         s.addView(searchDivider, new LinearLayout.LayoutParams(-1, dp(1)));
@@ -262,7 +278,6 @@ public class BhGameConfigsActivity extends Activity {
                 android.R.layout.simple_list_item_1, snapshot) {
             @Override
             public View getView(int pos, View conv, android.view.ViewGroup parent) {
-                // StateListDrawable — responds to state_selected (D-pad) + state_pressed (touch)
                 GradientDrawable normalBg = new GradientDrawable();
                 normalBg.setColor(SURFACE);
                 normalBg.setCornerRadius(dp(8));
@@ -270,7 +285,7 @@ public class BhGameConfigsActivity extends Activity {
                 GradientDrawable activeBg = new GradientDrawable();
                 activeBg.setColor(0xFF22223A);
                 activeBg.setCornerRadius(dp(8));
-                activeBg.setStroke(dp(2), 0xFFFFD700);
+                activeBg.setStroke(dp(2), GOLD);
 
                 StateListDrawable sld = new StateListDrawable();
                 sld.addState(new int[]{android.R.attr.state_selected}, activeBg);
@@ -299,26 +314,45 @@ public class BhGameConfigsActivity extends Activity {
                 imgLp.rightMargin = dp(16);
                 row.addView(cover, imgLp);
 
-                // Game name
                 String game = getItem(pos);
+
+                // Right side: name + count badge
+                LinearLayout textCol = new LinearLayout(getContext());
+                textCol.setOrientation(LinearLayout.VERTICAL);
+                textCol.setGravity(Gravity.CENTER_VERTICAL);
+                textCol.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1f));
+
                 TextView tv = new TextView(getContext());
                 tv.setText(game.replace("_", " "));
                 tv.setTextColor(WHITE);
                 tv.setTextSize(15f);
                 tv.setTypeface(null, Typeface.BOLD);
-                tv.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1f));
-                row.addView(tv);
+                textCol.addView(tv);
 
-                // Tag ImageView with game name to avoid recycled-view mismatches
+                // Config count badge
+                Integer cnt = gameCounts.get(game);
+                int count = cnt != null ? cnt : 0;
+                if (count > 0) {
+                    TextView badge = new TextView(getContext());
+                    badge.setText(count + (count == 1 ? " config" : " configs"));
+                    badge.setTextColor(ACCENT);
+                    badge.setTextSize(11f);
+                    LinearLayout.LayoutParams badgeLp = new LinearLayout.LayoutParams(-2, -2);
+                    badgeLp.topMargin = dp(3);
+                    textCol.addView(badge, badgeLp);
+                }
+
+                row.addView(textCol);
+
                 cover.setTag(game);
                 loadCover(game, cover);
-
                 return row;
             }
         };
         gamesListView.setAdapter(adapter);
         gamesListView.setOnItemClickListener((parent, view, pos, id) -> {
             selectedGame = snapshot.get(pos);
+            filterByDevice = false;
             showScreen(2);
             fetchConfigs(selectedGame, false);
         });
@@ -326,26 +360,14 @@ public class BhGameConfigsActivity extends Activity {
 
     // ── Cover art loading ─────────────────────────────────────────────────────
 
-    /**
-     * Loads Steam header art (460×215) into iv asynchronously.
-     * Lookup order: memory cache → SP (cached appid) → Steam search API → Steam CDN.
-     * Tags iv with the game name; skips setImage if the view was recycled.
-     */
     private void loadCover(String game, ImageView iv) {
-        // Memory cache hit — set immediately
         Bitmap cached = coverCache.get(game);
-        if (cached != null) {
-            iv.setImageBitmap(cached);
-            return;
-        }
+        if (cached != null) { iv.setImageBitmap(cached); return; }
         iv.setImageBitmap(null);
-
         new Thread(() -> {
             try {
                 SharedPreferences sp = getSharedPreferences(COVERS_SP, 0);
                 String appId = sp.getString("appid:" + game, null);
-
-                // Step 1: look up Steam appid if not cached
                 if (appId == null) {
                     String query = game.replace("_", " ");
                     HttpURLConnection conn = openGet(STEAM_SEARCH + urlEncode(query));
@@ -359,25 +381,17 @@ public class BhGameConfigsActivity extends Activity {
                     }
                 }
                 if (appId == null) return;
-
-                // Step 2: download header.jpg
                 String imgUrl = String.format(STEAM_HEADER, appId);
                 HttpURLConnection imgConn = openGet(imgUrl);
                 imgConn.setRequestProperty("User-Agent", "BannerHub/1.0");
                 InputStream in = imgConn.getInputStream();
                 Bitmap bmp = BitmapFactory.decodeStream(in);
                 in.close();
-
                 if (bmp != null) {
                     coverCache.put(game, bmp);
-                    ui.post(() -> {
-                        // Only set if the ImageView hasn't been recycled to another game
-                        if (game.equals(iv.getTag())) iv.setImageBitmap(bmp);
-                    });
+                    ui.post(() -> { if (game.equals(iv.getTag())) iv.setImageBitmap(bmp); });
                 }
-            } catch (Exception ignored) {
-                // Silently fail — ImageView stays as dark placeholder
-            }
+            } catch (Exception ignored) {}
         }).start();
     }
 
@@ -388,72 +402,174 @@ public class BhGameConfigsActivity extends Activity {
         s.setOrientation(LinearLayout.VERTICAL);
         s.setBackgroundColor(BG);
 
+        // Filter toggle bar
+        LinearLayout filterBar = new LinearLayout(this);
+        filterBar.setOrientation(LinearLayout.HORIZONTAL);
+        filterBar.setGravity(Gravity.CENTER_VERTICAL);
+        filterBar.setPadding(dp(12), dp(8), dp(12), dp(8));
+        filterBar.setBackgroundColor(SURFACE);
+
+        TextView filterLabel = new TextView(this);
+        filterLabel.setText("Filter:");
+        filterLabel.setTextColor(GREY);
+        filterLabel.setTextSize(12f);
+        LinearLayout.LayoutParams flLp = new LinearLayout.LayoutParams(-2, -2);
+        flLp.rightMargin = dp(8);
+        filterBar.addView(filterLabel, flLp);
+
+        GradientDrawable filterBg = new GradientDrawable();
+        filterBg.setColor(0xFF2A2A3A);
+        filterBg.setCornerRadius(dp(6));
+        filterBg.setStroke(dp(1), 0xFF444466);
+        filterToggleBtn = new Button(this);
+        filterToggleBtn.setText("My Device");
+        filterToggleBtn.setTextColor(WHITE);
+        filterToggleBtn.setBackground(filterBg);
+        filterToggleBtn.setTextSize(12f);
+        filterToggleBtn.setPadding(dp(10), dp(4), dp(10), dp(4));
+        filterToggleBtn.setFocusable(true);
+        filterToggleBtn.setOnFocusChangeListener((v, f) -> {
+            filterBg.setStroke(f ? dp(2) : dp(1), f ? GOLD : (filterByDevice ? ACCENT : 0xFF444466));
+        });
+        filterToggleBtn.setOnClickListener(v -> {
+            filterByDevice = !filterByDevice;
+            updateFilterToggle();
+            applyDeviceFilter();
+        });
+        filterBar.addView(filterToggleBtn);
+
+        View filterDivider = new View(this);
+        filterDivider.setBackgroundColor(DIVIDER);
+
         configsListView = new ListView(this);
         configsListView.setBackgroundColor(BG);
         configsListView.setDivider(null);
         configsListView.setSelector(new ColorDrawable(0));
 
-        s.addView(configsListView, matchLinearParams());
+        s.addView(filterBar, new LinearLayout.LayoutParams(-1, -2));
+        s.addView(filterDivider, new LinearLayout.LayoutParams(-1, dp(1)));
+        s.addView(configsListView, new LinearLayout.LayoutParams(-1, 0, 1f));
         return s;
     }
 
-    private void refreshConfigsList() {
-        List<String> labels = new ArrayList<>();
-        for (JSONObject c : currentConfigs) {
-            String device = c.optString("device", "Unknown");
-            String soc    = c.optString("soc", "");
-            String date   = c.optString("date", "");
-            int votes     = c.optInt("votes", 0);
-            String label  = device.replace("_", " ")
-                    + (soc.isEmpty() ? "" : " [" + soc.replace("_", " ") + "]")
-                    + "\n" + date + "  ★ " + votes;
-            labels.add(label);
+    private void updateFilterToggle() {
+        GradientDrawable d = (GradientDrawable) filterToggleBtn.getBackground();
+        if (filterByDevice) {
+            d.setColor(0xFF1A2A1A);
+            d.setStroke(dp(2), 0xFF4CAF50);
+            filterToggleBtn.setTextColor(0xFF4CAF50);
+        } else {
+            d.setColor(0xFF2A2A3A);
+            d.setStroke(dp(1), 0xFF444466);
+            filterToggleBtn.setTextColor(WHITE);
         }
-        final List<String> finalLabels = labels;
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_1, labels) {
+    }
+
+    private void applyDeviceFilter() {
+        currentConfigs.clear();
+        if (filterByDevice && !currentSoc.isEmpty()) {
+            for (JSONObject c : allConfigs) {
+                if (isSOCMatch(c.optString("soc", ""))) currentConfigs.add(c);
+            }
+            if (currentConfigs.isEmpty()) {
+                Toast.makeText(this, "No configs match your SOC (" + currentSoc + ")", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            currentConfigs.addAll(allConfigs);
+        }
+        refreshConfigsList();
+    }
+
+    private void refreshConfigsList() {
+        final long nowSec        = System.currentTimeMillis() / 1000L;
+        final long sixMonthsSec  = 15552000L; // 180 days
+
+        ArrayAdapter<JSONObject> adapter = new ArrayAdapter<JSONObject>(this,
+                android.R.layout.simple_list_item_1, currentConfigs) {
             @Override
             public View getView(int pos, View conv, android.view.ViewGroup parent) {
-                GradientDrawable normalBg2 = new GradientDrawable();
-                normalBg2.setColor(SURFACE);
-                normalBg2.setCornerRadius(dp(8));
+                GradientDrawable normalBg = new GradientDrawable();
+                normalBg.setColor(SURFACE);
+                normalBg.setCornerRadius(dp(8));
 
-                GradientDrawable activeBg2 = new GradientDrawable();
-                activeBg2.setColor(0xFF22223A);
-                activeBg2.setCornerRadius(dp(8));
-                activeBg2.setStroke(dp(2), 0xFFFFD700);
+                GradientDrawable activeBg = new GradientDrawable();
+                activeBg.setColor(0xFF22223A);
+                activeBg.setCornerRadius(dp(8));
+                activeBg.setStroke(dp(2), GOLD);
 
-                StateListDrawable sld2 = new StateListDrawable();
-                sld2.addState(new int[]{android.R.attr.state_selected}, activeBg2);
-                sld2.addState(new int[]{android.R.attr.state_pressed},  activeBg2);
-                sld2.addState(new int[]{}, normalBg2);
+                StateListDrawable sld = new StateListDrawable();
+                sld.addState(new int[]{android.R.attr.state_selected}, activeBg);
+                sld.addState(new int[]{android.R.attr.state_pressed},  activeBg);
+                sld.addState(new int[]{}, normalBg);
 
                 LinearLayout row = new LinearLayout(getContext());
                 row.setOrientation(LinearLayout.VERTICAL);
                 row.setPadding(dp(16), dp(12), dp(16), dp(12));
-                row.setBackground(sld2);
+                row.setBackground(sld);
                 row.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
 
                 LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
                 rowLp.setMargins(dp(8), dp(4), dp(8), dp(4));
                 row.setLayoutParams(rowLp);
 
-                String[] parts = finalLabels.get(pos).split("\n", 2);
-                TextView title = new TextView(getContext());
-                title.setText(parts[0]);
-                title.setTextColor(WHITE);
-                title.setTextSize(14f);
-                title.setTypeface(null, Typeface.BOLD);
+                JSONObject c = getItem(pos);
+                String device = c.optString("device", "Unknown").replace("_", " ");
+                String soc    = c.optString("soc", "");
+                int    votes  = c.optInt("votes", 0);
+                String date   = c.optString("date", "");
+                long   ts     = c.optLong("timestamp", 0);
 
-                TextView sub = new TextView(getContext());
-                sub.setText(parts.length > 1 ? parts[1] : "");
-                sub.setTextColor(GREY);
-                sub.setTextSize(12f);
+                // Title row: device + soc + verified badge
+                LinearLayout titleRow = new LinearLayout(getContext());
+                titleRow.setOrientation(LinearLayout.HORIZONTAL);
+                titleRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                TextView titleTv = new TextView(getContext());
+                titleTv.setText(device);
+                titleTv.setTextColor(WHITE);
+                titleTv.setTextSize(14f);
+                titleTv.setTypeface(null, Typeface.BOLD);
+                titleRow.addView(titleTv);
+
+                if (!soc.isEmpty()) {
+                    TextView socTv = new TextView(getContext());
+                    socTv.setText(" [" + soc.replace("_", " ") + "]");
+                    socTv.setTextColor(GREY);
+                    socTv.setTextSize(12f);
+                    titleRow.addView(socTv);
+                }
+
+                if (isSOCMatch(soc)) {
+                    TextView verBadge = new TextView(getContext());
+                    verBadge.setText("  ✓ My SOC");
+                    verBadge.setTextColor(0xFF4CAF50);
+                    verBadge.setTextSize(11f);
+                    verBadge.setTypeface(null, Typeface.BOLD);
+                    titleRow.addView(verBadge);
+                }
+                row.addView(titleRow);
+
+                // Sub row: date + votes + age indicator
+                LinearLayout subRow = new LinearLayout(getContext());
+                subRow.setOrientation(LinearLayout.HORIZONTAL);
+                subRow.setGravity(Gravity.CENTER_VERTICAL);
                 LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, -2);
                 subLp.topMargin = dp(3);
 
-                row.addView(title);
-                row.addView(sub, subLp);
+                TextView sub = new TextView(getContext());
+                sub.setText(date + "  ★ " + votes);
+                sub.setTextColor(GREY);
+                sub.setTextSize(12f);
+                subRow.addView(sub);
+
+                if (ts > 0 && (nowSec - ts) > sixMonthsSec) {
+                    TextView ageTv = new TextView(getContext());
+                    ageTv.setText("  (may be outdated)");
+                    ageTv.setTextColor(AMBER);
+                    ageTv.setTextSize(11f);
+                    subRow.addView(ageTv);
+                }
+                row.addView(subRow, subLp);
                 return row;
             }
         };
@@ -463,6 +579,15 @@ public class BhGameConfigsActivity extends Activity {
             populateDetailScreen(selectedConfig);
             showScreen(3);
         });
+    }
+
+    /** Returns true if configSoc matches this device's currentSoc (case+separator insensitive). */
+    private boolean isSOCMatch(String configSoc) {
+        if (currentSoc == null || currentSoc.isEmpty()) return false;
+        if (configSoc == null || configSoc.isEmpty()) return false;
+        String a = currentSoc.toLowerCase().replace("_", "").replace("-", "");
+        String b = configSoc.toLowerCase().replace("_", "").replace("-", "");
+        return a.equals(b) || a.contains(b) || b.contains(a);
     }
 
     // ── Screen 3: Detail ──────────────────────────────────────────────────────
@@ -490,9 +615,10 @@ public class BhGameConfigsActivity extends Activity {
 
         String filename = config.optString("filename", "config.json");
         String device   = config.optString("device", "Unknown").replace("_", " ");
-        String soc      = config.optString("soc", "").replace("_", " ");
+        String soc      = config.optString("soc", "");
         String date     = config.optString("date", "");
         String sha      = config.optString("sha", "");
+        String game     = config.optString("game_folder", selectedGame);
         int    votes    = config.optInt("votes", 0);
 
         headerTitle.setText(filename.length() > 30 ? filename.substring(0, 28) + "…" : filename);
@@ -501,11 +627,29 @@ public class BhGameConfigsActivity extends Activity {
         LinearLayout card = surface();
         card.setPadding(dp(16), dp(14), dp(16), dp(14));
         addInfoRow(card, "Device",  device);
-        if (!soc.isEmpty())  addInfoRow(card, "SOC", soc);
+        if (!soc.isEmpty())  addInfoRow(card, "SOC", soc.replace("_", " "));
         if (!date.isEmpty()) addInfoRow(card, "Date", date);
+
+        // Verified SOC badge inside info card
+        if (isSOCMatch(soc)) {
+            GradientDrawable verBg = new GradientDrawable();
+            verBg.setColor(0xFF1A2A1A);
+            verBg.setCornerRadius(dp(4));
+            verBg.setStroke(dp(1), 0xFF4CAF50);
+            TextView verBadge = new TextView(this);
+            verBadge.setText("✓ Matches Your SOC (" + currentSoc + ")");
+            verBadge.setTextColor(0xFF4CAF50);
+            verBadge.setTextSize(12f);
+            verBadge.setTypeface(null, Typeface.BOLD);
+            verBadge.setBackground(verBg);
+            verBadge.setPadding(dp(8), dp(4), dp(8), dp(4));
+            LinearLayout.LayoutParams vrp = new LinearLayout.LayoutParams(-2, -2);
+            vrp.topMargin = dp(6);
+            card.addView(verBadge, vrp);
+        }
         content.addView(card, marginParams(0, 0, 0, dp(12)));
 
-        // Meta card (populated after download if available)
+        // Meta card
         LinearLayout metaCard = surface();
         metaCard.setPadding(dp(16), dp(14), dp(16), dp(14));
         metaCard.setTag("meta_card");
@@ -519,48 +663,38 @@ public class BhGameConfigsActivity extends Activity {
 
         votesLabel = new TextView(this);
         votesLabel.setText("★ " + votes + " votes");
-        votesLabel.setTextColor(0xFFFFD700);
+        votesLabel.setTextColor(GOLD);
         votesLabel.setTextSize(16f);
         votesLabel.setTypeface(null, Typeface.BOLD);
-        LinearLayout.LayoutParams voteLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        voteRow.addView(votesLabel, voteLp);
+        voteRow.addView(votesLabel, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        voteBtn = new Button(this);
         boolean alreadyVoted = getSharedPreferences(VOTES_SP, 0).contains(sha);
-        voteBtn.setText(alreadyVoted ? "Voted ✓" : "Upvote ↑");
-        voteBtn.setBackgroundColor(alreadyVoted ? SURFACE : ACCENT);
-        voteBtn.setTextColor(WHITE);
+        voteBtn = actionBtn(alreadyVoted ? "Voted ✓" : "Upvote ↑",
+                alreadyVoted ? SURFACE : ACCENT,
+                alreadyVoted ? null : v -> doVote(config));
         voteBtn.setEnabled(!alreadyVoted);
-        voteBtn.setOnClickListener(v -> doVote(config));
         voteRow.addView(voteBtn);
-
         content.addView(voteRow, marginParams(0, 0, 0, dp(12)));
 
-        // Action buttons
-        Button downloadBtn = new Button(this);
-        downloadBtn.setText("Download to Device");
-        downloadBtn.setBackgroundColor(0xFF2E7D32);
-        downloadBtn.setTextColor(WHITE);
-        downloadBtn.setOnClickListener(v -> downloadConfig(config));
-        content.addView(downloadBtn, marginParams(0, 0, 0, dp(8)));
+        // Download
+        content.addView(
+            actionBtn("Download to Device", GREEN, v -> downloadConfig(config)),
+            marginParams(0, 0, 0, dp(8)));
 
-        Button contentsBtn = new Button(this);
-        contentsBtn.setText("View Settings & Components");
-        contentsBtn.setBackgroundColor(0xFF37474F);
-        contentsBtn.setTextColor(WHITE);
+        // View contents
+        Button contentsBtn = actionBtn("View Settings & Components", 0xFF37474F, null);
         contentsBtn.setOnClickListener(v -> {
             JSONObject cached = configJsonCache.get(filename);
             if (cached != null) {
                 showConfigContents(cached, filename);
             } else {
-                // fetchMeta hasn't finished yet — download on demand
                 contentsBtn.setEnabled(false);
                 contentsBtn.setText("Loading...");
-                String game2 = config.optString("game_folder", selectedGame);
                 new Thread(() -> {
                     try {
-                        HttpURLConnection c = openGet(WORKER + "/download?game=" + urlEncode(game2) + "&file=" + urlEncode(filename));
-                        JSONObject json = new JSONObject(readResponse(c));
+                        HttpURLConnection c2 = openGet(WORKER + "/download?game="
+                                + urlEncode(game) + "&file=" + urlEncode(filename));
+                        JSONObject json = new JSONObject(readResponse(c2));
                         configJsonCache.put(filename, json);
                         ui.post(() -> {
                             contentsBtn.setEnabled(true);
@@ -571,13 +705,32 @@ public class BhGameConfigsActivity extends Activity {
                         ui.post(() -> {
                             contentsBtn.setEnabled(true);
                             contentsBtn.setText("View Settings & Components");
-                            Toast.makeText(this, "Failed to load: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         });
                     }
                 }).start();
             }
         });
         content.addView(contentsBtn, marginParams(0, 0, 0, dp(8)));
+
+        // Share — copy raw GitHub URL to clipboard
+        String rawUrl = "https://raw.githubusercontent.com/The412Banner/bannerhub-game-configs/main/configs/"
+                + urlEncode(game) + "/" + urlEncode(filename);
+        content.addView(
+            actionBtn("Share Config URL", 0xFF1565C0, v -> {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                cm.setPrimaryClip(ClipData.newPlainText("BannerHub Config", rawUrl));
+                Toast.makeText(this, "URL copied to clipboard", Toast.LENGTH_SHORT).show();
+            }),
+            marginParams(0, 0, 0, dp(8)));
+
+        // Report
+        boolean alreadyReported = getSharedPreferences(REPORTS_SP, 0).contains(sha);
+        Button reportBtn = actionBtn(alreadyReported ? "Reported ✓" : "Report Config",
+                0xFF4A1010, null);
+        reportBtn.setEnabled(!alreadyReported);
+        if (!alreadyReported) reportBtn.setOnClickListener(v -> doReport(config, reportBtn));
+        content.addView(reportBtn, marginParams(0, 0, 0, dp(8)));
 
         TextView applyNote = new TextView(this);
         applyNote.setText("After downloading, use Import Config from a game's settings to apply.");
@@ -590,7 +743,7 @@ public class BhGameConfigsActivity extends Activity {
         div.setBackgroundColor(DIVIDER);
         content.addView(div, marginParams(0, 0, 0, dp(16), -1, 1));
 
-        // Comments section
+        // Comments header
         TextView commentsHeader = new TextView(this);
         commentsHeader.setText("Comments");
         commentsHeader.setTextColor(WHITE);
@@ -602,7 +755,7 @@ public class BhGameConfigsActivity extends Activity {
         commentsContainer.setOrientation(LinearLayout.VERTICAL);
         content.addView(commentsContainer, matchLinearParams());
 
-        // Add comment box
+        // Comment input
         LinearLayout commentInput = new LinearLayout(this);
         commentInput.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams ciLp = new LinearLayout.LayoutParams(-1, -2);
@@ -617,22 +770,53 @@ public class BhGameConfigsActivity extends Activity {
         commentBox.setMinLines(2);
         commentInput.addView(commentBox, matchLinearParams());
 
-        Button submitBtn = new Button(this);
-        submitBtn.setText("Post Comment");
-        submitBtn.setBackgroundColor(ACCENT);
-        submitBtn.setTextColor(WHITE);
+        Button submitBtn = actionBtn("Post Comment", ACCENT, v -> {
+            String text = commentBox.getText().toString().trim();
+            if (!text.isEmpty()) postComment(config, text, commentBox);
+        });
         LinearLayout.LayoutParams sbLp = new LinearLayout.LayoutParams(-1, -2);
         sbLp.topMargin = dp(6);
-        submitBtn.setOnClickListener(v -> {
-            String text = commentBox.getText().toString().trim();
-            if (text.isEmpty()) return;
-            postComment(config, text, commentBox);
-        });
         commentInput.addView(submitBtn, sbLp);
         content.addView(commentInput, ciLp);
 
-        // Fetch comments
         fetchComments(config);
+    }
+
+    /**
+     * Creates a D-pad-focusable action button with GradientDrawable background.
+     * Gold outline + darker bg on focus/press. Pass null listener to attach later.
+     */
+    private Button actionBtn(String label, int bgColor, View.OnClickListener listener) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(bgColor);
+        bg.setCornerRadius(dp(6));
+        Button btn = new Button(this);
+        btn.setText(label);
+        btn.setTextColor(WHITE);
+        btn.setBackground(bg);
+        btn.setFocusable(true);
+        btn.setOnFocusChangeListener((v, f) -> {
+            bg.setColor(f ? blendDark(bgColor) : bgColor);
+            bg.setStroke(f ? dp(2) : 0, f ? GOLD : 0x00000000);
+        });
+        if (listener != null) btn.setOnClickListener(listener);
+        return btn;
+    }
+
+    private void setActionBtnColor(Button btn, int color) {
+        if (btn.getBackground() instanceof GradientDrawable) {
+            ((GradientDrawable) btn.getBackground()).setColor(color);
+        } else {
+            btn.setBackgroundColor(color);
+        }
+    }
+
+    /** Darkens a color by ~30% for focus state. */
+    private int blendDark(int c) {
+        int r = (int) ((c >> 16 & 0xFF) * 0.7f);
+        int g = (int) ((c >>  8 & 0xFF) * 0.7f);
+        int b = (int) ((c       & 0xFF) * 0.7f);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
     private void addInfoRow(LinearLayout parent, String label, String value) {
@@ -669,17 +853,29 @@ public class BhGameConfigsActivity extends Activity {
                 String body = readResponse(conn);
                 JSONArray arr = new JSONArray(body);
                 List<String> games = new ArrayList<>();
-                for (int i = 0; i < arr.length(); i++) games.add(arr.getString(i));
+                Map<String,Integer> counts = new HashMap<>();
+                for (int i = 0; i < arr.length(); i++) {
+                    // Worker returns [{name,count}]; handle legacy [string] gracefully
+                    Object item = arr.get(i);
+                    if (item instanceof JSONObject) {
+                        JSONObject obj = (JSONObject) item;
+                        String name = obj.optString("name", "");
+                        if (!name.isEmpty()) {
+                            games.add(name);
+                            counts.put(name, obj.optInt("count", 0));
+                        }
+                    } else {
+                        games.add(String.valueOf(item));
+                    }
+                }
                 ui.post(() -> {
-                    allGames.clear();
-                    allGames.addAll(games);
-                    filteredGames.clear();
-                    filteredGames.addAll(games);
+                    allGames.clear(); allGames.addAll(games);
+                    filteredGames.clear(); filteredGames.addAll(games);
+                    gameCounts.clear(); gameCounts.putAll(counts);
                     refreshGamesList();
                     if (refreshBtn != null) refreshBtn.setEnabled(true);
-                    if (games.isEmpty()) {
+                    if (games.isEmpty())
                         Toast.makeText(this, "No community configs yet", Toast.LENGTH_SHORT).show();
-                    }
                 });
             } catch (Exception e) {
                 ui.post(() -> {
@@ -696,7 +892,7 @@ public class BhGameConfigsActivity extends Activity {
         String displayName = game.replace("_", " ");
         headerTitle.setText(displayName);
         if (refreshBtn != null) refreshBtn.setEnabled(false);
-        currentConfigs.clear();
+        allConfigs.clear(); currentConfigs.clear();
         refreshConfigsList();
         new Thread(() -> {
             try {
@@ -707,13 +903,14 @@ public class BhGameConfigsActivity extends Activity {
                 List<JSONObject> configs = new ArrayList<>();
                 for (int i = 0; i < arr.length(); i++) configs.add(arr.getJSONObject(i));
                 ui.post(() -> {
-                    currentConfigs.clear();
-                    currentConfigs.addAll(configs);
+                    allConfigs.clear(); allConfigs.addAll(configs);
+                    filterByDevice = false;
+                    updateFilterToggle();
+                    currentConfigs.clear(); currentConfigs.addAll(configs);
                     refreshConfigsList();
                     if (refreshBtn != null) refreshBtn.setEnabled(true);
-                    if (configs.isEmpty()) {
-                        Toast.makeText(this, "No configs shared yet for " + displayName, Toast.LENGTH_SHORT).show();
-                    }
+                    if (configs.isEmpty())
+                        Toast.makeText(this, "No configs for " + displayName, Toast.LENGTH_SHORT).show();
                 });
             } catch (Exception e) {
                 ui.post(() -> {
@@ -724,32 +921,29 @@ public class BhGameConfigsActivity extends Activity {
         }).start();
     }
 
-    // ── Network: Meta (quick download + parse) ────────────────────────────────
+    // ── Network: Meta ─────────────────────────────────────────────────────────
 
     private void fetchMeta(JSONObject config, LinearLayout metaCard) {
         String game     = config.optString("game_folder", selectedGame);
         String filename = config.optString("filename", "");
         new Thread(() -> {
             try {
-                HttpURLConnection conn = openGet(WORKER + "/download?game=" + urlEncode(game) + "&file=" + urlEncode(filename));
+                HttpURLConnection conn = openGet(WORKER + "/download?game="
+                        + urlEncode(game) + "&file=" + urlEncode(filename));
                 String body = readResponse(conn);
                 JSONObject json = new JSONObject(body);
-                // Cache for "View Settings & Components" button
                 configJsonCache.put(filename, json);
                 JSONObject meta = json.optJSONObject("meta");
-                int settingsCount  = meta != null ? 0 : json.optJSONObject("settings") != null ? json.getJSONObject("settings").length() : json.length();
-                if (json.has("settings")) settingsCount = json.getJSONObject("settings").length();
-                int compCount = json.has("components") ? json.getJSONArray("components").length() : 0;
-                final JSONObject m = meta;
-                final int sc = settingsCount, cc = compCount;
+                int sc = json.has("settings") ? json.getJSONObject("settings").length() : 0;
+                int cc = json.has("components") ? json.getJSONArray("components").length() : 0;
                 ui.post(() -> {
                     metaCard.removeAllViews();
                     metaCard.setPadding(dp(16), dp(14), dp(16), dp(14));
-                    if (m != null) {
-                        String renderer = m.optString("renderer", "");
-                        String cpu      = m.optString("cpu", "");
-                        String fps      = m.optString("fps", "");
-                        String bhVer    = m.optString("bh_version", "");
+                    if (meta != null) {
+                        String renderer = meta.optString("renderer", "");
+                        String cpu      = meta.optString("cpu", "");
+                        String fps      = meta.optString("fps", "");
+                        String bhVer    = meta.optString("bh_version", "");
                         if (!renderer.isEmpty()) addInfoRow(metaCard, "Renderer", renderer);
                         if (!cpu.isEmpty())      addInfoRow(metaCard, "CPU", cpu);
                         if (!fps.isEmpty())      addInfoRow(metaCard, "FPS Cap", fps);
@@ -780,7 +974,6 @@ public class BhGameConfigsActivity extends Activity {
         body.setPadding(dp(4), dp(8), dp(4), dp(8));
         scroll.addView(body);
 
-        // ── Components ──────────────────────────────────────────────────
         JSONArray components = json.optJSONArray("components");
         if (components != null && components.length() > 0) {
             body.addView(sectionHeader("Components (" + components.length() + ")"));
@@ -796,28 +989,22 @@ public class BhGameConfigsActivity extends Activity {
                 row.setBackgroundColor(SURFACE);
                 LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
                 rp.setMargins(0, 0, 0, dp(4));
-
                 TextView nameTv = new TextView(this);
                 nameTv.setText(name.isEmpty() ? "(unnamed)" : name);
-                nameTv.setTextColor(WHITE);
-                nameTv.setTextSize(13f);
+                nameTv.setTextColor(WHITE); nameTv.setTextSize(13f);
                 nameTv.setTypeface(null, Typeface.BOLD);
                 row.addView(nameTv);
-
                 if (!type.isEmpty()) {
                     TextView typeTv = new TextView(this);
                     typeTv.setText("Type: " + type);
-                    typeTv.setTextColor(GREY);
-                    typeTv.setTextSize(12f);
+                    typeTv.setTextColor(GREY); typeTv.setTextSize(12f);
                     row.addView(typeTv);
                 }
                 if (!url.isEmpty()) {
-                    TextView urlTv = new TextView(this);
-                    // Show just the filename part of the URL
                     String urlShort = url.contains("/") ? url.substring(url.lastIndexOf('/') + 1) : url;
+                    TextView urlTv = new TextView(this);
                     urlTv.setText(urlShort);
-                    urlTv.setTextColor(0xFF7B8CFF);
-                    urlTv.setTextSize(11f);
+                    urlTv.setTextColor(0xFF7B8CFF); urlTv.setTextSize(11f);
                     row.addView(urlTv);
                 }
                 body.addView(row, rp);
@@ -826,10 +1013,8 @@ public class BhGameConfigsActivity extends Activity {
             body.addView(sectionHeader("Components (none bundled)"));
         }
 
-        // ── Settings ───────────────────────────────────────────────────
         JSONObject settings = json.optJSONObject("settings");
         if (settings == null) {
-            // Old flat format — the whole JSON is settings minus meta/components
             settings = new JSONObject();
             try {
                 Iterator<String> it = json.keys();
@@ -840,74 +1025,51 @@ public class BhGameConfigsActivity extends Activity {
             } catch (Exception ignored) {}
         }
 
-        int settingsCount = settings.length();
-        body.addView(sectionHeader("Settings (" + settingsCount + " keys)"));
-
-        if (settingsCount == 0) {
+        body.addView(sectionHeader("Settings (" + settings.length() + " keys)"));
+        if (settings.length() == 0) {
             TextView empty = new TextView(this);
-            empty.setText("(no settings)");
-            empty.setTextColor(GREY);
-            empty.setTextSize(12f);
+            empty.setText("(no settings)"); empty.setTextColor(GREY); empty.setTextSize(12f);
             empty.setPadding(dp(8), dp(4), dp(8), dp(4));
             body.addView(empty);
         } else {
-            // Sort keys alphabetically
             List<String> keys = new ArrayList<>();
             Iterator<String> it = settings.keys();
             while (it.hasNext()) keys.add(it.next());
             Collections.sort(keys);
-
             final JSONObject finalSettings = settings;
             for (String key : keys) {
                 String value;
                 try { value = String.valueOf(finalSettings.get(key)); }
                 catch (Exception e) { value = "?"; }
-
                 LinearLayout row = new LinearLayout(this);
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setPadding(dp(8), dp(5), dp(8), dp(5));
                 LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
                 rp.setMargins(0, 0, 0, dp(1));
                 row.setBackgroundColor(SURFACE);
-
                 TextView keyTv = new TextView(this);
-                keyTv.setText(key);
-                keyTv.setTextColor(GREY);
-                keyTv.setTextSize(12f);
+                keyTv.setText(key); keyTv.setTextColor(GREY); keyTv.setTextSize(12f);
                 keyTv.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1f));
                 keyTv.setSingleLine(false);
-
                 TextView valTv = new TextView(this);
-                valTv.setText(value);
-                valTv.setTextColor(WHITE);
-                valTv.setTextSize(12f);
-                valTv.setMaxWidth(dp(160));
-                valTv.setSingleLine(true);
+                valTv.setText(value); valTv.setTextColor(WHITE); valTv.setTextSize(12f);
+                valTv.setMaxWidth(dp(160)); valTv.setSingleLine(true);
                 valTv.setEllipsize(android.text.TextUtils.TruncateAt.END);
-
-                row.addView(keyTv);
-                row.addView(valTv);
+                row.addView(keyTv); row.addView(valTv);
                 body.addView(row, rp);
             }
         }
 
-        // Limit dialog height so it doesn't overflow screen
-        scroll.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
         int maxH = (int) (getResources().getDisplayMetrics().heightPixels * 0.7f);
         scroll.setLayoutParams(new android.widget.FrameLayout.LayoutParams(-1, maxH));
-
         new AlertDialog.Builder(this)
                 .setTitle(filename.length() > 35 ? filename.substring(0, 33) + "…" : filename)
-                .setView(scroll)
-                .setPositiveButton("Close", null)
-                .show();
+                .setView(scroll).setPositiveButton("Close", null).show();
     }
 
     private TextView sectionHeader(String text) {
         TextView tv = new TextView(this);
-        tv.setText(text);
-        tv.setTextColor(ACCENT);
-        tv.setTextSize(13f);
+        tv.setText(text); tv.setTextColor(ACCENT); tv.setTextSize(13f);
         tv.setTypeface(null, Typeface.BOLD);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.setMargins(dp(4), dp(12), dp(4), dp(6));
@@ -918,43 +1080,64 @@ public class BhGameConfigsActivity extends Activity {
     // ── Network: Vote ─────────────────────────────────────────────────────────
 
     private void doVote(JSONObject config) {
-        String sha      = config.optString("sha", "");
-        String game     = config.optString("game_folder", selectedGame);
+        String sha = config.optString("sha", "");
+        String game = config.optString("game_folder", selectedGame);
         String filename = config.optString("filename", "");
-        voteBtn.setEnabled(false);
-        voteBtn.setText("Voting...");
+        voteBtn.setEnabled(false); voteBtn.setText("Voting...");
         new Thread(() -> {
             try {
                 JSONObject body = new JSONObject();
-                body.put("sha",      sha);
-                body.put("game",     game);
-                body.put("filename", filename);
+                body.put("sha", sha); body.put("game", game); body.put("filename", filename);
                 HttpURLConnection conn = openPost(WORKER + "/vote", body.toString());
-                String resp = readResponse(conn);
-                JSONObject r = new JSONObject(resp);
+                JSONObject r = new JSONObject(readResponse(conn));
                 int newCount = r.optInt("votes", config.optInt("votes", 0) + 1);
-                // Mark voted locally
                 getSharedPreferences(VOTES_SP, 0).edit().putBoolean(sha, true).apply();
-                // Update config object
                 config.put("votes", newCount);
                 ui.post(() -> {
                     votesLabel.setText("★ " + newCount + " votes");
                     voteBtn.setText("Voted ✓");
-                    voteBtn.setBackgroundColor(SURFACE);
-                    // Update config list entry too
+                    setActionBtnColor(voteBtn, SURFACE);
                     refreshConfigsList();
                 });
             } catch (Exception e) {
                 ui.post(() -> {
-                    voteBtn.setEnabled(true);
-                    voteBtn.setText("Upvote ↑");
+                    voteBtn.setEnabled(true); voteBtn.setText("Upvote ↑");
                     Toast.makeText(this, "Vote failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
             }
         }).start();
     }
 
-    // ── Network: Download to device ───────────────────────────────────────────
+    // ── Network: Report ───────────────────────────────────────────────────────
+
+    private void doReport(JSONObject config, Button reportBtn) {
+        String sha = config.optString("sha", "");
+        reportBtn.setEnabled(false); reportBtn.setText("Reporting...");
+        new Thread(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("sha", sha);
+                HttpURLConnection conn = openPost(WORKER + "/report", body.toString());
+                JSONObject r = new JSONObject(readResponse(conn));
+                if (r.optBoolean("success", false) || r.has("reports")) {
+                    getSharedPreferences(REPORTS_SP, 0).edit().putBoolean(sha, true).apply();
+                    ui.post(() -> {
+                        reportBtn.setText("Reported ✓");
+                        Toast.makeText(this, "Config reported. Thank you.", Toast.LENGTH_SHORT).show();
+                    });
+                } else {
+                    throw new Exception(r.optString("error", "Unknown error"));
+                }
+            } catch (Exception e) {
+                ui.post(() -> {
+                    reportBtn.setEnabled(true); reportBtn.setText("Report Config");
+                    Toast.makeText(this, "Report failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    // ── Network: Download ─────────────────────────────────────────────────────
 
     private void downloadConfig(JSONObject config) {
         String game     = config.optString("game_folder", selectedGame);
@@ -962,17 +1145,15 @@ public class BhGameConfigsActivity extends Activity {
         Toast.makeText(this, "Downloading...", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                HttpURLConnection conn = openGet(WORKER + "/download?game=" + urlEncode(game) + "&file=" + urlEncode(filename));
+                HttpURLConnection conn = openGet(WORKER + "/download?game="
+                        + urlEncode(game) + "&file=" + urlEncode(filename));
                 InputStream in = conn.getInputStream();
                 File dir = new File(android.os.Environment.getExternalStorageDirectory(), EXPORT_DIR);
                 dir.mkdirs();
-                File out = new File(dir, filename);
-                FileOutputStream fos = new FileOutputStream(out);
-                byte[] buf = new byte[8192];
-                int n;
+                FileOutputStream fos = new FileOutputStream(new File(dir, filename));
+                byte[] buf = new byte[8192]; int n;
                 while ((n = in.read(buf)) != -1) fos.write(buf, 0, n);
-                in.close();
-                fos.close();
+                in.close(); fos.close();
                 ui.post(() -> Toast.makeText(this,
                         "Saved to BannerHub/configs/\nUse Import Config in-game to apply.",
                         Toast.LENGTH_LONG).show());
@@ -989,17 +1170,15 @@ public class BhGameConfigsActivity extends Activity {
         String filename = config.optString("filename", "");
         new Thread(() -> {
             try {
-                HttpURLConnection conn = openGet(WORKER + "/comments?game=" + urlEncode(game) + "&file=" + urlEncode(filename));
-                String body = readResponse(conn);
-                JSONArray arr = new JSONArray(body);
+                HttpURLConnection conn = openGet(WORKER + "/comments?game="
+                        + urlEncode(game) + "&file=" + urlEncode(filename));
+                JSONArray arr = new JSONArray(readResponse(conn));
                 ui.post(() -> renderComments(arr));
             } catch (Exception e) {
                 ui.post(() -> {
                     if (commentsContainer != null) {
                         TextView err = new TextView(this);
-                        err.setText("Could not load comments");
-                        err.setTextColor(GREY);
-                        err.setTextSize(12f);
+                        err.setText("Could not load comments"); err.setTextColor(GREY); err.setTextSize(12f);
                         commentsContainer.addView(err);
                     }
                 });
@@ -1012,9 +1191,7 @@ public class BhGameConfigsActivity extends Activity {
         commentsContainer.removeAllViews();
         if (arr.length() == 0) {
             TextView empty = new TextView(this);
-            empty.setText("No comments yet — be the first!");
-            empty.setTextColor(GREY);
-            empty.setTextSize(13f);
+            empty.setText("No comments yet — be the first!"); empty.setTextColor(GREY); empty.setTextSize(13f);
             LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(-1, -2);
             ep.bottomMargin = dp(8);
             commentsContainer.addView(empty, ep);
@@ -1023,29 +1200,19 @@ public class BhGameConfigsActivity extends Activity {
         for (int i = 0; i < arr.length(); i++) {
             JSONObject c = arr.optJSONObject(i);
             if (c == null) continue;
-            String text   = c.optString("text", "");
-            String device = c.optString("device", "Anonymous").replace("_", " ");
-            String date   = c.optString("date", "");
-
             LinearLayout bubble = surface();
             bubble.setPadding(dp(12), dp(10), dp(12), dp(10));
             LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, -2);
             bp.bottomMargin = dp(8);
-
             TextView meta = new TextView(this);
-            meta.setText(device + (date.isEmpty() ? "" : "  " + date));
-            meta.setTextColor(GREY);
-            meta.setTextSize(11f);
-
+            meta.setText(c.optString("device", "Anonymous").replace("_", " ")
+                    + (c.optString("date", "").isEmpty() ? "" : "  " + c.optString("date", "")));
+            meta.setTextColor(GREY); meta.setTextSize(11f);
             TextView body = new TextView(this);
-            body.setText(text);
-            body.setTextColor(WHITE);
-            body.setTextSize(13f);
+            body.setText(c.optString("text", "")); body.setTextColor(WHITE); body.setTextSize(13f);
             LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
             tp.topMargin = dp(4);
-
-            bubble.addView(meta);
-            bubble.addView(body, tp);
+            bubble.addView(meta); bubble.addView(body, tp);
             commentsContainer.addView(bubble, bp);
         }
     }
@@ -1058,23 +1225,16 @@ public class BhGameConfigsActivity extends Activity {
         new Thread(() -> {
             try {
                 JSONObject body = new JSONObject();
-                body.put("game",     game);
-                body.put("filename", filename);
-                body.put("text",     text);
-                body.put("device",   device);
-                HttpURLConnection conn = openPost(WORKER + "/comment", body.toString());
-                String resp = readResponse(conn);
-                JSONObject r = new JSONObject(resp);
+                body.put("game", game); body.put("filename", filename);
+                body.put("text", text); body.put("device", device);
+                JSONObject r = new JSONObject(readResponse(openPost(WORKER + "/comment", body.toString())));
                 if (r.optBoolean("success", false)) {
                     ui.post(() -> {
-                        commentBox.setText("");
-                        commentBox.setEnabled(true);
+                        commentBox.setText(""); commentBox.setEnabled(true);
                         Toast.makeText(this, "Comment posted", Toast.LENGTH_SHORT).show();
-                        fetchComments(config); // refresh
+                        fetchComments(config);
                     });
-                } else {
-                    throw new Exception(r.optString("error", "Unknown error"));
-                }
+                } else throw new Exception(r.optString("error", "Unknown error"));
             } catch (Exception e) {
                 ui.post(() -> {
                     commentBox.setEnabled(true);
@@ -1091,7 +1251,6 @@ public class BhGameConfigsActivity extends Activity {
         screenGames.setVisibility(n == 1 ? View.VISIBLE : View.GONE);
         screenConfigs.setVisibility(n == 2 ? View.VISIBLE : View.GONE);
         screenDetail.setVisibility(n == 3 ? View.VISIBLE : View.GONE);
-        // Refresh button only meaningful on games/configs screens
         if (refreshBtn != null) refreshBtn.setVisibility(n == 3 ? View.GONE : View.VISIBLE);
         if (n == 1) headerTitle.setText("Game Configs");
     }
@@ -1100,30 +1259,24 @@ public class BhGameConfigsActivity extends Activity {
 
     private HttpURLConnection openGet(String url) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-        c.setConnectTimeout(15000);
-        c.setReadTimeout(15000);
+        c.setConnectTimeout(15000); c.setReadTimeout(15000);
         return c;
     }
 
     private HttpURLConnection openPost(String url, String jsonBody) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-        c.setRequestMethod("POST");
-        c.setDoOutput(true);
-        c.setConnectTimeout(15000);
-        c.setReadTimeout(15000);
+        c.setRequestMethod("POST"); c.setDoOutput(true);
+        c.setConnectTimeout(15000); c.setReadTimeout(15000);
         c.setRequestProperty("Content-Type", "application/json");
         OutputStream os = c.getOutputStream();
-        os.write(jsonBody.getBytes("UTF-8"));
-        os.close();
+        os.write(jsonBody.getBytes("UTF-8")); os.close();
         return c;
     }
 
     private String readResponse(HttpURLConnection conn) throws Exception {
-        InputStream is = conn.getResponseCode() < 400
-                ? conn.getInputStream() : conn.getErrorStream();
+        InputStream is = conn.getResponseCode() < 400 ? conn.getInputStream() : conn.getErrorStream();
         BufferedReader br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-        StringBuilder sb = new StringBuilder();
-        String line;
+        StringBuilder sb = new StringBuilder(); String line;
         while ((line = br.readLine()) != null) sb.append(line);
         br.close();
         return sb.toString();
@@ -1150,14 +1303,12 @@ public class BhGameConfigsActivity extends Activity {
 
     private LinearLayout.LayoutParams marginParams(int l, int t, int r, int b) {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.setMargins(l, t, r, b);
-        return lp;
+        lp.setMargins(l, t, r, b); return lp;
     }
 
     private LinearLayout.LayoutParams marginParams(int l, int t, int r, int b, int w, int h) {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
-        lp.setMargins(l, t, r, b);
-        return lp;
+        lp.setMargins(l, t, r, b); return lp;
     }
 
     private LinearLayout surface() {
