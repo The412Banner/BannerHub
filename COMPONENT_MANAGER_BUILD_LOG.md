@@ -30,6 +30,49 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 133 — feat: Game Configs — D-pad nav, count badge, filter, age indicator, verified badge, share, report (v2.8.8-pre1, main)
+**Date:** 2026-04-04
+**Branch:** main  |  **Tag:** v2.8.8-pre1 (retagged)  |  **Commit:** d9fe43f35
+
+### Root cause analysis
+Multiple UX improvements requested: D-pad focus on detail buttons, SOC matching/filtering,
+config age indication, share URL, report function, config count in games list.
+
+### Changes
+- **[MOD]** `extension/BhGameConfigsActivity.java`:
+  - New imports: `ClipData`, `ClipboardManager`, `Context`
+  - New constants: `REPORTS_SP = "bh_config_reports"`, `GREEN`, `AMBER`, `GOLD`
+  - New fields: `currentSoc`, `filterByDevice`, `allConfigs`, `gameCounts`, `filterToggleBtn`
+  - `onCreate`: detect SOC via `Build.class.getField("SOC_MODEL")` reflection (API 31+); fallback to `Build.HARDWARE`
+  - `buildConfigsScreen()`: added filter bar with "My Device" toggle button; GradientDrawable with green outline when active
+  - `updateFilterToggle()`, `applyDeviceFilter()`: toggle state + filter logic with SOC partial match
+  - `refreshGamesList()`: added count badge ("N configs" in ACCENT) per game row
+  - `refreshConfigsList()`: full rewrite to custom JSONObject adapter; title row with device+soc+verified badge; sub row with date+votes+age indicator (amber >6mo); SOC match badge ("✓ My SOC" green)
+  - `populateDetailScreen()`: verified SOC badge in info card; all action buttons via `actionBtn()`; share button (ClipboardManager); report button (POST /report + bh_config_reports SP)
+  - `fetchGames()`: parses `[{name,count}]` objects OR legacy `[string]` for backward compat
+  - `fetchConfigs()`: resets `allConfigs` + `filterByDevice`; calls `updateFilterToggle()`
+  - New helpers: `actionBtn()`, `setActionBtnColor()`, `blendDark()`, `isSOCMatch()`, `doReport()`
+
+- **[MOD]** `/tmp/bannerhub-configs-worker.js` (deployed separately to CF):
+  - `handleGames`: parallel KV reads for `counts:<name>`; returns `[{name,count}]`
+  - `handleUpload`: increments `counts:<safegame>` in KV; deletes `cache:games`
+  - `handleReport`: new endpoint; IP dedup via `reported:<ip>:<sha>` KV (7-day TTL); increments `reports:<sha>`
+  - Route dispatcher: added `m === "POST" && p === "/report"` → `handleReport`
+
+### Methods added
+- `BhGameConfigsActivity.actionBtn(String, int, OnClickListener)` — D-pad-focusable button helper
+- `BhGameConfigsActivity.setActionBtnColor(Button, int)` — safe color update on GradientDrawable
+- `BhGameConfigsActivity.blendDark(int)` — darken a color 30% for focus state
+- `BhGameConfigsActivity.isSOCMatch(String)` — case+separator insensitive SOC comparison
+- `BhGameConfigsActivity.updateFilterToggle()` — sync filter button appearance to filterByDevice state
+- `BhGameConfigsActivity.applyDeviceFilter()` — filter allConfigs → currentConfigs by SOC match
+- `BhGameConfigsActivity.doReport(JSONObject, Button)` — POST /report with IP dedup + SP persistence
+
+### CI result
+- Workflow: build-quick.yml | Run: 23968920755 | Result: ⏳ in_progress
+
+---
+
 ## Entry 132 — feat: Game Configs — Steam cover art in games list (v2.8.8-pre1, main)
 **Date:** 2026-04-04
 **Branch:** main  |  **Tag:** v2.8.8-pre1 (retagged)  |  **Commit:** TBD

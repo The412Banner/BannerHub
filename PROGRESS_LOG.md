@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [feat] — v2.8.8-pre1 — Game Configs: D-pad nav, count badge, filter, age indicator, verified badge, share, report (2026-04-04)
+**Branch:** `main`  |  **Tag:** v2.8.8-pre1
+**Commit:** `d9fe43f35`  |  **CI:** ⏳ run 23968920755
+**What changed:**
+- Screen 1: config count badge per row ("N configs" in accent) sourced from worker /games [{name,count}]
+- Screen 2: "My Device" filter toggle (green when active), age indicator (amber "may be outdated" if >6 months), verified badge ("✓ My SOC" in green) when SOC matches device
+- Screen 3: verified SOC badge in info card, all action buttons use actionBtn() helper (GradientDrawable + gold focus outline), Share (copy raw GitHub URL to clipboard), Report (POST /report with IP dedup)
+- Worker: /games returns [{name,count}]; /upload increments counts:<game>; POST /report endpoint added (IP dedup, 7-day TTL)
+**Files touched:** extension/BhGameConfigsActivity.java (+ /tmp/bannerhub-configs-worker.js deployed separately)
+
+---
+
 ## [feat] — v2.8.8-pre1 — Game Configs: Steam cover art in games list (2026-04-04)
 **Branch:** `main`  |  **Tag:** v2.8.8-pre1
 **Commit:** TBD  |  **CI:** ⏳
