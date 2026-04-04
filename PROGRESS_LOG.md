@@ -4,6 +4,65 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [stable] — v2.8.9 — Community config SOC filter + export/import preview (2026-04-04)
+**Commit:** `037b6f5a6`  |  **Tag:** v2.8.9
+**CI:** ✅ run 23984847514 — 9 APKs
+#### What changed (since v2.8.8)
+- SOC filter chips on configs list (HorizontalScrollView chip bar, unique SOC per game)
+- Export preview dialog (device/SOC/settings/components before save)
+- Local import preview + SOC mismatch warning
+- detectSoc() reads gpu_renderer from device_info SP
+- Worker: games.json (no KV reads), kvPut/kvDelete quota safety, JSON hardening
+- Apply to Game button grayed out (pending reliable game name lookup)
+- README: Community Game Configs section added, Export/Import updated
+
+### [pre] — v2.8.9-pre8 — feat: export preview + local import preview + SOC mismatch warning (2026-04-04)
+**Commit:** `037b6f5a6`  |  **Tag:** v2.8.9-pre8
+**CI:** ✅ run 23984663594 (artifact only)
+#### What changed
+- Export dialog: shows device/SOC/settings/components preview before Save/Share options
+- Local import: selecting a file shows same preview; SOC mismatch shows ⚠ warning with both values; Confirm/Cancel before applying
+#### Files touched
+- extension/BhSettingsExporter.java
+
+### [pre] — v2.8.9-pre7 — feat: SOC filter chips on configs list screen (2026-04-04)
+**Commit:** `ad95beb43`  |  **Tag:** v2.8.9-pre7
+**CI:** ✅ run 23984467858 (artifact only)
+#### What changed
+- Horizontal scrollable chip bar above configs list; chips built from unique soc values in loaded configs
+- Tap chip → filter list to that SOC; "All" (default) shows all; filter resets on game switch
+- Apply to Game button grayed out (disabled)
+#### Files touched
+- extension/BhGameConfigsActivity.java
+
+### [pre] — v2.8.9-pre6 — Fix: two-pass StarterGame lookup for Apply to Game picker (2026-04-04)
+**Commit:** `2cae1cc21`  |  **Tag:** v2.8.9-pre6
+**CI:** ✅ run 23984210142 (artifact only)
+#### What changed
+- Pass 1: query StarterGame by `gameId` (server games); Pass 2: query unmatched IDs by `id` (locally-added games — GameHub uses Room PK as SP key for these)
+- Extracted `resolveGameName()` helper: null/empty gameName → last filePath segment → "Game #id"
+- God of War (and similar locally-added games) now show real names
+#### Files touched
+- extension/BhGameConfigsActivity.java
+
+### [pre] — v2.8.9-pre5 — Fix: read gpu_renderer from device_info SP for detectSoc() (2026-04-04)
+**Commit:** `6503f0ef3`  |  **Tag:** v2.8.9-pre5
+**CI:** ✅ run 23983920528 (artifact only)
+#### What changed
+- `detectSoc()` now reads `gpu_renderer` from `device_info.xml` SP (GameHub's own cached OpenGL renderer string) as primary source
+- Falls back to kgsl sysfs → Build.SOC_MODEL → Build.HARDWARE
+#### Files touched
+- extension/BhSettingsExporter.java
+
+### [pre] — v2.8.9-pre4 — Fix: filePath fallback for game name in Apply to Game picker (2026-04-04)
+**Commit:** `7b43c4f7c`  |  **Tag:** v2.8.9-pre4
+**CI:** queued run 23983599649 (artifact only)
+#### What changed
+- Apply to Game picker: `gameName` null/empty → fall back to last path segment of `filePath` from StarterGame
+- True orphans (game deleted from library, SP file persists) still show "Game #id" — no source has the name
+#### Files touched
+- extension/BhGameConfigsActivity.java
+
 ### [pre] — v2.8.9-pre3 — Game configs worker crash fix + app JSON hardening (2026-04-04)
 **Commit:** `b839c7c1e`  |  **Tag:** v2.8.9-pre3 (retagged)
 **CI:** ✅ run 23982476410 (artifact only)
