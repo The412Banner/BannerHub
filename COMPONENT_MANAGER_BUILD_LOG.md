@@ -4562,3 +4562,9 @@ Also extracted `resolveGameName(int id, String gameName, String filePath)` helpe
 
 **Root cause / design:**
 - Previously configs could only be applied from within a game's own settings menu (required gameId context). Now the community browser can apply directly by querying GameHub's Room DB (`ux_db`, table `StarterGame`, columns `gameId`/`gameName`) to build the picker. DB name confirmed from JADX source: `GameSirUxDB$Companion$get$2.java` line 80.
+
+### Entry #[next] — v2.8.10-pre — SOC badge detection fix (2026-04-04)
+**Files:** `extension/BhGameConfigsActivity.java`
+**Root cause:** `BhGameConfigsActivity` used `Build.SOC_MODEL` (e.g. `SM8750`) for SOC matching, while `BhSettingsExporter` used `device_info` → `gpu_renderer` (EGL-queried, e.g. `Adreno (TM) 750`). The mismatch meant "✓ My SOC" badges never fired for configs with `meta.soc = "Adreno (TM) 750"`.
+**Fix:** Aligned `BhGameConfigsActivity` SOC detection to use `device_info` → `gpu_renderer` first (same as `BhSettingsExporter.detectSoc()`), with kgsl sysfs and `Build.SOC_MODEL`/`HARDWARE` as fallbacks.
+**CI:** v2.8.10-pre triggered
