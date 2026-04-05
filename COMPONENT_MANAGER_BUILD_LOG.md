@@ -32,7 +32,7 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ## Entry 136 — feat: delete own uploads (detail + list) + total games count (v2.9.1-pre, main)
 **Date:** 2026-04-04
-**Branch:** main  |  **Tag:** v2.9.1-pre  |  **Commit:** 9057ccfa7
+**Branch:** main  |  **Tag:** v2.9.1-pre  |  **Commit:** aad272173
 
 ### Root cause analysis
 No way for users to remove their own shared configs — only admin delete existed. Upload token
@@ -42,10 +42,11 @@ auth is trivially available without any new login flow.
 ### Changes
 
 **[MOD]** `extension/BhGameConfigsActivity.java`
-- Field: `gamesTotalLabel` (TextView) added
-- `buildGamesScreen()`: gamesTotalLabel added between search divider and list; hidden until data loads
-- `fetchGames()`: sets "N games" on label after list loads; hides if empty
-- `filterGames()`: updates label to "N games" (unfiltered) or "N of M games" (filtered)
+- Field: `deviceSubtitleBase` (String) stores the base device+SOC string
+- `buildHeader()`: saves base string to `deviceSubtitleBase` at build time
+- `fetchGames()`: appends "  •  N games" to `deviceSubtitleBase` on `deviceSubtitle` after load
+- `filterGames()`: updates subtitle to "N games" or "N of M games" suffix on screen 1
+- `showScreen()`: resets `deviceSubtitle` to `deviceSubtitleBase` when leaving screen 1
 - `refreshUploadsList()`: added `setOnItemLongClickListener` → AlertDialog "Delete Upload?" → calls `doDeleteUpload(..., false)`
 - `populateDetailScreen()`: adds "Delete My Upload" button (dark red) when `uploadToken != null`; confirmation dialog → `doDeleteUpload(..., true)`
 - `doDeleteUpload()`: added `fromDetail` boolean param; when true, calls `showScreen(4)` before `refreshUploadsList()`
@@ -57,7 +58,7 @@ auth is trivially available without any new login flow.
 - KV cleanup: deletes `token:`, `votes:`, `downloads:`, `reports:`, `desc:`, `comments:{game}/{filename}`, `cache:list:{game}`, `cache:games`; decrements `counts:{game}` (deletes key if would go to 0)
 
 ### CI
-- **[CI✅]** v2.9.1-pre run 23994092594 (Normal APK only)
+- **[CI✅]** v2.9.1-pre run 23994237655 (Normal APK only)
 
 ---
 
