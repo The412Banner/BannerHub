@@ -32,7 +32,7 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ## Entry 136 — feat: My Uploads delete own configs (v2.9.1-pre, main)
 **Date:** 2026-04-04
-**Branch:** main  |  **Tag:** v2.9.1-pre  |  **Commit:** TBD
+**Branch:** main  |  **Tag:** v2.9.1-pre  |  **Commit:** 9e23056ec
 
 ### Root cause analysis
 No way for users to remove their own shared configs — only admin delete existed. Upload token
