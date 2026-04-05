@@ -455,12 +455,7 @@ public class BhSettingsExporter {
             final String fileName = configFile.getName();
             Runnable applySettings = () -> {
                 editor.apply();
-                Toast.makeText(ctx, "Config applied — restarting to activate settings...", Toast.LENGTH_LONG).show();
-                // Restart LandscapeLauncherMainActivity so GameHub reloads game data
-                // from SP into its in-memory objects — without this, launched games
-                // fail because GameHub uses stale in-memory component state from before import.
-                new Handler(Looper.getMainLooper()).postDelayed(
-                        () -> restartMainActivity(ctx), 1200);
+                Toast.makeText(ctx, "Config applied — ready to launch!", Toast.LENGTH_LONG).show();
             };
 
             // No components section — apply immediately
@@ -584,9 +579,100 @@ public class BhSettingsExporter {
             ed.putString("url_for:" + name, url);
             ed.apply();
 
+            // Register in EmuComponents so GameHub can find the component on next launch.
+            // EmuComponents loads sp_winemu_all_components12 at startup to build its
+            // in-memory name→ComponentRepo map. Without this entry the GPU driver path
+            // is never resolved and the first post-import launch fails silently.
+            registerInEmuComponents(ctx, name, dest.getName(), contentType);
+            refreshEmuComponents();
+
             dest.delete();
         } catch (Exception e) {
             Toast.makeText(ctx, "Inject failed: " + name + " — " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Writes a minimal ComponentRepo JSON to sp_winemu_all_components12 so that
+     * EmuComponents.n(name) can resolve this component to its on-disk path.
+     * The path GameHub uses is: filesDir/usr/home/components/<name>
+     * (same directory ComponentInjectorHelper extracts to).
+     *
+     * ComponentType mapping (from ComponentType enum in GameHub):
+     *   CONTENT_TYPE_GPU_DRIVER=10 → type 2 (GPU)
+     *   CONTENT_TYPE_DXVK=12       → type 3 (DXVK)
+     *   CONTENT_TYPE_VKD3D=13      → type 4 (VKD3D)
+     *   CONTENT_TYPE_TRANSLATOR=32 → type 1 (TRANSLATOR)
+     *   CONTENT_TYPE_STEAM_CLIENT=54→type 7 (STEAMCLIENT)
+     */
+    private static void registerInEmuComponents(Context ctx, String name,
+                                                 String fileName, int contentType) {
+        try {
+            int envLayerType = contentTypeToEnvLayerType(contentType);
+            // Build minimal EnvLayerEntity JSON (fields match @SerializedName annotations)
+            JSONObject entry = new JSONObject();
+            entry.put("id", 0);
+            entry.put("name", name);
+            entry.put("version", "");
+            entry.put("file_name", fileName);
+            entry.put("file_md5", "");
+            entry.put("download_url", "");
+            entry.put("file_size", 0);
+            entry.put("type", envLayerType);
+            entry.put("isSteam", 0);
+            entry.put("status", 1);   // 1 = Downloaded state mapped by WhenMappings
+
+            // Build ComponentRepo JSON (Kotlin data class, Gson uses field names directly)
+            JSONObject repo = new JSONObject();
+            repo.put("name", name);
+            repo.put("version", "");
+            repo.put("state", "Downloaded");
+            repo.put("entry", entry);
+            repo.put("isDep", false);
+            repo.put("isBase", false);
+
+            SharedPreferences.Editor ed = ctx.getSharedPreferences(
+                    "sp_winemu_all_components12", Context.MODE_PRIVATE).edit();
+            ed.putString(name, repo.toString());
+            ed.apply();
+        } catch (Exception ignored) {
+            // Non-fatal: worst case user sees the original "re-select" symptom
+        }
+    }
+
+    private static int contentTypeToEnvLayerType(int contentType) {
+        // CONTENT_TYPE constants from PcSettingItemEntity.Companion
+        switch (contentType) {
+            case 10: return 2;  // GPU_DRIVER → ComponentType.GPU
+            case 12: return 3;  // DXVK      → ComponentType.DXVK
+            case 13: return 4;  // VKD3D     → ComponentType.VKD3D
+            case 32: return 1;  // TRANSLATOR → ComponentType.TRANSLATOR
+            case 54: return 7;  // STEAM_CLIENT → ComponentType.STEAMCLIENT
+            default: return 5;  // GENERAL
+        }
+    }
+
+    /**
+     * Calls EmuComponents.s() via reflection to refresh the in-memory component map
+     * from sp_winemu_all_components12 SP. Called after registerInEmuComponents() so
+     * the newly written entry is immediately visible without an app restart.
+     */
+    private static void refreshEmuComponents() {
+        try {
+            Class<?> emuComponentsCls = Class.forName("com.xj.winemu.EmuComponents");
+            // EmuComponents.c = Companion instance; EmuComponents.Companion.a() = the singleton
+            java.lang.reflect.Field companionField = emuComponentsCls.getDeclaredField("c");
+            companionField.setAccessible(true);
+            Object companion = companionField.get(null);
+            // Call companion.a() to get the EmuComponents singleton
+            java.lang.reflect.Method getInstanceMethod = companion.getClass().getMethod("a");
+            Object instance = getInstanceMethod.invoke(companion);
+            // Call instance.s() to reload the in-memory map from SP
+            java.lang.reflect.Method reloadMethod = emuComponentsCls.getDeclaredMethod("s");
+            reloadMethod.setAccessible(true);
+            reloadMethod.invoke(instance);
+        } catch (Exception ignored) {
+            // Non-fatal: worst case the map stays stale until next app start
         }
     }
 
