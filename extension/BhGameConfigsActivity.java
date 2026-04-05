@@ -95,6 +95,7 @@ public class BhGameConfigsActivity extends Activity {
     // ── Views ────────────────────────────────────────────────────────────────
     private LinearLayout screenGames, screenConfigs, screenDetail, screenUploads;
     private TextView     headerTitle;
+    private TextView     deviceSubtitle;
     private EditText     searchBox;
     private ListView     gamesListView, configsListView, uploadsListView;
     private Button       myUploadsBtn;
@@ -113,6 +114,7 @@ public class BhGameConfigsActivity extends Activity {
     private List<JSONObject> currentConfigs = new ArrayList<>();
     private String           selectedSocFilter = "";
     private Map<String,Integer> gameCounts  = new HashMap<>();
+    private Map<String,Boolean> gameHasSocMatch = new HashMap<>();
     private String     selectedGame;
     private JSONObject selectedConfig;
     private int        currentScreen  = 1; // 1=games, 2=configs, 3=detail, 4=uploads
@@ -187,6 +189,7 @@ public class BhGameConfigsActivity extends Activity {
 
         showScreen(1);
         fetchGames(false);
+        fetchDevicesMap();
     }
 
     @Override
@@ -222,14 +225,30 @@ public class BhGameConfigsActivity extends Activity {
         });
         back.setOnClickListener(v -> onBackPressed());
 
+        LinearLayout titleCol = new LinearLayout(this);
+        titleCol.setOrientation(LinearLayout.VERTICAL);
+        titleCol.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        titleLp.leftMargin = dp(4);
+        titleCol.setLayoutParams(titleLp);
+
         headerTitle = new TextView(this);
         headerTitle.setText("Game Configs");
         headerTitle.setTextColor(WHITE);
         headerTitle.setTextSize(18f);
         headerTitle.setTypeface(null, Typeface.BOLD);
-        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        titleLp.leftMargin = dp(4);
-        headerTitle.setLayoutParams(titleLp);
+        titleCol.addView(headerTitle);
+
+        deviceSubtitle = new TextView(this);
+        String mfr   = android.os.Build.MANUFACTURER;
+        String model = android.os.Build.MODEL;
+        String socLabel = currentSoc.isEmpty() ? android.os.Build.HARDWARE : currentSoc;
+        deviceSubtitle.setText(mfr + " " + model + "  •  " + socLabel);
+        deviceSubtitle.setTextColor(GREY);
+        deviceSubtitle.setTextSize(10f);
+        deviceSubtitle.setSingleLine(true);
+        deviceSubtitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        titleCol.addView(deviceSubtitle);
 
         GradientDrawable refreshBg = new GradientDrawable();
         refreshBg.setColor(0xFF2A2A3A);
@@ -269,7 +288,7 @@ public class BhGameConfigsActivity extends Activity {
         ubLp.rightMargin = dp(6);
 
         h.addView(back);
-        h.addView(headerTitle);
+        h.addView(titleCol);
         h.addView(myUploadsBtn, ubLp);
         h.addView(refreshBtn);
         return h;
@@ -309,6 +328,38 @@ public class BhGameConfigsActivity extends Activity {
         s.addView(searchDivider, new LinearLayout.LayoutParams(-1, dp(1)));
         s.addView(gamesListView, new LinearLayout.LayoutParams(-1, 0, 1f));
         return s;
+    }
+
+    /** Fetches devices.json to build gameHasSocMatch map for Screen 1 badges. */
+    private void fetchDevicesMap() {
+        new Thread(() -> {
+            try {
+                HttpURLConnection conn = openGet(
+                        "https://the412banner.github.io/bannerhub-game-configs/devices.json");
+                String body = readResponse(conn);
+                JSONObject map = new JSONObject(body);
+                Map<String, Boolean> result = new HashMap<>();
+                Iterator<String> games = map.keys();
+                while (games.hasNext()) {
+                    String game = games.next();
+                    JSONArray entries = map.optJSONArray(game);
+                    if (entries == null) continue;
+                    for (int i = 0; i < entries.length(); i++) {
+                        JSONObject e = entries.getJSONObject(i);
+                        String soc = e.optString("s", "");
+                        String dev = e.optString("d", "");
+                        if (isSOCMatch(soc) || isDeviceMatch(dev)) {
+                            result.put(game, true);
+                            break;
+                        }
+                    }
+                }
+                ui.post(() -> {
+                    gameHasSocMatch.putAll(result);
+                    refreshGamesList();
+                });
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private void filterGames(String query) {
@@ -388,6 +439,18 @@ public class BhGameConfigsActivity extends Activity {
                     LinearLayout.LayoutParams badgeLp = new LinearLayout.LayoutParams(-2, -2);
                     badgeLp.topMargin = dp(3);
                     textCol.addView(badge, badgeLp);
+                }
+
+                // SOC / device match badge
+                if (Boolean.TRUE.equals(gameHasSocMatch.get(game))) {
+                    TextView matchBadge = new TextView(getContext());
+                    matchBadge.setText("✓ Matches Your Device");
+                    matchBadge.setTextColor(0xFF4CAF50);
+                    matchBadge.setTextSize(11f);
+                    matchBadge.setTypeface(null, Typeface.BOLD);
+                    LinearLayout.LayoutParams mbLp = new LinearLayout.LayoutParams(-2, -2);
+                    mbLp.topMargin = dp(3);
+                    textCol.addView(matchBadge, mbLp);
                 }
 
                 row.addView(textCol);
@@ -538,6 +601,13 @@ public class BhGameConfigsActivity extends Activity {
                     verBadge.setTextSize(11f);
                     verBadge.setTypeface(null, Typeface.BOLD);
                     titleRow.addView(verBadge);
+                } else if (isDeviceMatch(device)) {
+                    TextView devBadge = new TextView(getContext());
+                    devBadge.setText("  ✓ My Device");
+                    devBadge.setTextColor(0xFF29B6F6);
+                    devBadge.setTextSize(11f);
+                    devBadge.setTypeface(null, Typeface.BOLD);
+                    titleRow.addView(devBadge);
                 }
                 row.addView(titleRow);
 
@@ -631,9 +701,17 @@ public class BhGameConfigsActivity extends Activity {
     private boolean isSOCMatch(String configSoc) {
         if (currentSoc == null || currentSoc.isEmpty()) return false;
         if (configSoc == null || configSoc.isEmpty()) return false;
-        String a = currentSoc.toLowerCase().replace("_", "").replace("-", "");
-        String b = configSoc.toLowerCase().replace("_", "").replace("-", "");
+        String a = currentSoc.toLowerCase().replace("_", "").replace("-", "").replace(" ", "");
+        String b = configSoc.toLowerCase().replace("_", "").replace("-", "").replace(" ", "");
         return a.equals(b) || a.contains(b) || b.contains(a);
+    }
+
+    /** Returns true if configDevice contains this device's model name. */
+    private boolean isDeviceMatch(String configDevice) {
+        if (configDevice == null || configDevice.isEmpty()) return false;
+        String myModel = android.os.Build.MODEL.toLowerCase().replace(" ", "").replace("-", "");
+        String cd = configDevice.toLowerCase().replace("_", "").replace(" ", "").replace("-", "");
+        return cd.contains(myModel) || myModel.contains(cd);
     }
 
     // ── Screen 3: Detail ──────────────────────────────────────────────────────
