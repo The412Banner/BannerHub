@@ -183,6 +183,12 @@
 
     move-result-object v5
 
+    # BannerHub: skip primary/emulated storage — only accept true removable SD cards
+    const-string v6, "/storage/emulated/"
+    invoke-virtual {v5, v6}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+    move-result v6
+    if-nez v6, :goto_1
+
     .line 364
     const-string v6, "/Android/data"
 
