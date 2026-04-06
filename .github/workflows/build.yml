@@ -163,6 +163,73 @@ jobs:
           print("\nAll Grant Root Access patches applied successfully.")
           PYEOF
 
+      - name: Apply SD card storage getter intercept patches
+        run: |
+          python3 << 'PYEOF'
+          import sys
+
+          def patch(path, old, new, label):
+              try:
+                  content = open(path, encoding='utf-8').read()
+              except UnicodeDecodeError:
+                  content = open(path, encoding='latin-1').read()
+              if old not in content:
+                  print(f"ERROR: anchor not found in {path} for: {label}")
+                  sys.exit(1)
+              open(path, 'w', encoding='utf-8').write(content.replace(old, new, 1))
+              print(f"OK: {label}")
+
+          # SteamDownloadExtend.getInstallDirPath() — redirect cached internal path to SD card on every read
+          patch(
+              'apktool_out/smali_classes4/com/xj/standalone/steam/data/bean/SteamDownloadExtend.smali',
+              '    iget-object p0, p0, Lcom/xj/standalone/steam/data/bean/SteamDownloadExtend;->installDirPath:Ljava/lang/String;\n'
+              '\n'
+              '    .line 3\n'
+              '    return-object p0\n'
+              '.end method\n'
+              '\n'
+              '.method public final getInstallScripts',
+              '    iget-object p0, p0, Lcom/xj/standalone/steam/data/bean/SteamDownloadExtend;->installDirPath:Ljava/lang/String;\n'
+              '\n'
+              '    # BannerHub: redirect to SD card storage if enabled (fixes cached internal paths)\n'
+              '    invoke-static {p0}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->getEffectiveStoragePath(Ljava/lang/String;)Ljava/lang/String;\n'
+              '    move-result-object p0\n'
+              '\n'
+              '    .line 3\n'
+              '    return-object p0\n'
+              '.end method\n'
+              '\n'
+              '.method public final getInstallScripts',
+              'SteamDownloadExtend.getInstallDirPath(): SD card redirect on read'
+          )
+
+          # AppMetadata.getInstallPath() — same redirect for per-depot install paths
+          patch(
+              'apktool_out/smali_classes8/com/xj/standalone/steam/data/bean/AppMetadata.smali',
+              '    iget-object p0, p0, Lcom/xj/standalone/steam/data/bean/AppMetadata;->installPath:Ljava/lang/String;\n'
+              '\n'
+              '    .line 3\n'
+              '    return-object p0\n'
+              '.end method\n'
+              '\n'
+              '.method public final getLaunchInfo',
+              '    iget-object p0, p0, Lcom/xj/standalone/steam/data/bean/AppMetadata;->installPath:Ljava/lang/String;\n'
+              '\n'
+              '    # BannerHub: redirect to SD card storage if enabled (fixes cached internal paths)\n'
+              '    invoke-static {p0}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->getEffectiveStoragePath(Ljava/lang/String;)Ljava/lang/String;\n'
+              '    move-result-object p0\n'
+              '\n'
+              '    .line 3\n'
+              '    return-object p0\n'
+              '.end method\n'
+              '\n'
+              '.method public final getLaunchInfo',
+              'AppMetadata.getInstallPath(): SD card redirect on read'
+          )
+
+          print("\nAll SD card getter patches applied successfully.")
+          PYEOF
+
       - name: Apply Settings Import/Export smali patch
         run: |
           python3 << 'PYEOF'

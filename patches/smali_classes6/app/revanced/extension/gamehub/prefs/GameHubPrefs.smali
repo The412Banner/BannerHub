@@ -207,18 +207,8 @@
 
     invoke-direct {v6, v5, v7}, Ljava/io/File;-><init>(Ljava/lang/String;Ljava/lang/String;)V
 
-    .line 368
-    invoke-virtual {v6}, Ljava/io/File;->exists()Z
-
-    move-result v7
-
-    if-eqz v7, :cond_2
-
-    invoke-virtual {v6}, Ljava/io/File;->isDirectory()Z
-
-    move-result v7
-
-    if-eqz v7, :cond_2
+    # BannerHub: create GHL folder if it doesn't exist (no longer requires pre-existing folder)
+    invoke-virtual {v6}, Ljava/io/File;->mkdirs()Z
 
     invoke-virtual {v6}, Ljava/io/File;->canWrite()Z
 
