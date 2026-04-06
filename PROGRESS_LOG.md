@@ -1,5 +1,88 @@
 # BannerHub Progress Log
 
+### [admin] — Deleted v2.9.1 and v2.9.0 releases + tags (2026-04-05)
+- Removed v2.9.1 and v2.9.0 GitHub releases and their tags at user request
+- v2.9.2 is now the only stable release visible on GitHub; base-apk retained
+
+### [admin] — v2.9.2 release description updated (2026-04-05)
+- Added per-game component export fix bullet to "New since v2.9.1"
+- Added Easter message
+
+### [stable] — v2.9.2 — GPU driver import fix (2026-04-05)
+**Commit:** `c96ac55a3`  |  **Tag:** v2.9.2
+**CI:** ✅ run 24008533097 (9 APKs)
+#### What changed
+- BH_VERSION bumped to 2.9.2; stable release of GPU driver import fix
+
+### [fix] — v2.9.2-pre — Fix: GPU driver from imported config not applying at launch (2026-04-05)
+**Commit:** `16b3f2379`  |  **Tag:** v2.9.2-pre (retagged)
+**CI:** ✅ run 24008331098 (artifact only)
+#### What changed
+- Root cause: config file stored display label as GPU driver component name ("✓ 26.1.0_r6 — Turnip_v26.1.0_R6"); EmuComponents.n() lookup failed → null → no driver path at launch
+- injectAndRegister() now snapshots filesDir/usr/home/components/ before/after injection to detect actual versionName (the real EmuComponents key)
+- Returns actual name; downloadMissingComponents() tracks GPU correction and calls fixGpuDriverName() after applySettings() to overwrite pc_ls_GPU_DRIVER_ name+displayName with correct key
+#### Files touched
+- `extension/BhSettingsExporter.java`
+
+### [pre] — v2.9.2-pre — Rollback: revert import fixes (2026-04-05)
+**Commit:** `342aab939`  |  **Tag:** v2.9.2-pre (retagged)
+**CI:** ✅ run 24007444571 (artifact only)
+#### What changed
+- Reverted EmuComponents registration fix and activity restart fix
+- User confirmed only GPU driver needs manual re-select after import, not all components; approach needs rethink
+
+### [pre] — v2.9.2-pre — Fix: imported components activate immediately (REVERTED) (2026-04-05)
+**Commit:** `634bc1e25`  |  **Tag:** v2.9.2-pre (retagged)
+**CI:** ✅ run 24007251797 (artifact only)
+#### What changed
+- Root cause confirmed via JADX: ComponentInjectorHelper extracts to filesDir/usr/home/components/<name>/ but does NOT register in EmuComponents (sp_winemu_all_components12). GameHub calls EmuComponents.n(name) on launch → null → GAMESCOPE_DRIVER_PATH never set → gamescope runs without custom Vulkan driver
+- registerInEmuComponents(): writes minimal ComponentRepo JSON to sp_winemu_all_components12 after inject (name, version="", state="Downloaded", entry with ComponentType.type)
+- refreshEmuComponents(): reflects into EmuComponents.s() to reload in-memory HashMap from SP immediately — no restart needed
+- contentTypeToEnvLayerType(): maps contentType int → ComponentType.type int
+- Removed activity restart; toast → "Config applied — ready to launch!"
+#### Files touched
+- extension/BhSettingsExporter.java
+
+---
+
+### [pre] — v2.9.2-pre — Fix import not activating (attempt 1 — superseded) (2026-04-05)
+**Commit:** `b34c16751`  |  **Tag:** v2.9.2-pre (retagged)
+**CI:** ✅ run 24006656904 (artifact only)
+#### What changed
+- Activity restart approach (insufficient, superseded by commit 634bc1e25)
+#### Files touched
+- extension/BhSettingsExporter.java
+
+---
+
+### [pre] — v2.9.2-pre — Fix per-game components export (2026-04-05)
+**Commit:** `2cdeb13c0`  |  **Tag:** v2.9.2-pre (retagged)
+**CI:** ✅ run 24003937839 (artifact only)
+#### What changed
+- buildComponentsArray reads active component keys from pc_g_setting{gameId} — only the components actually selected for this game, not all globally installed ones
+- Cross-references banners_sources for URL — only BannerHub-injected components included; stock GameHub components excluded
+- Fixes users seeing unrelated GPU drivers/Box64 builds from other games in exported configs
+#### Files touched
+- extension/BhSettingsExporter.java
+
+---
+
+### [pre] — v2.9.2-pre — Fix delete unauthorized + bh_version hardcoded (2026-04-05)
+**Commit:** `c62bb00ed`  |  **Tag:** v2.9.2-pre
+**CI:** ✅ run 24002238593 (artifact only)
+#### What changed
+- Upload token embedded in `meta.upload_token` in every exported JSON (local + upload) — survives reinstall/clear data via /sdcard/BannerHub/configs/
+- App delete: falls back to recoverTokenFromFile() when SP token is missing (detail screen + long-press in My Uploads)
+- Worker /delete: if KV token missing, fetches GitHub file, verifies embedded token, restores to KV on success
+- Fixed bh_version "2.8.8" hardcoded → BH_VERSION static final "2.9.1"
+- Worker deployed (bannerhub-configs-worker) via CF REST API
+#### Files touched
+- extension/BhSettingsExporter.java (BH_VERSION, token in meta, recoverTokenFromFile)
+- extension/BhGameConfigsActivity.java (token recovery fallback in detail + long-press)
+- /tmp/bannerhub-configs-worker.js (deployed)
+
+---
+
 Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK rebuild.
 
 ---
@@ -3341,3 +3424,16 @@ manifest download, install, launch, SDK cache + update checker.
 **Access:** Two new options in the game "..." settings menu (My Games → long-press → settings).
 **Files:** `extension/BhSettingsExporter.java`, `patches/smali/…/BhExportLambda.smali`, `patches/smali/…/BhImportLambda.smali`, both CI workflows (new smali patch step).
 **CI:** ⏳ run 23953526581
+
+### [pre] — v2.9.3-sd-pre1 — Rework SD card storage: patch SteamFilePaths.m() at source (2026-04-06)
+**Commit:** `43929d8a1`  |  **Tag:** v2.9.3-sd-pre1 (sd-card branch)
+**CI:** in_progress run 24031792522
+#### What changed
+- Root cause of old approach: getter intercepts on getInstallDirPath()/getInstallPath() bypassed by Gson when ACFWriter serializes SteamDownloadExtend — Gson reads fields via reflection, never calls getters. ACF written with internal path regardless of toggle.
+- New approach (from GameNative v0.9.0 source analysis): patch SteamFilePaths.m() — the single source method that returns filesDir/Steam/steamapps/common. All consumers (SteamDownloadManager, SteamDownloadInfoHelper, ACFWriter) derive installDirPath from it. Redirecting here means the field stores the SD card path from birth; Gson sees it natively.
+- Dropped both getter intercept patches (SteamDownloadExtend, AppMetadata) — architecturally flawed, no longer needed.
+- Fixed autoDetectSDCardStorage(): added /storage/emulated/ filter to skip primary emulated storage; only accepts true removable SD cards.
+#### Files touched
+- .github/workflows/build-quick.yml
+- .github/workflows/build.yml
+- patches/smali_classes6/app/revanced/extension/gamehub/prefs/GameHubPrefs.smali
