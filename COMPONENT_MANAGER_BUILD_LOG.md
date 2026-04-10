@@ -30,6 +30,36 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 137 — fix: GOG chunk URL broken for Akamai CDN (v2.9.3-pre, main)
+**Date:** 2026-04-10
+**Commit:** `4f3c515b5`  |  **Tag:** v2.9.3-pre  |  **Branch:** main
+
+### Root-cause analysis
+`parseCdnUrl()` in `GogDownloadManager.java` substitutes all `url_format` placeholders and returns a fully-formed URL. For Akamai CDN, `url_format` is `{base_url}/{path}?__token__={token}`, so `cdnBase` ends up as:
+`https://gog-cdn.akamaized.net/.../store/{id}?__token__=exp=...`
+
+Chunk URL construction: `fCdnBase + "/" + buildCdnPath(chunk.hash)` appended the hash **after** the query string, producing an invalid URL:
+`https://gog-cdn.akamaized.net/.../store/{id}?__token__=exp=.../aa/bb/aabbcc...`
+Akamai rejects this → download never started (log cut off at `cdnBase=...`).
+
+### Fix
+At the chunk URL build site, split `cdnBase` on `?` and insert the chunk path before the query string:
+```java
+int qIdx = fCdnBase.indexOf('?');
+String chunkUrl = qIdx >= 0
+    ? fCdnBase.substring(0, qIdx) + "/" + chunkPath + fCdnBase.substring(qIdx)
+    : fCdnBase + "/" + chunkPath;
+```
+
+### Files modified
+- `extension/GogDownloadManager.java` [MOD] — chunk URL construction fixed (same fix applied to bannerhub/bh-lite)
+
+### CI result
+- [CI✅] BannerHub `Build APK (Quick — Normal only)` — run 24243862420 — 3m48s
+- [CI✅] BH-Lite `Build APK (Quick — Pre-release)` — run 24243696154
+
+---
+
 ## Entry 136 — feat: delete own uploads (detail + list) + total games count (v2.9.1-pre, main)
 **Date:** 2026-04-04
 **Branch:** main  |  **Tag:** v2.9.1-pre  |  **Commit:** aad272173

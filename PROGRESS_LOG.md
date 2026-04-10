@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — v2.9.3-pre — GOG Akamai CDN chunk URL fix (2026-04-10)
+**Commit:** `4f3c515b5`  |  **Tag:** v2.9.3-pre
+**CI:** ✅ run 24243862420 (artifact only)
+#### What changed
+GOG downloads failed for games whose `secure_link` returned an Akamai CDN (`gog-cdn.akamaized.net`). The token-bearing `?__token__=...` query string was part of `cdnBase`, so appending the chunk hash produced an invalid URL with the path after the query string. Fix: insert chunk path before `?` if present. Same fix applied to BH-Lite (v0.4.1-pre, run 24243696154 ✅).
+#### Files touched
+- `extension/GogDownloadManager.java` — chunk URL construction
+
+---
+
 ### [stable] — v2.9.1 — Delete own uploads + games count in header (2026-04-05)
 **Commit:** `168896755`  |  **Tag:** v2.9.1
 **CI:** ✅ run 23994335658 — 9 APKs
