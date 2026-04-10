@@ -365,7 +365,11 @@ public final class GogDownloadManager {
                             ok = true;
                             for (DepotFile.ChunkRef chunk : df.chunks) {
                                 if (cancelled.get()) return null;
-                                String chunkUrl = fCdnBase + "/" + buildCdnPath(chunk.hash);
+                                String chunkPath = buildCdnPath(chunk.hash);
+                                int qIdx = fCdnBase.indexOf('?');
+                                String chunkUrl = qIdx >= 0
+                                        ? fCdnBase.substring(0, qIdx) + "/" + chunkPath + fCdnBase.substring(qIdx)
+                                        : fCdnBase + "/" + chunkPath;
                                 byte[] chunkRaw = fetchBytes(chunkUrl, null);
                                 if (chunkRaw == null) { ok = false; break; }
                                 fileBytes += chunkRaw.length;
