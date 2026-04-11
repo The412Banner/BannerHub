@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — v2.9.3-pre — Genshin variant package name case fix (2026-04-11)
+**Commit:** `25c0b50e4`  |  **Tag:** v2.9.3-pre (retagged)
+**CI:** triggered
+#### What changed
+- Genshin variant package name corrected from `com.mihoyo.genshinimpact` to `com.miHoYo.GenshinImpact` (exact case match for Genshin Impact)
+#### Files touched
+- `.github/workflows/build.yml`
+
+---
+
 ### [fix] — v2.9.3-pre — GOG Akamai CDN chunk URL fix (2026-04-10)
 **Commit:** `4f3c515b5`  |  **Tag:** v2.9.3-pre
 **CI:** ✅ run 24243862420 (artifact only)

@@ -30,6 +30,25 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 138 — fix: Genshin variant package name case correction (v2.9.3-pre retagged, main)
+**Date:** 2026-04-11
+**Commit:** `25c0b50e4` | **Tag:** v2.9.3-pre (force-retagged) | **Branch:** main
+
+### Files
+- `[MOD]` `.github/workflows/build.yml` — Genshin matrix entry package changed from `com.mihoyo.genshinimpact` to `com.miHoYo.GenshinImpact`
+
+### Root cause
+Package name was lowercase, not matching the exact casing required to coexist with the real Genshin Impact app (`com.miHoYo.GenshinImpact`).
+
+### Push
+- `git push origin main`
+- `git push origin v2.9.3-pre -f` (force-retag)
+
+### CI
+- Triggered — awaiting result
+
+---
+
 ## Entry 137 — fix: GOG chunk URL broken for Akamai CDN (v2.9.3-pre, main)
 **Date:** 2026-04-10
 **Commit:** `4f3c515b5`  |  **Tag:** v2.9.3-pre  |  **Branch:** main
