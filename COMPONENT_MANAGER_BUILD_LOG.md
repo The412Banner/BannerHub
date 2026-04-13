@@ -4644,6 +4644,20 @@ Also extracted `resolveGameName(int id, String gameName, String filePath)` helpe
 **Root cause / design:**
 - Previously configs could only be applied from within a game's own settings menu (required gameId context). Now the community browser can apply directly by querying GameHub's Room DB (`ux_db`, table `StarterGame`, columns `gameId`/`gameName`) to build the picker. DB name confirmed from JADX source: `GameSirUxDB$Companion$get$2.java` line 80.
 
+### Entry 055 — Export/import config always showed 0 settings and 0 components (2026-04-13)
+**Commit:** `cf42c7619`  |  **Tag:** v2.9.3-pre  |  **CI:** triggered
+
+**Files changed:**
+- `extension/BhSettingsExporter.java` — all `int gameId` parameters changed to `String gameId` across all methods (`showExportDialog`, `exportConfig`, `doExport`, `showImportDialog`, `showLocalImportDialog`, `showLocalImportPreview`, `showCommunityImportDialog`, `downloadAndImport`, `applyConfig`, `buildComponentsArray`, `downloadMissingComponents`, `fixGpuDriverName`); `if (gameId > 0)` guard → `if (gameId != null && !gameId.isEmpty())`
+- `extension/BhGameConfigsActivity.java` — `List<Integer> gameIds` → `List<String> gameIds`; SP file scanning now collects `local_*` UUID suffixes (previously all thrown away via `NumberFormatException`); local games shown as "Local Game (...XXXXXXXX)" in Apply-to-Game picker
+- `patches/smali/.../BhExportLambda.smali` — `getId()I` + `move-result` → `getLocalGameId()Ljava/lang/String;` + `move-result-object`; method descriptor updated to `(Context;String;String;)V`
+- `patches/smali/.../BhImportLambda.smali` — same change for `showImportDialog`
+
+**Root cause / design:**
+`BhExportLambda`/`BhImportLambda` called `GameDetailEntity.getId()` (int field). For locally-added games, GameHub's `PcGameSettingDataHelper` stores per-game settings in SharedPreferences named `"pc_g_setting" + localGameId` where localGameId is a UUID string (e.g. `"local_5f129d63-1fb0-42ff-bfd7-1c562aeb5725"`). Using the integer getId() produced SP names like `"pc_g_setting0"` — always empty. `GameDetailEntity.getLocalGameId()` is `@NotNull String` and returns the correct UUID. The same bug affected `BhGameConfigsActivity.applyConfigToGame()` which used `Integer.parseInt()` on SP filename suffixes, silently skipping all local game files.
+
+---
+
 ### Entry #[next] — v2.8.10-pre — SOC badge detection fix (2026-04-04)
 **Files:** `extension/BhGameConfigsActivity.java`
 **Root cause:** `BhGameConfigsActivity` used `Build.SOC_MODEL` (e.g. `SM8750`) for SOC matching, while `BhSettingsExporter` used `device_info` → `gpu_renderer` (EGL-queried, e.g. `Adreno (TM) 750`). The mismatch meant "✓ My SOC" badges never fired for configs with `meta.soc = "Adreno (TM) 750"`.
