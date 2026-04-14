@@ -11,6 +11,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Html;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -178,7 +179,7 @@ public class GogGameDetailActivity extends Activity {
         }
         if (description != null && !description.isEmpty()) {
             TextView descTV = new TextView(this);
-            descTV.setText(description);
+            descTV.setText(Html.fromHtml(description, Html.FROM_HTML_MODE_COMPACT));
             descTV.setTextColor(0xFFCCCCCC);
             descTV.setTextSize(13f);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);

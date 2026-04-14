@@ -11,6 +11,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Html;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -150,7 +151,9 @@ public class EpicGameDetailActivity extends Activity {
         if (developer != null && !developer.isEmpty()) card.addView(makeInfoRow("Developer", developer));
         if (appName != null && !appName.isEmpty())     card.addView(makeInfoRow("App", appName));
         if (description != null && !description.isEmpty()) {
-            String desc = description.length() > 300 ? description.substring(0, 300) + "…" : description;
+            // Strip HTML tags first, then truncate clean text
+            String plain = Html.fromHtml(description, Html.FROM_HTML_MODE_COMPACT).toString().trim();
+            String desc = plain.length() > 400 ? plain.substring(0, 400) + "…" : plain;
             TextView tv = new TextView(this);
             tv.setText(desc);
             tv.setTextColor(0xFFCCCCCC);
