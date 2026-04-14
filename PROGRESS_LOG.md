@@ -4,9 +4,73 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [stable] — v3.1.0 — Full-screen detail pages, update checkers, DLC, cloud saves (2026-04-14)
+**Commit:** `d29f5fb4c`  |  **Tag:** v3.1.0
+**CI:** ✅ run 24422975293
+#### What changed
+- Full-screen game detail activities (GOG, Epic, Amazon) — cover art, description, install size, release date, GOG ratings
+- GOG/Epic/Amazon update checkers — Check for Updates / Update Now buttons
+- DLC management for all 3 stores — list, install, uninstall individual DLCs
+- GOG Cloud Saves — upload/download, game-scoped token (clientSecret exchange), folder picker
+- Epic Cloud Saves — upload/download via datastorage API
+- FolderPickerActivity — root dropdown + New Folder button
+- Epic free games redesign — dedicated FreeGamesActivity
+#### Files touched
+- extension/BhSettingsExporter.java (BH_VERSION → 3.1.0)
+
+---
+
+### [fix] — v3.0.4-pre — GOG cloud saves: friendly error for unsupported games (2026-04-14)
+**Commit:** `24a287b6f`  |  **Tag:** v3.0.4-pre (retagged)
+**CI:** run 24413240848 (queued)
+#### What changed
+- Debug log confirmed: scoped token works (HTTP 200) but GOG returns HTTP 400 `not_enabled_for_client` — cloud saves disabled for this game's clientId
+- `getRequest()`: detects `not_enabled_for_client` / `disabled` in error body → throws sentinel `CLOUD_SAVES_NOT_SUPPORTED`
+- Upload/download catch: shows "This game does not support GOG cloud saves" instead of raw HTTP 400 body
+
+---
+
+### [fix] — v3.0.4-pre — getOrFetchClientId: don't skip fetch if clientSecret missing (2026-04-14)
+**Commit:** `46aa765c7`  |  **Tag:** v3.0.4-pre (retagged)
+**CI:** run 24412836097 (queued)
+#### What changed
+- `getOrFetchClientId()` was returning early if `clientId` was in prefs, even if `clientSecret` was not. For games downloaded before clientSecret caching was added, this meant the manifest was never re-fetched and `getGameScopedToken()` always fell back to the Galaxy token (→ 403). Now only skips the fetch if both clientId AND clientSecret are cached.
+
+---
+
+### [fix] — v3.0.4-pre — GOG cloud saves: game-scoped token via clientSecret exchange (2026-04-14)
+**Commit:** `69b05efff`  |  **Tag:** v3.0.4-pre (retagged)
+**CI:** run 24412652305 (queued)
+#### What changed
+- Root cause confirmed from debug log: GOG cloudstorage API requires a game-scoped token, not the Galaxy app token. Token must be obtained by re-using Galaxy `refresh_token` but with the game's `clientId`+`clientSecret` from the build manifest.
+- `GogDownloadManager.runGen2()`: extract + cache `clientSecret` as `gog_client_secret_{gameId}`
+- `GogDownloadManager.getOrFetchClientId()`: also caches `clientSecret` as side effect
+- `GogCloudSaveManager.getGameScopedToken()`: new — reads clientId+clientSecret+Galaxy refresh_token, exchanges at auth.gog.com for scoped token. Falls back to Galaxy token if clientSecret missing.
+- Exception messages now written to debug file; log shows `scopedToken=ok` vs `fallback`
+
+---
+
+### [fix] — v3.0.4-pre — Debug file path → /sdcard/ for Termux access (2026-04-14)
+**Commit:** `14db4654f`  |  **Tag:** v3.0.4-pre (retagged)
+**CI:** run 24412339253 (queued)
+#### What changed
+- Changed debug file from `getExternalFilesDir()` (scoped, inaccessible from Termux) to `Environment.getExternalStorageDirectory()` (`/sdcard/bh_cloud_debug.txt`), readable with `cat /sdcard/bh_cloud_debug.txt` directly from Termux.
+
+---
+
+### [fix] — v3.0.4-pre — Cloud save debug logging + GOG clientId on-demand fetch (2026-04-14)
+**Commit:** `09112bc57`  |  **Tag:** v3.0.4-pre (retagged)
+**CI:** ✅ run 24411920035
+#### What changed
+- **GOG clientId on-demand fetch:** `GogDownloadManager.getOrFetchClientId()` — checks prefs; if `gog_client_id_{gameId}` is missing (game installed before caching was added), fetches content-system.gog.com builds endpoint, downloads + decompresses the Gen2 manifest, extracts clientId, caches it. Falls back to gameId only if the manifest fetch fails entirely.
+- **GogCloudSaveManager:** both `uploadSaves()` and `downloadSaves()` now use `getOrFetchClientId()` instead of direct prefs lookup.
+- **Debug file:** both GOG and Epic cloud save managers now write to `bh_cloud_debug.txt` in `getExternalFilesDir`. Logs: gameId/userId/clientId (GOG) or appName/accountId (Epic), exact cloudstorage/datastorage URL, HTTP code, body snippet or error body.
+
+---
+
 ### [fix] — v3.0.4-pre — Cloud save 403 fixes (GOG clientId + Epic token refresh) (2026-04-14)
 **Commit:** `4c7b8777c`  |  **Tag:** v3.0.4-pre (retagged)
-**CI:** triggered
+**CI:** ✅ run 24411113083
 #### What changed
 - **GOG**: `GogDownloadManager.runGen2()` now extracts `clientId` from manifest JSON header and caches as `gog_client_id_{gameId}` in bh_gog_prefs. `GogCloudSaveManager` reads this cached clientId (falls back to gameId). Root cause: product ID ≠ Galaxy client ID — GOG cloudstorage URL requires the client ID.
 - **Epic**: Removed broken `getValidToken()` from `EpicCloudSaveManager` which read `"expires_at"` but wrote back `"epic_expires_at"` (wrong key), causing stale tokens. Now uses `EpicCredentialStore.getValidAccessToken(ctx)` which handles refresh correctly.
