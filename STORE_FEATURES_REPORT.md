@@ -334,6 +334,14 @@ Once a feature is confirmed working in BannerHub (✅), it becomes a candidate f
 
 ## Completed Features Log
 
-_(Entries added here as features reach ✅ status with CI passing)_
+| Feature | Version | Date | Notes |
+|---------|---------|------|-------|
+| D-1 Full-screen detail pages (GOG/Epic/Amazon) | v3.0.1-pre | 2026-04-14 | Header, cover art, GAME INFO, ACTIONS, stubs |
+| D-2 Strip HTML from descriptions | v3.0.1-pre | 2026-04-14 | `Html.fromHtml()` GOG+Epic |
+| D-3 Install size in GAME INFO | v3.0.1-pre | 2026-04-14 | GOG: sync-time cache; Epic/Amazon: lazy+cached |
+| D-5 Release date in GAME INFO | v3.0.1-pre | 2026-04-14 | GOG+Epic only; Amazon has no API source |
+| GOG-2 Update Checker | v3.0.1-pre | 2026-04-14 | content-system builds endpoint; confirmed working |
+| EPIC-3 Update Checker | v3.0.1-pre | 2026-04-14 | manifest buildVersion field; confirmed working |
+| AMAZON-1 Update Checker | v3.0.1-pre | 2026-04-14 | getGameDownload versionId; confirmed working |
 
 ---
