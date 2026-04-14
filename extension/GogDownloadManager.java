@@ -238,7 +238,8 @@ public final class GogDownloadManager {
 
             JSONObject manifest = new JSONObject(manifestStr);
             String installDir = manifest.optString("installDirectory", game.title);
-            String manifestClientId = manifest.optString("clientId", null);
+            String manifestClientId     = manifest.optString("clientId", null);
+            String manifestClientSecret = manifest.optString("clientSecret", null);
             JSONArray depots  = manifest.optJSONArray("depots");
             if (depots == null)
                 return "no depots in manifest; keys=" + manifest.keys().toString();
@@ -445,6 +446,9 @@ public final class GogDownloadManager {
             }
             if (manifestClientId != null && !manifestClientId.isEmpty()) {
                 ed0.putString("gog_client_id_" + game.gameId, manifestClientId);
+            }
+            if (manifestClientSecret != null && !manifestClientSecret.isEmpty()) {
+                ed0.putString("gog_client_secret_" + game.gameId, manifestClientSecret);
             }
             ed0.apply();
 
@@ -1407,9 +1411,13 @@ public final class GogDownloadManager {
             if (manifestStr == null) return gameId;
 
             JSONObject manifest = new JSONObject(manifestStr);
-            String clientId = manifest.optString("clientId", null);
+            String clientId     = manifest.optString("clientId", null);
+            String clientSecret = manifest.optString("clientSecret", null);
             if (clientId != null && !clientId.isEmpty()) {
-                prefs.edit().putString("gog_client_id_" + gameId, clientId).apply();
+                SharedPreferences.Editor ed = prefs.edit().putString("gog_client_id_" + gameId, clientId);
+                if (clientSecret != null && !clientSecret.isEmpty())
+                    ed.putString("gog_client_secret_" + gameId, clientSecret);
+                ed.apply();
                 Log.d(TAG, "fetched and cached clientId=" + clientId + " for " + gameId);
                 return clientId;
             }

@@ -49,12 +49,14 @@ public final class GogCloudSaveManager {
         new Thread(() -> {
             try {
                 SharedPreferences prefs = ctx.getSharedPreferences("bh_gog_prefs", 0);
-                String token = getValidToken(ctx, prefs);
-                if (token == null) { cb.onError("Not logged in to GOG"); return; }
+                String galaxyToken = getValidToken(ctx, prefs);
+                if (galaxyToken == null) { cb.onError("Not logged in to GOG"); return; }
                 String userId = prefs.getString("user_id", null);
                 if (userId == null) { cb.onError("GOG user ID not found — please sign in again"); return; }
-                String clientId = GogDownloadManager.getOrFetchClientId(ctx, gameId, token);
-                debug(ctx, "GOG upload — gameId=" + gameId + " userId=" + userId + " clientId=" + clientId);
+                String clientId = GogDownloadManager.getOrFetchClientId(ctx, gameId, galaxyToken);
+                String token = getGameScopedToken(ctx, gameId, clientId, prefs);
+                if (token == null) token = galaxyToken; // fallback
+                debug(ctx, "GOG upload — gameId=" + gameId + " userId=" + userId + " clientId=" + clientId + " scopedToken=" + (token.equals(galaxyToken) ? "fallback" : "ok"));
 
                 cb.onStatus("Fetching cloud file list…");
                 List<CloudFile> cloudFiles = listCloudFiles(ctx, userId, clientId, token);
@@ -97,6 +99,7 @@ public final class GogCloudSaveManager {
 
             } catch (Exception e) {
                 Log.e(TAG, "uploadSaves failed", e);
+                debug(ctx, "uploadSaves exception: " + e.getMessage());
                 cb.onError("Upload error: " + e.getMessage());
             }
         }, "gog-cloud-upload-" + gameId).start();
@@ -107,12 +110,14 @@ public final class GogCloudSaveManager {
         new Thread(() -> {
             try {
                 SharedPreferences prefs = ctx.getSharedPreferences("bh_gog_prefs", 0);
-                String token = getValidToken(ctx, prefs);
-                if (token == null) { cb.onError("Not logged in to GOG"); return; }
+                String galaxyToken = getValidToken(ctx, prefs);
+                if (galaxyToken == null) { cb.onError("Not logged in to GOG"); return; }
                 String userId = prefs.getString("user_id", null);
                 if (userId == null) { cb.onError("GOG user ID not found — please sign in again"); return; }
-                String clientId = GogDownloadManager.getOrFetchClientId(ctx, gameId, token);
-                debug(ctx, "GOG download — gameId=" + gameId + " userId=" + userId + " clientId=" + clientId);
+                String clientId = GogDownloadManager.getOrFetchClientId(ctx, gameId, galaxyToken);
+                String token = getGameScopedToken(ctx, gameId, clientId, prefs);
+                if (token == null) token = galaxyToken; // fallback
+                debug(ctx, "GOG download — gameId=" + gameId + " userId=" + userId + " clientId=" + clientId + " scopedToken=" + (token.equals(galaxyToken) ? "fallback" : "ok"));
 
                 cb.onStatus("Fetching cloud file list…");
                 List<CloudFile> cloudFiles = listCloudFiles(ctx, userId, clientId, token);
@@ -138,12 +143,60 @@ public final class GogCloudSaveManager {
 
             } catch (Exception e) {
                 Log.e(TAG, "downloadSaves failed", e);
+                debug(ctx, "downloadSaves exception: " + e.getMessage());
                 cb.onError("Download error: " + e.getMessage());
             }
         }, "gog-cloud-download-" + gameId).start();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Obtains a game-scoped GOG access token for cloud storage.
+     * GOG's cloudstorage API requires a token issued with the game's own
+     * client_id/client_secret (not the Galaxy app credentials).
+     * We re-use the Galaxy refresh_token but swap in the game credentials.
+     * Returns null if clientSecret is missing or the exchange fails.
+     */
+    private static String getGameScopedToken(Context ctx, String gameId, String clientId,
+                                              SharedPreferences prefs) {
+        String clientSecret = prefs.getString("gog_client_secret_" + gameId, null);
+        if (clientSecret == null || clientSecret.isEmpty()) {
+            debug(ctx, "getGameScopedToken: no clientSecret cached for " + gameId + " — falling back");
+            return null;
+        }
+        String refreshToken = prefs.getString("refresh_token", null);
+        if (refreshToken == null) {
+            debug(ctx, "getGameScopedToken: no Galaxy refresh_token");
+            return null;
+        }
+        try {
+            String urlStr = "https://auth.gog.com/token"
+                    + "?client_id=" + java.net.URLEncoder.encode(clientId, "UTF-8")
+                    + "&client_secret=" + java.net.URLEncoder.encode(clientSecret, "UTF-8")
+                    + "&grant_type=refresh_token"
+                    + "&refresh_token=" + java.net.URLEncoder.encode(refreshToken, "UTF-8");
+            debug(ctx, "getGameScopedToken: requesting scoped token for clientId=" + clientId);
+            HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            conn.setConnectTimeout(TIMEOUT);
+            conn.setReadTimeout(TIMEOUT);
+            conn.setRequestProperty("User-Agent", "GOG Galaxy");
+            int code = conn.getResponseCode();
+            debug(ctx, "getGameScopedToken: HTTP=" + code);
+            if (code != 200) { conn.disconnect(); return null; }
+            String body = readStream(conn.getInputStream());
+            conn.disconnect();
+            JSONObject json = new JSONObject(body);
+            String accessToken = json.optString("access_token", null);
+            if (accessToken != null && !accessToken.isEmpty()) {
+                debug(ctx, "getGameScopedToken: OK, got scoped token");
+                return accessToken;
+            }
+        } catch (Exception e) {
+            debug(ctx, "getGameScopedToken exception: " + e.getMessage());
+        }
+        return null;
+    }
 
     private static String getValidToken(Context ctx, SharedPreferences prefs) {
         String token = prefs.getString("access_token", null);
