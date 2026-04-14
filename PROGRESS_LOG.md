@@ -6,7 +6,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ### [pre] — v3.0.1-pre — Game detail full-screen (GOG/Epic/Amazon) (2026-04-14)
 **Commit:** `53a38f663`  |  **Tag:** v3.0.1-pre
-**CI:** pending
+**CI:** run 24398601017 ✅
 #### What changed
 - Replace showDetailDialog() AlertDialog in all 3 stores with full-screen GogGameDetailActivity / EpicGameDetailActivity / AmazonGameDetailActivity
 - Full-screen layout: fixed header bar, scrollable body with cover art, info section, actions section, stub sections for Updates/DLC/Cloud Saves

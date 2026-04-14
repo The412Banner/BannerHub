@@ -4683,7 +4683,7 @@ Prior fix checked `getLocalGameId().isEmpty()` → fallback to `String.valueOf(g
 ---
 
 ### Entry 058 — v3.0.1-pre — Full-screen game detail activities (GOG/Epic/Amazon) (2026-04-14)
-**Commit:** `53a38f663`  |  **Tag:** v3.0.1-pre  |  **CI:** triggered
+**Commit:** `53a38f663`  |  **Tag:** v3.0.1-pre  |  **CI:** run 24398601017 ✅
 
 **Files changed:**
 - `extension/GogGameDetailActivity.java` (new) — full-screen GOG game detail: dark purple theme, cover art, info card (gen badge + developer + genre + description), actions card (install/uninstall/set-exe/copy/launch), stubs for Updates/DLC/Cloud Saves
