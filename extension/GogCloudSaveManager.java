@@ -100,7 +100,10 @@ public final class GogCloudSaveManager {
             } catch (Exception e) {
                 Log.e(TAG, "uploadSaves failed", e);
                 debug(ctx, "uploadSaves exception: " + e.getMessage());
-                cb.onError("Upload error: " + e.getMessage());
+                if ("CLOUD_SAVES_NOT_SUPPORTED".equals(e.getMessage()))
+                    cb.onError("This game does not support GOG cloud saves");
+                else
+                    cb.onError("Upload error: " + e.getMessage());
             }
         }, "gog-cloud-upload-" + gameId).start();
     }
@@ -144,7 +147,10 @@ public final class GogCloudSaveManager {
             } catch (Exception e) {
                 Log.e(TAG, "downloadSaves failed", e);
                 debug(ctx, "downloadSaves exception: " + e.getMessage());
-                cb.onError("Download error: " + e.getMessage());
+                if ("CLOUD_SAVES_NOT_SUPPORTED".equals(e.getMessage()))
+                    cb.onError("This game does not support GOG cloud saves");
+                else
+                    cb.onError("Download error: " + e.getMessage());
             }
         }, "gog-cloud-download-" + gameId).start();
     }
@@ -254,6 +260,8 @@ public final class GogCloudSaveManager {
             String errBody = "";
             try { errBody = readStream(conn.getErrorStream()); } catch (Exception ignored) {}
             conn.disconnect();
+            if (errBody.contains("not_enabled_for_client") || errBody.contains("disabled"))
+                throw new Exception("CLOUD_SAVES_NOT_SUPPORTED");
             throw new Exception("HTTP " + code + " body=" + errBody.substring(0, Math.min(200, errBody.length())));
         }
         String body = readStream(conn.getInputStream());
