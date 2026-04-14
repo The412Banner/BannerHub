@@ -4682,6 +4682,23 @@ Prior fix checked `getLocalGameId().isEmpty()` → fallback to `String.valueOf(g
 
 ---
 
+### Entry 058 — v3.0.1-pre — Full-screen game detail activities (GOG/Epic/Amazon) (2026-04-14)
+**Commit:** `53a38f663`  |  **Tag:** v3.0.1-pre  |  **CI:** triggered
+
+**Files changed:**
+- `extension/GogGameDetailActivity.java` (new) — full-screen GOG game detail: dark purple theme, cover art, info card (gen badge + developer + genre + description), actions card (install/uninstall/set-exe/copy/launch), stubs for Updates/DLC/Cloud Saves
+- `extension/EpicGameDetailActivity.java` (new) — full-screen Epic game detail: dark blue theme, inline Epic token→manifest→download pipeline, progress tracking
+- `extension/AmazonGameDetailActivity.java` (new) — full-screen Amazon game detail: dark amber theme, AmazonDownloadManager pipeline, exe scoring
+- `extension/GogGamesActivity.java` — replaced showDetailDialog() calls (list card click + grid tile long-press) with openDetailScreen() + startActivityForResult(REQ_GAME_DETAIL=1001); onActivityResult() calls applyFilter() on RESULT_REFRESH=100
+- `extension/EpicGamesActivity.java` — same replacement pattern
+- `extension/AmazonGamesActivity.java` — same replacement pattern
+- `patches/AndroidManifest.xml` — registered GogGameDetailActivity, EpicGameDetailActivity, AmazonGameDetailActivity
+
+**Root cause / design:**
+showDetailDialog() used an AlertDialog popup which was cramped and couldn't support dedicated sections for future features (updates, DLC, cloud saves). Replaced with full-screen Activities using startActivityForResult(). Each detail activity returns RESULT_REFRESH=100 after install/uninstall, triggering applyFilter() in the parent to re-render the card state without full library reload.
+
+---
+
 ### Entry #[next] — v2.8.10-pre — SOC badge detection fix (2026-04-04)
 **Files:** `extension/BhGameConfigsActivity.java`
 **Root cause:** `BhGameConfigsActivity` used `Build.SOC_MODEL` (e.g. `SM8750`) for SOC matching, while `BhSettingsExporter` used `device_info` → `gpu_renderer` (EGL-queried, e.g. `Adreno (TM) 750`). The mismatch meant "✓ My SOC" badges never fired for configs with `meta.soc = "Adreno (TM) 750"`.
