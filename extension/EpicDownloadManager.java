@@ -959,6 +959,32 @@ public class EpicDownloadManager {
         }
     }
 
+    // ── Install size (no download) ────────────────────────────────────────────
+
+    /**
+     * Fetches the total uncompressed install size (bytes) by downloading and
+     * parsing just the manifest. Does NOT download any game files.
+     * Returns -1 on failure. Call from a background thread.
+     */
+    public static long fetchInstallSizeBytes(String accessToken, String namespace,
+                                              String catalogItemId, String appName) {
+        try {
+            String manifestApiJson = EpicApiClient.getManifestApiJson(
+                    accessToken, namespace, catalogItemId, appName);
+            if (manifestApiJson == null) return -1;
+            EpicManifest.ParsedManifest manifest =
+                    EpicManifest.parseManifestApiJson(manifestApiJson, accessToken);
+            if (manifest == null) return -1;
+            long total = 0;
+            for (ChunkInfo chunk : manifest.uniqueChunks)
+                total += Math.max(chunk.windowSize, 0);
+            return total > 0 ? total : -1;
+        } catch (Exception e) {
+            Log.w(TAG, "fetchInstallSizeBytes Epic: " + e.getMessage());
+            return -1;
+        }
+    }
+
     // ── Utilities ─────────────────────────────────────────────────────────────
 
     public static byte[] readFile(File f) throws Exception {

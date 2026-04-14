@@ -356,6 +356,13 @@ public class GogGamesActivity extends Activity {
             } catch (Exception ignored) {}
 
             prefs.edit().putInt("gog_gen_" + id, generation).apply();
+
+            // Cache install size if not already stored
+            if (prefs.getLong("gog_size_" + id, -1) <= 0) {
+                long size = GogDownloadManager.fetchInstallSizeBytes(id, token);
+                if (size > 0) prefs.edit().putLong("gog_size_" + id, size).apply();
+            }
+
             return new GogGame(id, titleStr, imageUrl, desc, developer, category, generation);
         } catch (Exception e) {
             Log.w(TAG, "fetchGame " + id + " error: " + e.getMessage());

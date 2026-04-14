@@ -363,6 +363,30 @@ public class AmazonDownloadManager {
         return true;
     }
 
+    // ── Install size (no download) ────────────────────────────────────────────
+
+    /**
+     * Fetches the total install size (bytes) by downloading and parsing
+     * the manifest.proto only. Does NOT download any game files.
+     * Returns -1 on failure. Call from a background thread.
+     */
+    public static long fetchInstallSizeBytes(String accessToken, String entitlementId) {
+        try {
+            AmazonApiClient.GameDownloadSpec spec =
+                    AmazonApiClient.getGameDownload(accessToken, entitlementId);
+            if (spec == null) return -1;
+            String manifestUrl = AmazonApiClient.appendPath(spec.downloadUrl, "manifest.proto");
+            byte[] bytes = AmazonApiClient.getBytes(manifestUrl, accessToken);
+            if (bytes == null) return -1;
+            AmazonManifest.ParsedManifest manifest = AmazonManifest.parse(bytes);
+            return (manifest != null && manifest.totalInstallSize > 0)
+                    ? manifest.totalInstallSize : -1;
+        } catch (Exception e) {
+            Log.w(TAG, "fetchInstallSizeBytes Amazon: " + e.getMessage());
+            return -1;
+        }
+    }
+
     // ── Speed formatting ─────────────────────────────────────────────────────
 
     private static String formatSpeed(long bps) {

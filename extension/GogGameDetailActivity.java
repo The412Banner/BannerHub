@@ -53,7 +53,7 @@ public class GogGameDetailActivity extends Activity {
 
     // Action section views (need refs for live updates)
     private Button launchBtn, installBtn, setExeBtn, uninstallBtn, copyBtn;
-    private TextView exeNameTV;
+    private TextView exeNameTV, sizeTV;
     private ProgressBar progressBar;
     private TextView progressLabel;
     private Runnable cancelDownload;
@@ -151,6 +151,7 @@ public class GogGameDetailActivity extends Activity {
         setContentView(root);
 
         refreshActionState();
+        loadInstallSize();
     }
 
     private View makeInfoCard() {
@@ -177,6 +178,13 @@ public class GogGameDetailActivity extends Activity {
         if (category != null && !category.isEmpty()) {
             card.addView(makeInfoRow("Genre", category));
         }
+        // Install size row (value updated async)
+        sizeTV = new TextView(this);
+        sizeTV.setTextColor(0xFFCCCCCC);
+        sizeTV.setTextSize(13f);
+        sizeTV.setText("Fetching…");
+        card.addView(makeInfoRowWithRef("Install size", sizeTV));
+
         if (description != null && !description.isEmpty()) {
             TextView descTV = new TextView(this);
             descTV.setText(Html.fromHtml(description, Html.FROM_HTML_MODE_COMPACT));
@@ -440,6 +448,42 @@ public class GogGameDetailActivity extends Activity {
                 .setCancelable(false)
                 .show()
         );
+    }
+
+    private void loadInstallSize() {
+        long cached = prefs.getLong("gog_size_" + gameId, -1);
+        if (cached > 0) {
+            if (sizeTV != null) sizeTV.setText(formatBytes(cached));
+            return;
+        }
+        new Thread(() -> {
+            String token = prefs.getString("access_token", null);
+            long size = GogDownloadManager.fetchInstallSizeBytes(gameId, token);
+            if (size > 0) prefs.edit().putLong("gog_size_" + gameId, size).apply();
+            uiHandler.post(() -> {
+                if (sizeTV != null) sizeTV.setText(size > 0 ? formatBytes(size) : "Unknown");
+            });
+        }, "gog-size-" + gameId).start();
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes >= 1_073_741_824L) return String.format("%.1f GB", bytes / 1_073_741_824.0);
+        return String.format("%.0f MB", bytes / 1_048_576.0);
+    }
+
+    private View makeInfoRowWithRef(String label, TextView valueTV) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.bottomMargin = dp(4);
+
+        TextView labelTV = new TextView(this);
+        labelTV.setText(label + ": ");
+        labelTV.setTextColor(0xFF888888);
+        labelTV.setTextSize(13f);
+        row.addView(labelTV, new LinearLayout.LayoutParams(-2, -2));
+        row.addView(valueTV, new LinearLayout.LayoutParams(0, -2, 1f));
+        return row;
     }
 
     private void deleteDir(File dir) {

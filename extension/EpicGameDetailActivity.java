@@ -48,7 +48,7 @@ public class EpicGameDetailActivity extends Activity {
     private String appName, title, description, developer, artCover, namespace, catalogItemId;
 
     private Button launchBtn, installBtn, setExeBtn, uninstallBtn;
-    private TextView exeNameTV;
+    private TextView exeNameTV, sizeTV;
     private ProgressBar progressBar;
     private TextView progressLabel;
     private Runnable cancelDownload;
@@ -144,12 +144,20 @@ public class EpicGameDetailActivity extends Activity {
         setContentView(root);
 
         refreshActionState();
+        loadInstallSize();
     }
 
     private View makeInfoCard() {
         LinearLayout card = makeCard();
         if (developer != null && !developer.isEmpty()) card.addView(makeInfoRow("Developer", developer));
         if (appName != null && !appName.isEmpty())     card.addView(makeInfoRow("App", appName));
+        // Install size row (value updated async)
+        sizeTV = new TextView(this);
+        sizeTV.setTextColor(0xFFCCCCCC);
+        sizeTV.setTextSize(13f);
+        sizeTV.setText("Fetching…");
+        card.addView(makeInfoRowWithRef("Install size", sizeTV));
+
         if (description != null && !description.isEmpty()) {
             // Strip HTML tags first, then truncate clean text
             String plain = Html.fromHtml(description, Html.FROM_HTML_MODE_COMPACT).toString().trim();
@@ -437,6 +445,44 @@ public class EpicGameDetailActivity extends Activity {
                 .setCancelable(false)
                 .show()
         );
+    }
+
+    private void loadInstallSize() {
+        long cached = prefs.getLong("epic_size_" + appName, -1);
+        if (cached > 0) {
+            if (sizeTV != null) sizeTV.setText(formatBytes(cached));
+            return;
+        }
+        new Thread(() -> {
+            String token = EpicCredentialStore.getValidAccessToken(this);
+            long size = (token != null)
+                    ? EpicDownloadManager.fetchInstallSizeBytes(token, namespace, catalogItemId, appName)
+                    : -1;
+            if (size > 0) prefs.edit().putLong("epic_size_" + appName, size).apply();
+            uiHandler.post(() -> {
+                if (sizeTV != null) sizeTV.setText(size > 0 ? formatBytes(size) : "Unknown");
+            });
+        }, "epic-size-" + appName).start();
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes >= 1_073_741_824L) return String.format("%.1f GB", bytes / 1_073_741_824.0);
+        return String.format("%.0f MB", bytes / 1_048_576.0);
+    }
+
+    private View makeInfoRowWithRef(String label, TextView valueTV) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.bottomMargin = dp(4);
+
+        TextView labelTV = new TextView(this);
+        labelTV.setText(label + ": ");
+        labelTV.setTextColor(0xFF888888);
+        labelTV.setTextSize(13f);
+        row.addView(labelTV, new LinearLayout.LayoutParams(-2, -2));
+        row.addView(valueTV, new LinearLayout.LayoutParams(0, -2, 1f));
+        return row;
     }
 
     private void deleteDir(File dir) {

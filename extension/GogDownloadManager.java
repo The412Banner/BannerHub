@@ -1200,6 +1200,67 @@ public final class GogDownloadManager {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Install size (public, called during library sync and from detail page)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the total uncompressed install size (bytes) by fetching the
+     * Gen 2 top-level manifest and summing depot.size for en/all depots.
+     * Returns -1 on failure. Runs on the calling thread — call from a bg thread.
+     */
+    public static long fetchInstallSizeBytes(String gameId, String token) {
+        try {
+            String buildsUrl = "https://content-system.gog.com/products/" + gameId
+                    + "/os/windows/builds?generation=2";
+            String buildsJson = httpGet(buildsUrl, null);
+            if (buildsJson == null) buildsJson = httpGet(buildsUrl, token);
+            if (buildsJson == null) return -1;
+
+            JSONObject builds = new JSONObject(buildsJson);
+            JSONArray items = builds.optJSONArray("items");
+            if (items == null || items.length() == 0) return -1;
+
+            String manifestUrl = null;
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject item = items.getJSONObject(i);
+                if ("windows".equals(item.optString("os"))) {
+                    manifestUrl = item.optString("link");
+                    if (manifestUrl == null || manifestUrl.isEmpty())
+                        manifestUrl = item.optString("meta_url");
+                    break;
+                }
+            }
+            if (manifestUrl == null || manifestUrl.isEmpty()) return -1;
+
+            byte[] raw = fetchBytes(manifestUrl, token);
+            if (raw == null) return -1;
+            String manifestStr = decompressBytes(raw);
+            if (manifestStr == null) return -1;
+
+            JSONObject manifest = new JSONObject(manifestStr);
+            JSONArray depots = manifest.optJSONArray("depots");
+            if (depots == null) return -1;
+
+            long total = 0;
+            for (int i = 0; i < depots.length(); i++) {
+                JSONObject depot = depots.getJSONObject(i);
+                JSONArray langs = depot.optJSONArray("languages");
+                boolean ok = (langs == null || langs.length() == 0);
+                if (!ok) {
+                    String ls = langs.toString();
+                    ok = ls.contains("*") || ls.contains("en-US")
+                            || ls.contains("\"en\"") || ls.contains("english");
+                }
+                if (ok) total += depot.optLong("size", 0);
+            }
+            return total > 0 ? total : -1;
+        } catch (Exception e) {
+            Log.w(TAG, "fetchInstallSizeBytes " + gameId + ": " + e.getMessage());
+            return -1;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Copy to Downloads (public, called from GogGamesActivity)
     // ─────────────────────────────────────────────────────────────────────────
 
