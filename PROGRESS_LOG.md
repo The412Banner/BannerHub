@@ -3562,3 +3562,14 @@ manifest download, install, launch, SDK cache + update checker.
 - `extension/EpicGameDetailActivity.java`
 - `patches/AndroidManifest.xml`
 - `STORE_FEATURES_REPORT.md`
+
+---
+
+### [feat] — v3.0.4-pre — FolderPickerActivity storage dropdown + New Folder (2026-04-14)
+**Commit:** `81fbafdd4`  |  **Tag:** v3.0.4-pre (retagged)  |  **CI:** ✅ run 24410043669
+
+#### What changed
+- Storage root dropdown (Spinner): App Files / Internal Storage / SD Card (hidden if absent)
+- "+ New" button creates subfolder via mkdir() + refreshes list
+- "Up" blocked at root level for each storage
+- Input validation: rejects blank names and names with slashes
