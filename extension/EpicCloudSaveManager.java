@@ -362,7 +362,7 @@ public final class EpicCloudSaveManager {
         try {
             String ts = new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
             String line = ts + " [EPIC] " + msg + "\n";
-            File f = new File(ctx.getExternalFilesDir(null), "bh_cloud_debug.txt");
+            File f = new File(android.os.Environment.getExternalStorageDirectory(), "bh_cloud_debug.txt");
             try (FileOutputStream fos = new FileOutputStream(f, true)) {
                 fos.write(line.getBytes("UTF-8"));
             }
