@@ -8,6 +8,8 @@
 
 > **Credit:** The Steam integration documented here is based on work from [JoshuaTram/JavaSteam](https://github.com/JoshuaTram/JavaSteam) and pipeline patterns from [GameNative](https://gamenative.app/). Ported to Star Bionic and Ludashi Plus beginning April 2026.
 
+> **Also ported to:** This Steam integration was also ported to [Star Bionic v1.1](https://github.com/jacojayy/star) by the same author.
+
 ---
 
 ## Table of Contents
