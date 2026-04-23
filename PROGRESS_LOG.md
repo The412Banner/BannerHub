@@ -4,6 +4,25 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [docs] — GameHub 6.0 migration prep docs (2026-04-23)
+**Commit:** `1689aa7`  |  **Tag:** none
+**CI:** n/a (docs only, no build)
+#### What changed
+- Added 5 reference documents to prepare for eventual GameHub 6.0 (KMP) rebase
+- `migration/INJECTION_MAP.md` — maps all 150+ smali injection points by feature area
+- `migration/FEATURE_SPECS.md` — behavioral specs for all 56 BannerHub features; implementation-independent
+- `migration/GAMEHUB_6_ARCHITECTURE.md` — KMP/Compose Multiplatform smali patching guide; GameHub 6.0 not yet public as of 2026-04-23; biggest risk on release = R8 obfuscation
+- `migration/STANDALONE_FEASIBILITY.md` — feasibility analysis for extracting Component Manager and HUD Overlay as standalone apps (both feasible, ~2-3 weeks each)
+- `CLOUDFLARE_API_CONTRACT.md` — full API contract for community config Cloudflare Worker (11 endpoints, 7 version-specific risks flagged)
+#### Files touched
+- CLOUDFLARE_API_CONTRACT.md (new)
+- migration/FEATURE_SPECS.md (new)
+- migration/GAMEHUB_6_ARCHITECTURE.md (new)
+- migration/INJECTION_MAP.md (new)
+- migration/STANDALONE_FEASIBILITY.md (new)
+
+---
+
 ### [pre] — v3.1.1-pre — Epic chunk silent truncation fix (2026-04-16)
 **Commit:** `2a02996f4`  |  **Tag:** v3.1.1-pre
 **CI:** pending
