@@ -48,7 +48,7 @@ public class BhSettingsExporter {
     private static final String WORKER_BASE  =
             "https://bannerhub-configs-worker.the412banner.workers.dev";
 
-    static final String BH_VERSION = "3.1.0";
+    static final String BH_VERSION = "3.2.0";
 
     // ─── Export entry point ──────────────────────────────────────────────────
 
