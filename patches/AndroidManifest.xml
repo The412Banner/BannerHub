@@ -78,7 +78,12 @@
                 <data android:host="gamehub" android:scheme="gamesir"/>
             </intent-filter>
         </activity>
-        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:launchMode="singleTask" android:name="com.xj.landscape.launcher.ui.main.LandscapeLauncherMainActivity" android:screenOrientation="sensorLandscape"/>
+        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:exported="true" android:launchMode="singleTask" android:name="com.xj.landscape.launcher.ui.main.LandscapeLauncherMainActivity" android:screenOrientation="sensorLandscape">
+            <intent-filter>
+                <action android:name="gamehub.lite.LAUNCH_GAME"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:launchMode="singleTask" android:name="com.xj.landscape.launcher.ui.guide.GuideButtonAActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:exported="true" android:launchMode="singleTask" android:name="com.xj.landscape.launcher.ui.guide.GuideLoginActivity" android:screenOrientation="sensorLandscape" android:theme="@style/llauncher_LoginPageTranslucentStyle"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.guide.GuidePhoneValidateActivity" android:screenOrientation="sensorLandscape"/>
@@ -112,12 +117,7 @@
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.device.SelectDeviceActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:name="com.xj.landscape.launcher.ui.device.ScanDeviceActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.device.ProductDocActivity" android:screenOrientation="sensorLandscape"/>
-        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:exported="true" android:name="com.xj.landscape.launcher.ui.gamedetail.GameDetailActivity" android:screenOrientation="sensorLandscape" android:taskAffinity="">
-            <intent-filter>
-                <action android:name="gamehub.lite.LAUNCH_GAME"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
-        </activity>
+        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.gamedetail.GameDetailActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.gamedetail.NewsDetailActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.gamedetail.GameDetailMoreInfoActivity" android:screenOrientation="sensorLandscape" android:theme="@style/llauncher_TranslucentStyle"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.gamedetail.PreviewPictureActivity" android:screenOrientation="sensorLandscape"/>

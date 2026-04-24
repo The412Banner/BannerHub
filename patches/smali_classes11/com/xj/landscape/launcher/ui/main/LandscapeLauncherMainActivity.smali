@@ -8207,7 +8207,7 @@
 .end method
 
 .method public onNewIntent(Landroid/content/Intent;)V
-    .locals 2
+    .locals 5
 
     .line 1
     .line 2
@@ -8222,6 +8222,36 @@
     .line 7
     .line 8
     invoke-super {p0, p1}, Landroidx/activity/ComponentActivity;->onNewIntent(Landroid/content/Intent;)V
+
+    # BannerHub: intercept LAUNCH_GAME from Beacon — route to GameDetailActivity in this task
+    invoke-virtual {p1}, Landroid/content/Intent;->getAction()Ljava/lang/String;
+    move-result-object v0
+
+    if-eqz v0, :not_launch_game
+
+    const-string v2, "com.tencent.ig.LAUNCH_GAME"
+    invoke-virtual {v0, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    move-result v2
+
+    if-eqz v2, :not_launch_game
+
+    new-instance v2, Landroid/content/Intent;
+    const-class v3, Lcom/xj/landscape/launcher/ui/gamedetail/GameDetailActivity;
+    invoke-direct {v2, p0, v3}, Landroid/content/Intent;-><init>(Landroid/content/Context;Ljava/lang/Class;)V
+
+    invoke-virtual {p1}, Landroid/content/Intent;->getExtras()Landroid/os/Bundle;
+    move-result-object v4
+    if-eqz v4, :no_extras
+    invoke-virtual {v2, v4}, Landroid/content/Intent;->putExtras(Landroid/os/Bundle;)Landroid/content/Intent;
+    :no_extras
+
+    const v4, 0x24000000
+    invoke-virtual {v2, v4}, Landroid/content/Intent;->setFlags(I)Landroid/content/Intent;
+
+    invoke-virtual {p0, v2}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
+    return-void
+
+    :not_launch_game
 
     .line 9
     .line 10
