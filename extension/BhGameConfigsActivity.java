@@ -1125,6 +1125,35 @@ public class BhGameConfigsActivity extends Activity {
                 }
                 int cc = json.has("components") ? json.getJSONArray("components").length() : 0;
                 final int finalSc = sc, finalCc = cc;
+
+                JSONObject settingsObj = json.optJSONObject("settings");
+                if (settingsObj == null) settingsObj = json;
+
+                String wine    = parseSettingName(settingsObj, "pc_ls_CONTAINER_LIST");
+                String dxvk    = parseSettingName(settingsObj, "pc_ls_DXVK");
+                String vkd3d   = parseSettingName(settingsObj, "pc_ls_VK3k");
+                String gpu     = parseSettingName(settingsObj, "pc_ls_GPU_DRIVER_");
+                String fex     = parseSettingName(settingsObj, "pc_set_constant_95");
+                String box64   = parseSettingName(settingsObj, "pc_set_constant_94");
+                String cmdLine = settingsObj.optString("pc_ls_boot_option", "").trim();
+                String envVars = settingsObj.optString("pc_ls_environment_variable", "").trim();
+
+                String resVal = "";
+                Iterator<String> rKeys = settingsObj.keys();
+                while (rKeys.hasNext()) {
+                    String k = rKeys.next();
+                    if (k.startsWith("pc_s_resolution_w")) {
+                        int w = settingsObj.optInt(k, 0);
+                        int h = settingsObj.optInt(k.replace("pc_s_resolution_w", "pc_s_resolution_h"), 0);
+                        if (w > 0 && h > 0) resVal = w + " × " + h;
+                        break;
+                    }
+                }
+
+                final String fWine = wine, fDxvk = dxvk, fVkd3d = vkd3d, fGpu = gpu;
+                final String fFex = fex, fBox64 = box64, fCmd = cmdLine, fEnv = envVars;
+                final String fRes = resVal;
+
                 ui.post(() -> {
                     metaCard.removeAllViews();
                     metaCard.setPadding(dp(16), dp(14), dp(16), dp(14));
@@ -1138,6 +1167,15 @@ public class BhGameConfigsActivity extends Activity {
                         if (!fps.isEmpty())      addInfoRow(metaCard, "FPS Cap", fps);
                         if (!bhVer.isEmpty())    addInfoRow(metaCard, "BH Version", bhVer);
                     }
+                    if (!fWine.isEmpty())  addInfoRow(metaCard, "Wine / Proton", fWine);
+                    if (!fDxvk.isEmpty())  addInfoRow(metaCard, "DXVK", fDxvk);
+                    if (!fVkd3d.isEmpty()) addInfoRow(metaCard, "VKD3D", fVkd3d);
+                    if (!fGpu.isEmpty())   addInfoRow(metaCard, "GPU Driver", fGpu);
+                    if (!fFex.isEmpty())   addInfoRow(metaCard, "FEXCore", fFex);
+                    if (!fBox64.isEmpty()) addInfoRow(metaCard, "Box64", fBox64);
+                    if (!fRes.isEmpty())   addInfoRow(metaCard, "Resolution", fRes);
+                    if (!fCmd.isEmpty())   addInfoRow(metaCard, "Command Line", fCmd);
+                    if (!fEnv.isEmpty())   addInfoRow(metaCard, "Env Vars", fEnv);
                     addInfoRow(metaCard, "Settings", finalSc + " keys");
                     addInfoRow(metaCard, "Components", finalCc + " bundled");
                 });
@@ -1152,6 +1190,21 @@ public class BhGameConfigsActivity extends Activity {
                 });
             }
         }).start();
+    }
+
+    private String parseSettingName(JSONObject settings, String key) {
+        try {
+            String raw = settings.optString(key, "").trim();
+            if (raw.startsWith("{")) {
+                JSONObject obj = new JSONObject(raw);
+                String name = obj.optString("name", "").trim();
+                if (name.isEmpty()) name = obj.optString("displayName", "").trim();
+                return name;
+            }
+            return raw;
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     // ── Config contents dialog ────────────────────────────────────────────────
