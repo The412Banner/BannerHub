@@ -112,7 +112,7 @@
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.device.SelectDeviceActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:name="com.xj.landscape.launcher.ui.device.ScanDeviceActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.device.ProductDocActivity" android:screenOrientation="sensorLandscape"/>
-        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:exported="true" android:name="com.xj.landscape.launcher.ui.gamedetail.GameDetailActivity" android:screenOrientation="sensorLandscape" android:taskAffinity="">
+        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:excludeFromRecents="true" android:exported="true" android:name="com.xj.landscape.launcher.ui.gamedetail.GameDetailActivity" android:screenOrientation="sensorLandscape" android:taskAffinity="">
             <intent-filter>
                 <action android:name="gamehub.lite.LAUNCH_GAME"/>
                 <category android:name="android.intent.category.DEFAULT"/>
