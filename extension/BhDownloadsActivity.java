@@ -300,25 +300,25 @@ public class BhDownloadsActivity extends Activity {
             String gameId = dlKey.substring("gog_".length());
             String exe = getSharedPreferences("bh_gog_prefs", 0)
                     .getString("gog_exe_" + gameId, null);
-            if (exe != null) GogLaunchHelper.triggerLaunch(this, exe);
+            if (exe != null) pendingLaunchExe("bh_gog_prefs", "pending_gog_exe", exe);
             else Toast.makeText(this, "Executable not found — try launching from the GOG store", Toast.LENGTH_LONG).show();
         } else if ("EPIC".equals(store)) {
             String appName = dlKey.substring("epic_".length());
             String exe = getSharedPreferences("bh_epic_prefs", 0)
                     .getString("epic_exe_" + appName, null);
-            if (exe != null) pendingLaunchExe("bh_epic_prefs", exe);
+            if (exe != null) pendingLaunchExe("bh_epic_prefs", "pending_epic_exe", exe);
             else Toast.makeText(this, "Executable not found — try launching from the Epic store", Toast.LENGTH_LONG).show();
         } else if ("AMAZON".equals(store)) {
             String productId = dlKey.substring("amazon_".length());
             String exe = getSharedPreferences("bh_amazon_prefs", 0)
                     .getString("amazon_exe_" + productId, null);
-            if (exe != null) pendingLaunchExe("bh_amazon_prefs", exe);
+            if (exe != null) pendingLaunchExe("bh_amazon_prefs", "pending_amazon_exe", exe);
             else Toast.makeText(this, "Executable not found — try launching from the Amazon store", Toast.LENGTH_LONG).show();
         }
     }
 
-    private void pendingLaunchExe(String prefsName, String exe) {
-        getSharedPreferences(prefsName, 0).edit().putString("pending_epic_exe", exe).apply();
+    private void pendingLaunchExe(String prefsName, String prefKey, String exe) {
+        getSharedPreferences(prefsName, 0).edit().putString(prefKey, exe).apply();
         Intent intent = new Intent();
         intent.setClassName(getPackageName(),
                 "com.xj.landscape.launcher.ui.main.LandscapeLauncherMainActivity");
