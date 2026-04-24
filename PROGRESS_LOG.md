@@ -4,6 +4,25 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [feat] — v3.2.1-pre5 — Persistent game library in download manager (2026-04-24)
+**Commit:** `72b1f4f32`  |  **Tag:** v3.2.1-pre5  |  **CI:** run 24916480827 ⏳
+#### What changed
+- `BhDownloadsActivity` now doubles as a cross-store installed-game library
+- Completed downloads persist to `bh_library` SharedPreferences in `BhDownloadService.saveLibraryEntry()`; survive app restart and navigation
+- Completed rows: game name, store badge (Epic blue / GOG purple / Amazon orange), **Launch**, **Uninstall**, and **×** remove button
+- Active download rows convert in-place to completed rows when the download finishes (no flicker)
+- Library populated on `onResume` so rows are always present when returning to the screen
+- **"Clear ✓"** header button removes all completed entries from view and prefs
+- Launch: Epic/Amazon write `pending_epic_exe` to store-specific prefs + start main launcher; GOG uses `GogLaunchHelper.triggerLaunch`
+- Uninstall: deletes install dir, clears `exe_` and `dir_` prefs, removes library entry
+- `BhDownloadService.runGog` now stores `gog_dir_` pref and passes installDir (not exe path) to `notifyComplete` — consistent with Epic/Amazon
+- Empty state text updated to "No downloads or installed games"
+#### Files touched
+- `extension/BhDownloadsActivity.java`
+- `extension/BhDownloadService.java`
+
+---
+
 ### [fix] — v3.2.1-pre4 — List-page downloads now route through BhDownloadService (2026-04-24)
 **Commit:** `54c0c957e`  |  **Tag:** v3.2.1-pre4  |  **CI:** run 24916138606 ⏳
 #### What changed
