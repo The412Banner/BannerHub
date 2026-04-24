@@ -133,7 +133,7 @@
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.search.V4SearchActivity" android:screenOrientation="sensorLandscape" android:theme="@style/llauncher_TranslucentStyle" android:windowSoftInputMode="adjustPan"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.album.AlbumDetailActivity" android:screenOrientation="sensorLandscape" android:windowSoftInputMode="adjustPan"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.test.AudioViewEditorTestActivity" android:screenOrientation="sensorLandscape"/>
-        <service android:name="com.xj.landscape.launcher.devicemanagement.DeviceManagementService"/>
+        <service android:name="com.xj.landscape.launcher.devicemanagement.DeviceManagementService" android:foregroundServiceType="specialUse"/>
         <activity android:enabled="true" android:exported="false" android:launchMode="singleTask" android:name="com.xj.landscape.launcher.devicemanagement.PermissionsActivity" android:noHistory="true" android:screenOrientation="sensorLandscape" android:theme="@style/TransparentActivityTheme">
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
@@ -173,7 +173,7 @@
         <provider android:authorities="gamehub.lite.apkUpdateFileProvider" android:exported="false" android:grantUriPermissions="true" android:name="com.xj.landscape.launcher.config.AppUpdateFileProvider">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/app_update_file"/>
         </provider>
-        <service android:name="com.xj.apk.update.service.DownloadService"/>
+        <service android:name="com.xj.apk.update.service.DownloadService" android:foregroundServiceType="specialUse"/>
         <provider android:authorities="gamehub.lite.apkUpdateFileProvider" android:exported="false" android:grantUriPermissions="true" android:name="com.xj.apk.update.config.AppUpdateFileProvider">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/app_update_file"/>
         </provider>
@@ -183,12 +183,12 @@
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:name="com.xj.devicesetting.gamepad.GamePadTestActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:name="com.xj.devicesetting.gamepad.StretchHandleTestActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:name="com.xj.devicesetting.gamepad.GamePadCalibrationActivity" android:screenOrientation="sensorLandscape"/>
-        <service android:enabled="true" android:exported="true" android:label="@string/mapping_keyboardeditservice" android:name="com.xj.mapping.MappingService" android:process="">
+        <service android:enabled="true" android:exported="true" android:foregroundServiceType="specialUse" android:label="@string/mapping_keyboardeditservice" android:name="com.xj.mapping.MappingService" android:process="">
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </service>
-        <service android:enabled="true" android:exported="true" android:label="@string/mapping_keyboardeditservice" android:name="com.xj.mapping.interaction.KeyboardEditService" android:process="">
+        <service android:enabled="true" android:exported="true" android:foregroundServiceType="specialUse" android:label="@string/mapping_keyboardeditservice" android:name="com.xj.mapping.interaction.KeyboardEditService" android:process="">
             <intent-filter>
                 <action android:name="com.gamehub.eventmonitor.action.OPEN_CLOSE_KEYBOARD_EDITVIEW"/>
                 <action android:name="com.gamehub.eventmonitor.action.HID_KEYUP_DATA"/>
@@ -203,13 +203,13 @@
                 <action android:name="com.gamehub.eventmonitor.action.CLOSE_INJECTION"/>
             </intent-filter>
         </service>
-        <service android:exported="true" android:name="com.xj.mapping.interaction.SSLClientService" android:process="">
+        <service android:exported="true" android:foregroundServiceType="specialUse" android:name="com.xj.mapping.interaction.SSLClientService" android:process="">
             <intent-filter>
                 <action android:name="com.gamehub.virtualtouchutil.START_TENCENT_GAME_PLUGIN_SSL_CLIENT_SERVICE"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </service>
-        <service android:enabled="true" android:exported="true" android:name="com.xj.mapping.interaction.virtualtouchutil.ipc.service.VTouchIPCService" android:process=""/>
+        <service android:enabled="true" android:exported="true" android:foregroundServiceType="specialUse" android:name="com.xj.mapping.interaction.virtualtouchutil.ipc.service.VTouchIPCService" android:process=""/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:name="com.xj.ota.ui.Nova2LiteOTAActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:name="com.xj.ota.ui.T4NLiteOtaActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:name="com.xj.ota.ui.T4NProOTAActivity" android:screenOrientation="sensorLandscape"/>
@@ -230,8 +230,8 @@
         </activity>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.winemu.settings.PcGameSettingsActivity" android:screenOrientation="sensorLandscape" android:windowSoftInputMode="adjustPan|stateHidden"/>
         <activity android:configChanges="orientation" android:name="com.xj.winemu.ui.gamelibrary.env.ui.EnvLayerDetailActivity" android:screenOrientation="sensorLandscape"/>
-        <service android:exported="false" android:name="com.xj.winemu.download.service.UnzipService"/>
-        <service android:name="com.xj.winemu.service.EmuFileService"/>
+        <service android:exported="false" android:foregroundServiceType="specialUse" android:name="com.xj.winemu.download.service.UnzipService"/>
+        <service android:foregroundServiceType="specialUse" android:name="com.xj.winemu.service.EmuFileService"/>
         <activity android:configChanges="orientation" android:name="com.xj.winemu.ui.fselector.WinEmuFileSelectorActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="orientation" android:name="com.xj.winemu.ui.download.DownloadManageActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="orientation" android:name="com.xj.winemu.ui.env_setting.WinEmuEnvSettingActivity" android:screenOrientation="sensorLandscape"/>
@@ -240,7 +240,7 @@
         <activity android:configChanges="fontScale|keyboard|keyboardHidden|locale|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode" android:name="com.xj.pay.ui.CloudGamePayActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.module.steam.account.login.ui.SteamLoginActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.module.steam.account.change.SteamChangeAccountActivity" android:screenOrientation="sensorLandscape"/>
-        <service android:exported="false" android:name="com.xj.module.steam.SteamService"/>
+        <service android:exported="false" android:foregroundServiceType="specialUse" android:name="com.xj.module.steam.SteamService"/>
         <activity android:configChanges="orientation" android:exported="false" android:launchMode="singleTask" android:name="com.xj.game.ui.game_library.GameLibraryActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.module_pcstream.activity.PcStreamShareActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.module_pcstream.activity.PcStreamMainActivity" android:screenOrientation="sensorLandscape"/>
@@ -277,9 +277,9 @@
             <meta-data android:name="com.nvidia.immediateInput" android:value="true"/>
             <meta-data android:name="com.nvidia.rawCursorInput" android:value="true"/>
         </activity>
-        <service android:label="mDNS PC Auto-Discovery Service" android:name="com.streaming.discovery.DiscoveryService"/>
-        <service android:label="Computer Management Service" android:name="com.streaming.computers.ComputerManagerService"/>
-        <service android:label="Usb Driver Service" android:name="com.streaming.binding.input.driver.UsbDriverService"/>
+        <service android:foregroundServiceType="specialUse" android:label="mDNS PC Auto-Discovery Service" android:name="com.streaming.discovery.DiscoveryService"/>
+        <service android:foregroundServiceType="specialUse" android:label="Computer Management Service" android:name="com.streaming.computers.ComputerManagerService"/>
+        <service android:foregroundServiceType="specialUse" android:label="Usb Driver Service" android:name="com.streaming.binding.input.driver.UsbDriverService"/>
         <activity android:configChanges="fontScale|keyboard|keyboardHidden|layoutDirection|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode" android:enableOnBackInvokedCallback="true" android:name="com.streaming.HelpActivity" android:resizeableActivity="true" android:screenOrientation="sensorLandscape">
             <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default"/>
             <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="sensorLandscape"/>
