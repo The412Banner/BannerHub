@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — v3.1.1-pre6 — Beacon launch no longer shows 2nd BannerHub in recents (2026-04-24)
+**Commits:** `a9f2989` (pre5, finishAndRemoveTask attempt) + `fb2eab3` (pre6, manifest fix)  |  **Tag:** v3.1.1-pre6  |  **CI:** run 24902240605 ✅
+#### What changed
+- `patches/AndroidManifest.xml`: added `android:excludeFromRecents="true"` to `GameDetailActivity`
+- Root cause: Beacon launches `GameDetailActivity` with `FLAG_ACTIVITY_NEW_TASK` + `taskAffinity=""`, which always creates an isolated orphan task; that task was appearing as a second BannerHub instance in recents
+- Fix: since `GameDetailActivity` is always the root of that isolated task, `excludeFromRecents=true` tells Android to never register it in the recents list
+- Verified in logcat: task 7240 (GameDetailActivity) is never brought `moveTaskToFront` from recents; only task 7241 (WineActivity) appears
+- Note: smali `finishAndRemoveTask()` patch (pre4/pre5) was confirmed non-functional — the `t3()` code path is not reached during Beacon auto-launch; left in place but has no effect
+#### Files touched
+- `patches/AndroidManifest.xml`
+
+---
+
 ### [feat] — v3.1.1-pre1 — Expanded config detail screen (2026-04-24)
 **Commit:** `c48dbb1` + reverts `7ba24bb` `1e96f09`  |  **Tag:** v3.1.1-pre1 (retagged)  |  **CI:** run 24895871530 ⏳
 **Note:** Tag recreated after reverting v3.1.1-pre and v3.1.1-pre2 fix commits — pre1 is now purely the config detail feature on top of v3.1.0.
@@ -3691,3 +3704,20 @@ manifest download, install, launch, SDK cache + update checker.
 - "+ New" button creates subfolder via mkdir() + refreshes list
 - "Up" blocked at root level for each storage
 - Input validation: rejects blank names and names with slashes
+
+---
+
+### [stable] — v3.1.0 — Stable release (2026-04-14)
+**Tag:** v3.1.0  |  **Published:** 2026-04-14T21:13:10Z  |  **Author:** github-actions[bot]
+**URL:** https://github.com/The412Banner/BannerHub/releases/tag/v3.1.0
+
+#### What changed
+Promotes all v3.0.x pre-releases to stable. Bundles:
+- Full-screen game detail pages (GOG, Epic, Amazon) — cover art, HTML-stripped description, install size, release date, GOG community ratings
+- Update checker for all 3 stores — Check for Updates + Update Now buttons; baseline auto-sets on first check
+- DLC management for all 3 stores — list, install, uninstall individual DLCs from detail page
+- Cloud saves (GOG + Epic) — Browse folder picker (storage root dropdown + New Folder), Upload (newer-wins), Download; GOG uses game-scoped token; folder persists per-game
+- Epic Free Games redesign — dedicated full-screen FreeGamesActivity with cover art and claim flow
+
+#### APK variants
+BannerHub-v3.1.0-Normal.apk, Normal.GHL.apk, PuBG.apk, PuBG-CrossFire.apk, Genshin.apk, Ludashi.apk, AnTuTu.apk, alt-AnTuTu.apk, Original.apk
