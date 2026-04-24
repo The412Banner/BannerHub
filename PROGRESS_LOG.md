@@ -4,6 +4,21 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — v3.2.1-pre4 — List-page downloads now route through BhDownloadService (2026-04-24)
+**Commit:** `54c0c957e`  |  **Tag:** v3.2.1-pre4  |  **CI:** run 24916138606 ⏳
+#### What changed
+- Downloads started from the game list screens (Epic, GOG, Amazon) now go through `BhDownloadService`, just like downloads from the detail page
+- Added `startViaServiceAmazon`, `startViaServiceEpic`, `startViaServiceGog` helper methods that fire `startForegroundService` + register a `DownloadListener` bridge to the card UI callbacks
+- All 7 inline download call sites in the three list activities replaced: `startAmazonDownload` × 2, `startEpicDownload` × 2, `GogDownloadManager.startDownload` × 3
+- GOG grid dialog `onComplete` updated: exe path now looked up from prefs (`gog_exe_` + gameId) rather than using the install-dir string passed from the service
+- Card UI progress still updates live via listener; notification bar and BhDownloadsActivity now show list-page downloads
+#### Files touched
+- `extension/AmazonGamesActivity.java`
+- `extension/EpicGamesActivity.java`
+- `extension/GogGamesActivity.java`
+
+---
+
 ### [fix] — v3.2.1-pre3 — Foreground service types + runtime notification permission (2026-04-24)
 **Commit:** `caf55a49e`  |  **Tag:** v3.2.1-pre3  |  **CI:** run 24915638870 ⏳
 #### What changed
