@@ -583,7 +583,7 @@ public class AmazonGamesActivity extends Activity {
                 pctTV.setText("0%");
                 pctTV.setVisibility(View.VISIBLE);
 
-                cancelRef[0] = startAmazonDownload(game, new DownloadCallback() {
+                cancelRef[0] = startViaServiceAmazon(game, new DownloadCallback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> {
                             statusTV.setText(msg);
@@ -800,7 +800,7 @@ public class AmazonGamesActivity extends Activity {
                 actionBtn.setBackgroundColor(COLOR_CANCEL);
                 progressBar.setVisibility(View.VISIBLE);
 
-                cancelRef[0] = startAmazonDownload(game, new DownloadCallback() {
+                cancelRef[0] = startViaServiceAmazon(game, new DownloadCallback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> progressBar.setProgress(pct));
                     }
@@ -870,6 +870,34 @@ public class AmazonGamesActivity extends Activity {
         lp.leftMargin  = hMargin;
         lp.rightMargin = hMargin;
         return lp;
+    }
+
+    // ── Service-backed download (routes through BhDownloadService) ───────────
+
+    private Runnable startViaServiceAmazon(AmazonGame game, DownloadCallback cb) {
+        String dlKey = "amazon_" + game.productId;
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 0);
+        }
+        Intent svc = new Intent(this, BhDownloadService.class);
+        svc.setAction(BhDownloadService.ACTION_START);
+        svc.putExtra(BhDownloadService.EXTRA_STORE, "AMAZON");
+        svc.putExtra(BhDownloadService.EXTRA_GAME_ID, dlKey);
+        svc.putExtra(BhDownloadService.EXTRA_GAME_NAME, game.title);
+        svc.putExtra(BhDownloadService.EXTRA_AMAZON_PRODUCT_ID, game.productId);
+        svc.putExtra(BhDownloadService.EXTRA_AMAZON_ENT_ID, game.entitlementId);
+        svc.putExtra(BhDownloadService.EXTRA_AMAZON_SKU, game.productSku);
+        svc.putExtra(BhDownloadService.EXTRA_AMAZON_TITLE, game.title);
+        startForegroundService(svc);
+        BhDownloadService.addListener(dlKey, new BhDownloadService.DownloadListener() {
+            @Override public void onProgress(String msg, int pct) { cb.onProgress(msg, pct); }
+            @Override public void onComplete(String installDir)   { cb.onComplete(installDir); }
+            @Override public void onError(String msg)             { cb.onError(msg); }
+            @Override public void onCancelled()                   { cb.onCancelled(); }
+        });
+        return () -> BhDownloadService.cancel(AmazonGamesActivity.this, dlKey);
     }
 
     // ── Download wrapper ──────────────────────────────────────────────────────

@@ -595,7 +595,7 @@ public class EpicGamesActivity extends Activity {
                 pctTV.setText("0%");
                 pctTV.setVisibility(View.VISIBLE);
 
-                cancelRef[0] = startEpicDownload(game, new DownloadCallback() {
+                cancelRef[0] = startViaServiceEpic(game, new DownloadCallback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> {
                             statusTV.setText(msg);
@@ -810,7 +810,7 @@ public class EpicGamesActivity extends Activity {
                 actionBtn.setBackgroundColor(COLOR_CANCEL);
                 progressBar.setVisibility(View.VISIBLE);
 
-                cancelRef[0] = startEpicDownload(game, new DownloadCallback() {
+                cancelRef[0] = startViaServiceEpic(game, new DownloadCallback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> progressBar.setProgress(pct));
                     }
@@ -880,6 +880,33 @@ public class EpicGamesActivity extends Activity {
         lp.leftMargin  = hMargin;
         lp.rightMargin = hMargin;
         return lp;
+    }
+
+    // ── Service-backed download (routes through BhDownloadService) ───────────
+
+    private Runnable startViaServiceEpic(EpicGame game, DownloadCallback cb) {
+        String dlKey = "epic_" + game.appName;
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 0);
+        }
+        Intent svc = new Intent(this, BhDownloadService.class);
+        svc.setAction(BhDownloadService.ACTION_START);
+        svc.putExtra(BhDownloadService.EXTRA_STORE, "EPIC");
+        svc.putExtra(BhDownloadService.EXTRA_GAME_ID, dlKey);
+        svc.putExtra(BhDownloadService.EXTRA_GAME_NAME, game.title);
+        svc.putExtra(BhDownloadService.EXTRA_EPIC_NAMESPACE, game.namespace);
+        svc.putExtra(BhDownloadService.EXTRA_EPIC_CATALOG_ID, game.catalogItemId);
+        svc.putExtra(BhDownloadService.EXTRA_EPIC_APP_NAME, game.appName);
+        startForegroundService(svc);
+        BhDownloadService.addListener(dlKey, new BhDownloadService.DownloadListener() {
+            @Override public void onProgress(String msg, int pct) { cb.onProgress(msg, pct); }
+            @Override public void onComplete(String installDir)   { cb.onComplete(installDir); }
+            @Override public void onError(String msg)             { cb.onError(msg); }
+            @Override public void onCancelled()                   { cb.onCancelled(); }
+        });
+        return () -> BhDownloadService.cancel(EpicGamesActivity.this, dlKey);
     }
 
     // ── Download wrapper ──────────────────────────────────────────────────────

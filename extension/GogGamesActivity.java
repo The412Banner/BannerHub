@@ -726,7 +726,7 @@ public class GogGamesActivity extends Activity {
                 pctTV.setText("0%");
                 pctTV.setVisibility(View.VISIBLE);
 
-                cancelRef1[0] = GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
+                cancelRef1[0] = startViaServiceGog(game, new GogDownloadManager.Callback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> {
                             statusTV.setText(msg);
@@ -985,7 +985,7 @@ public class GogGamesActivity extends Activity {
                 actionBtn.setBackgroundColor(0xFFCC3333);
                 progressBar.setVisibility(View.VISIBLE);
 
-                cancelRef2[0] = GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
+                cancelRef2[0] = startViaServiceGog(game, new GogDownloadManager.Callback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> {
                             progressBar.setProgress(pct);
@@ -1165,14 +1165,14 @@ public class GogGamesActivity extends Activity {
                 statusTV.setText("0%  Starting…");
                 dialog.setCancelable(false);
 
-                cancelRef3[0] = GogDownloadManager.startDownload(this, game, new GogDownloadManager.Callback() {
+                cancelRef3[0] = startViaServiceGog(game, new GogDownloadManager.Callback() {
                     @Override public void onProgress(String msg, int pct) {
                         uiHandler.post(() -> {
                             progressBar.setProgress(pct);
                             statusTV.setText(pct + "%  " + msg);
                         });
                     }
-                    @Override public void onComplete(String exePath) {
+                    @Override public void onComplete(String installDir) {
                         uiHandler.post(() -> {
                             cancelRef3[0] = null;
                             progressBar.setProgress(100);
@@ -1182,7 +1182,8 @@ public class GogGamesActivity extends Activity {
                             customInstall.setEnabled(true);
                             dialog.setCancelable(true);
                             customInstall.setOnClickListener(vv -> {
-                                GogLaunchHelper.triggerLaunch(GogGamesActivity.this, exePath);
+                                String exe = prefs.getString("gog_exe_" + game.gameId, null);
+                                if (exe != null) GogLaunchHelper.triggerLaunch(GogGamesActivity.this, exe);
                                 dialog.dismiss();
                             });
                             // Rebuild grid to show ✓ on tile
@@ -1223,6 +1224,36 @@ public class GogGamesActivity extends Activity {
         }
 
         b.show();
+    }
+
+    // ── Service-backed download (routes through BhDownloadService) ───────────
+
+    private Runnable startViaServiceGog(GogGame game, GogDownloadManager.Callback cb) {
+        String dlKey = "gog_" + game.gameId;
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 0);
+        }
+        Intent svc = new Intent(this, BhDownloadService.class);
+        svc.setAction(BhDownloadService.ACTION_START);
+        svc.putExtra(BhDownloadService.EXTRA_STORE, "GOG");
+        svc.putExtra(BhDownloadService.EXTRA_GAME_ID, dlKey);
+        svc.putExtra(BhDownloadService.EXTRA_GAME_NAME, game.title);
+        svc.putExtra(BhDownloadService.EXTRA_GOG_GAME_ID, game.gameId);
+        svc.putExtra(BhDownloadService.EXTRA_GOG_TITLE, game.title);
+        svc.putExtra(BhDownloadService.EXTRA_GOG_IMAGE_URL, game.imageUrl);
+        svc.putExtra(BhDownloadService.EXTRA_GOG_DEVELOPER, game.developer);
+        svc.putExtra(BhDownloadService.EXTRA_GOG_CATEGORY, game.category);
+        svc.putExtra(BhDownloadService.EXTRA_GOG_GENERATION, game.generation);
+        startForegroundService(svc);
+        BhDownloadService.addListener(dlKey, new BhDownloadService.DownloadListener() {
+            @Override public void onProgress(String msg, int pct) { cb.onProgress(msg, pct); }
+            @Override public void onComplete(String installDir)   { cb.onComplete(installDir); }
+            @Override public void onError(String msg)             { cb.onError(msg); }
+            @Override public void onCancelled()                   { cb.onCancelled(); }
+        });
+        return () -> BhDownloadService.cancel(GogGamesActivity.this, dlKey);
     }
 
     // ── Full-screen detail ────────────────────────────────────────────────────
