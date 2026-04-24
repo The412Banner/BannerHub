@@ -4,6 +4,93 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — v3.2.1-pre3 — Foreground service types + runtime notification permission (2026-04-24)
+**Commit:** `caf55a49e`  |  **Tag:** v3.2.1-pre3  |  **CI:** run 24915638870 ⏳
+#### What changed
+- `AndroidManifest.xml`: added `android:foregroundServiceType="specialUse"` to all 12 GameHub services missing a type — fixes `MissingForegroundServiceTypeException` crash on launch (Android 14+ with targetSdk 35)
+  - `DeviceManagementService`, `DownloadService`, `MappingService`, `KeyboardEditService`, `SSLClientService`, `VTouchIPCService`, `UnzipService`, `EmuFileService`, `SteamService`, `DiscoveryService`, `ComputerManagerService`, `UsbDriverService`
+- `EpicGameDetailActivity`, `GogGameDetailActivity`, `AmazonGameDetailActivity`: added `requestPermissions(POST_NOTIFICATIONS)` check at top of `startInstall()` (API 33+ guard); user is prompted for notification permission the first time they start a download
+#### Files touched
+- `patches/AndroidManifest.xml`
+- `extension/EpicGameDetailActivity.java`
+- `extension/GogGameDetailActivity.java`
+- `extension/AmazonGameDetailActivity.java`
+
+---
+
+### [feat] — v3.2.1-pre2 — In-app download manager screen (2026-04-24)
+**Commit:** `ecae59d15`  |  **Tag:** v3.2.1-pre2  |  **CI:** run 24915238124 ⏳
+#### What changed
+- `BhDownloadsActivity`: new screen showing all active downloads with live progress bars and per-download Cancel button; shows "No active downloads" when idle
+- `BhDownloadService`: added `GlobalListener` interface for watching all downloads at once; `getActiveJobs()`, `getGameName()`, `getLastMsg()`, `getLastPct()` for activity reconnect on resume; last-progress snapshot maps
+- `GogGamesActivity`, `EpicGamesActivity`, `AmazonGamesActivity`: ⬇ button added to header, launches `BhDownloadsActivity`
+- Error rows stay visible for 3 seconds before auto-removing
+#### Files touched
+- `extension/BhDownloadsActivity.java` (new)
+- `extension/BhDownloadService.java`
+- `extension/GogGamesActivity.java`
+- `extension/EpicGamesActivity.java`
+- `extension/AmazonGamesActivity.java`
+- `patches/AndroidManifest.xml`
+
+---
+
+### [feat] — v3.2.1-pre1 — Background download service (2026-04-24)
+**Commit:** `b9437a29c`  |  **Tag:** v3.2.1-pre1  |  **CI:** run 24914826132 ⏳
+#### What changed
+- New `BhDownloadService` (foreground service): downloads for Epic, GOG, and Amazon now run in the background — user can leave the game detail screen while downloading
+- Persistent progress notification shows game name, progress bar, and a Cancel action
+- Activity reconnects live progress on resume if the service is still running (`BhDownloadService.isActive()` + `addListener()`)
+- When the activity is not visible, completion/error posts a notification instead
+- Service auto-picks the best exe on completion (same scoring as before); "Set .exe…" button still available if the user wants to change it
+- Back-press on detail activities no longer cancels a download — user must cancel via notification or the Cancel button
+- `AndroidManifest.xml`: added `BhDownloadService` declaration with `foregroundServiceType="dataSync"`, plus `FOREGROUND_SERVICE_DATA_SYNC` and `POST_NOTIFICATIONS` permissions
+#### Files touched
+- `extension/BhDownloadService.java` (new)
+- `extension/EpicGameDetailActivity.java`
+- `extension/GogGameDetailActivity.java`
+- `extension/AmazonGameDetailActivity.java`
+- `patches/AndroidManifest.xml`
+
+---
+
+### [stable] — v3.2.0 — Expanded config detail, Frontend Export, Beacon fixes (2026-04-24)
+**Commit:** `9b547e687`  |  **Tag:** v3.2.0  |  **CI:** ✅
+#### What changed
+- BH_VERSION bumped to 3.2.0
+- Includes: expanded config detail screen (pre1), Beacon orphan task fix (pre6), Frontend Export feature (pre7/8/9)
+#### Files touched
+- `extension/BhSettingsExporter.java` (BH_VERSION → 3.2.0)
+
+---
+
+### [fix] — v3.1.1-pre9 — Frontend Export: correct Steam App ID for catalog games (2026-04-24)
+**Commit:** `3001c6ab5`  |  **Tag:** v3.1.1-pre9  |  **CI:** run 24905687673 ✅
+#### What changed
+- `BhFrontendExportLambda.smali`: replaced `getId()` with `getSteamAppId()` for catalog game ID resolution
+- Root cause: `getId()` returns BannerHub's internal server catalog ID, not the Steam App ID; catalog games were writing the wrong number to the `.iso` file
+- ID resolution order: `getLocalGameId()` (non-null/non-empty) → imported game UUID; else `getSteamAppId()` → actual Steam App ID string
+- Confirmed working: catalog games now write correct Steam App ID; imported games continue to write their localGameId
+#### Files touched
+- `patches/smali/com/xj/landscape/launcher/ui/gamedetail/BhFrontendExportLambda.smali`
+
+---
+
+### [feat] — v3.1.1-pre7/pre8 — Frontend Export feature (2026-04-24)
+**Commits:** pre7 initial + pre8 localGameId priority fix  |  **Tags:** v3.1.1-pre7, v3.1.1-pre8  |  **CI:** ✅
+#### What changed
+- New "Frontend Export" option in PC game settings popup (alongside Import/Export Config)
+- Tapping shows a list of frontends; selecting Beacon writes `Downloads/bannerhub/frontend/Beacon/{gameName}.iso` containing the game's ID
+- `BhFrontendExportLambda.smali`: new synthetic lambda class wired into `GameDetailSettingMenu.W()` via smali injection
+- `extension/BhSettingsExporter.java`: added `showFrontendExportDialog()` and `exportForBeacon()` methods
+- `.github/workflows/build-quick.yml`: added third Option block in the settings menu injection
+#### Files touched
+- `patches/smali/com/xj/landscape/launcher/ui/gamedetail/BhFrontendExportLambda.smali` (new)
+- `extension/BhSettingsExporter.java`
+- `.github/workflows/build-quick.yml`
+
+---
+
 ### [fix] — v3.1.1-pre6 — Beacon launch no longer shows 2nd BannerHub in recents (2026-04-24)
 **Commits:** `a9f2989` (pre5, finishAndRemoveTask attempt) + `fb2eab3` (pre6, manifest fix)  |  **Tag:** v3.1.1-pre6  |  **CI:** run 24902240605 ✅
 #### What changed
