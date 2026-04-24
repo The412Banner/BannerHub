@@ -48,6 +48,8 @@ public class BhDownloadService extends Service {
     private static final String CHANNEL_ID      = "bh_downloads";
     private static final int    NOTIF_ID         = 8800;
     private static final int    NOTIF_DONE_BASE  = 8810;
+    private static final String PREFS_LIBRARY    = "bh_library";
+    private static final String LIB_SEP          = "\n";
 
     public static final String ACTION_START  = "bh.download.START";
     public static final String ACTION_CANCEL = "bh.download.CANCEL";
@@ -89,11 +91,56 @@ public class BhDownloadService extends Service {
         void onAnyCancelled(String gameId);
     }
 
+    // ── Library entry ─────────────────────────────────────────────────────────
+
+    public static class LibraryEntry {
+        public final String dlKey;
+        public final String name;
+        public final String store;
+        public final String installPath;
+        LibraryEntry(String dlKey, String name, String store, String installPath) {
+            this.dlKey = dlKey; this.name = name;
+            this.store = store; this.installPath = installPath;
+        }
+    }
+
+    public static List<LibraryEntry> getLibrary(Context ctx) {
+        android.content.SharedPreferences p = ctx.getSharedPreferences(PREFS_LIBRARY, 0);
+        List<LibraryEntry> list = new ArrayList<>();
+        for (Map.Entry<String, ?> e : p.getAll().entrySet()) {
+            String[] parts = e.getValue().toString().split(LIB_SEP, 3);
+            list.add(new LibraryEntry(e.getKey(),
+                    parts.length > 0 ? parts[0] : "",
+                    parts.length > 1 ? parts[1] : "",
+                    parts.length > 2 ? parts[2] : ""));
+        }
+        return list;
+    }
+
+    public static LibraryEntry getLibraryEntry(Context ctx, String dlKey) {
+        String val = ctx.getSharedPreferences(PREFS_LIBRARY, 0).getString(dlKey, null);
+        if (val == null) return null;
+        String[] parts = val.split(LIB_SEP, 3);
+        return new LibraryEntry(dlKey,
+                parts.length > 0 ? parts[0] : "",
+                parts.length > 1 ? parts[1] : "",
+                parts.length > 2 ? parts[2] : "");
+    }
+
+    public static void removeLibraryEntry(Context ctx, String dlKey) {
+        ctx.getSharedPreferences(PREFS_LIBRARY, 0).edit().remove(dlKey).apply();
+    }
+
+    public static void clearLibrary(Context ctx) {
+        ctx.getSharedPreferences(PREFS_LIBRARY, 0).edit().clear().apply();
+    }
+
     // Static registry — no binding needed; activities register/unregister directly
     private static final Set<String>                    activeJobs     = ConcurrentHashMap.newKeySet();
     private static final Map<String, DownloadListener>  listeners      = new ConcurrentHashMap<>();
     private static final Map<String, Runnable>          cancelHandles  = new ConcurrentHashMap<>();
     private static final Map<String, String>            gameNames      = new ConcurrentHashMap<>();
+    private static final Map<String, String>            gameStores     = new ConcurrentHashMap<>();
     private static final Map<String, String>            lastMsgMap     = new ConcurrentHashMap<>();
     private static final Map<String, Integer>           lastPctMap     = new ConcurrentHashMap<>();
     private static final List<GlobalListener>           globalListeners = new CopyOnWriteArrayList<>();
@@ -181,6 +228,7 @@ public class BhDownloadService extends Service {
 
         activeJobs.add(gameId);
         gameNames.put(gameId, gameName != null ? gameName : "");
+        gameStores.put(gameId, store);
         startForeground(NOTIF_ID, buildProgressNotif(gameName != null ? gameName : "", "Starting…", 0, gameId));
 
         ExecutorService exec = Executors.newSingleThreadExecutor();
@@ -295,7 +343,17 @@ public class BhDownloadService extends Service {
                     getSharedPreferences("bh_gog_prefs", 0)
                             .edit().putString("gog_exe_" + gogGameId, exePath).apply();
                 }
-                notifyComplete(gameId, exePath != null ? exePath : "");
+                // Resolve and store install dir (used by library/uninstall)
+                String installDirPath = "";
+                String sanitized = (title != null ? title : "").replaceAll("[^a-zA-Z0-9 \\-_]", "").trim();
+                if (sanitized.isEmpty()) sanitized = "game_" + (gogGameId != null ? gogGameId.hashCode() : 0);
+                File gogDir = GogInstallPath.getInstallDir(BhDownloadService.this, sanitized);
+                if (gogDir != null) {
+                    installDirPath = gogDir.getAbsolutePath();
+                    getSharedPreferences("bh_gog_prefs", 0)
+                            .edit().putString("gog_dir_" + gogGameId, installDirPath).apply();
+                }
+                notifyComplete(gameId, installDirPath);
                 latch.countDown();
             }
             @Override public void onError(String msg) {
@@ -399,7 +457,12 @@ public class BhDownloadService extends Service {
         activeJobs.remove(gameId);
         lastMsgMap.remove(gameId);
         lastPctMap.remove(gameId);
-        String name = gameNames.remove(gameId);
+        String name  = gameNames.remove(gameId);
+        String store = gameStores.remove(gameId);
+        // Persist to library before notifying listeners (so onAnyComplete can read it)
+        if (name != null && store != null) {
+            saveLibraryEntry(gameId, name, store, installDir != null ? installDir : "");
+        }
         DownloadListener l = listeners.remove(gameId);
         if (l != null) {
             l.onComplete(installDir);
@@ -414,11 +477,17 @@ public class BhDownloadService extends Service {
         }
     }
 
+    private void saveLibraryEntry(String dlKey, String name, String store, String installPath) {
+        String val = name + LIB_SEP + store + LIB_SEP + installPath;
+        getSharedPreferences(PREFS_LIBRARY, 0).edit().putString(dlKey, val).apply();
+    }
+
     private void notifyError(String gameId, String msg) {
         Log.e(TAG, "[" + gameId + "] error: " + msg);
         activeJobs.remove(gameId);
         lastMsgMap.remove(gameId);
         lastPctMap.remove(gameId);
+        gameStores.remove(gameId);
         String name = gameNames.remove(gameId);
         DownloadListener l = listeners.remove(gameId);
         if (l != null) {
@@ -444,6 +513,7 @@ public class BhDownloadService extends Service {
         lastMsgMap.remove(gameId);
         lastPctMap.remove(gameId);
         gameNames.remove(gameId);
+        gameStores.remove(gameId);
         DownloadListener l = listeners.remove(gameId);
         if (l != null) l.onCancelled();
         for (GlobalListener gl : globalListeners) gl.onAnyCancelled(gameId);
