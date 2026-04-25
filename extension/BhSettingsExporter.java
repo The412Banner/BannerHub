@@ -8,6 +8,9 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.TypedValue;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -705,10 +708,28 @@ public class BhSettingsExporter {
         String[] frontends = {"Beacon", "ES-DE"};
         String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 .getAbsolutePath() + "/bannerhub/frontend/";
-        String message = "Select a frontend. The output file will be saved to:\n\n" + basePath;
+
+        int px16 = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, ctx.getResources().getDisplayMetrics());
+        int px8  = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,  8, ctx.getResources().getDisplayMetrics());
+
+        LinearLayout titleLayout = new LinearLayout(ctx);
+        titleLayout.setOrientation(LinearLayout.VERTICAL);
+        titleLayout.setPadding(px16, px16, px16, px8);
+
+        TextView titleTV = new TextView(ctx);
+        titleTV.setText("Frontend Export — " + gameName);
+        titleTV.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        titleTV.setTypeface(titleTV.getTypeface(), android.graphics.Typeface.BOLD);
+        titleLayout.addView(titleTV);
+
+        TextView msgTV = new TextView(ctx);
+        msgTV.setText("Select a frontend. The output file will be saved to:\n\n" + basePath);
+        msgTV.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        msgTV.setPadding(0, px8, 0, 0);
+        titleLayout.addView(msgTV);
+
         new AlertDialog.Builder(ctx)
-                .setTitle("Frontend Export — " + gameName)
-                .setMessage(message)
+                .setCustomTitle(titleLayout)
                 .setItems(frontends, (dialog, which) -> {
                     if (which == 0) exportForBeacon(ctx, gameId, gameName);
                     else if (which == 1) exportForEsde(ctx, gameId, gameName);
