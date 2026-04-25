@@ -496,8 +496,11 @@ The exported filename embeds the game name, device manufacturer, device model, a
 
 A separate **Frontend Export** option in the PC game settings popup creates a launcher `.iso` file for use with a supported frontend instead of exporting a BannerHub config JSON.
 
-- Opens a dialog to select the target frontend (currently: **Beacon**)
-- For **Beacon**: creates `Downloads/bannerhub/frontend/Beacon/{gameName}.iso` using the correct game ID — `localGameId` for imported games, `getSteamAppId()` for catalog games
+- Opens a dialog to select the target frontend: **Beacon** or **ES-DE**
+- For **Beacon**: creates `Downloads/bannerhub/frontend/Beacon/{gameName}.iso`
+- For **ES-DE**: creates `Downloads/bannerhub/frontend/ES-DE/{gameName}.steam`
+
+Both use the same game ID logic — `localGameId` for imported games, `getSteamAppId()` for catalog games.
 
 #### Import Config
 
