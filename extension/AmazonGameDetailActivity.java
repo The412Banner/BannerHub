@@ -327,10 +327,8 @@ public class AmazonGameDetailActivity extends Activity {
         uiHandler.post(() -> {
             progressBar.setVisibility(View.GONE);
             progressLabel.setVisibility(View.GONE);
-            installBtn.setText("Install");
             installBtn.setBackgroundColor(0xFFFF9900);
-            launchBtn.setEnabled(true);
-            setExeBtn.setEnabled(true);
+            refreshActionState();
             Toast.makeText(this, "Error: " + msg, Toast.LENGTH_LONG).show();
         });
     }
@@ -340,10 +338,8 @@ public class AmazonGameDetailActivity extends Activity {
         uiHandler.post(() -> {
             progressBar.setVisibility(View.GONE);
             progressLabel.setVisibility(View.GONE);
-            installBtn.setText("Install");
             installBtn.setBackgroundColor(0xFFFF9900);
-            launchBtn.setEnabled(true);
-            setExeBtn.setEnabled(true);
+            refreshActionState();
         });
     }
 

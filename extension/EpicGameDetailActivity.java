@@ -347,10 +347,8 @@ public class EpicGameDetailActivity extends Activity {
         uiHandler.post(() -> {
             progressBar.setVisibility(View.GONE);
             progressLabel.setVisibility(View.GONE);
-            installBtn.setText("Install");
             installBtn.setBackgroundColor(0xFF1A73E8);
-            launchBtn.setEnabled(true);
-            setExeBtn.setEnabled(true);
+            refreshActionState();
             Toast.makeText(this, "Error: " + msg, Toast.LENGTH_LONG).show();
         });
     }
@@ -360,10 +358,8 @@ public class EpicGameDetailActivity extends Activity {
         uiHandler.post(() -> {
             progressBar.setVisibility(View.GONE);
             progressLabel.setVisibility(View.GONE);
-            installBtn.setText("Install");
             installBtn.setBackgroundColor(0xFF1A73E8);
-            launchBtn.setEnabled(true);
-            setExeBtn.setEnabled(true);
+            refreshActionState();
         });
     }
 

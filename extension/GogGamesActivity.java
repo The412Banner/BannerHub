@@ -66,6 +66,7 @@ public class GogGamesActivity extends Activity {
     private static final String CACHE_KEY = "gog_library_cache";
     private static final String VIEW_MODE_KEY = "view_mode";
     private static final int REQ_GAME_DETAIL = 1001;
+    private static final int REQ_DOWNLOADS   = 1002;
 
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private TextView syncText;
@@ -192,8 +193,8 @@ public class GogGamesActivity extends Activity {
             dlBtnBg.setColor(hasFocus ? 0xFF555555 : 0xFF333333);
             dlBtnBg.setStroke(hasFocus ? dp(2) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
         });
-        dlBtn.setOnClickListener(v -> startActivity(
-                new android.content.Intent(this, BhDownloadsActivity.class)));
+        dlBtn.setOnClickListener(v -> startActivityForResult(
+                new android.content.Intent(this, BhDownloadsActivity.class), REQ_DOWNLOADS));
         LinearLayout.LayoutParams dlLp = new LinearLayout.LayoutParams(-2, dp(40));
         dlLp.setMargins(dp(4), 0, 0, 0);
         header.addView(dlBtn, dlLp);
@@ -1274,6 +1275,8 @@ public class GogGamesActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQ_GAME_DETAIL && resultCode == GogGameDetailActivity.RESULT_REFRESH) {
+            applyFilter(searchBar != null ? searchBar.getText().toString() : "");
+        } else if (requestCode == REQ_DOWNLOADS) {
             applyFilter(searchBar != null ? searchBar.getText().toString() : "");
         }
     }

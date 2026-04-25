@@ -390,10 +390,8 @@ public class GogGameDetailActivity extends Activity {
                 uiHandler.post(() -> {
                     progressBar.setVisibility(View.GONE);
                     progressLabel.setVisibility(View.GONE);
-                    installBtn.setText("Install");
                     installBtn.setBackgroundColor(0xFF5533CC);
-                    launchBtn.setEnabled(true);
-                    setExeBtn.setEnabled(true);
+                    refreshActionState();
                     Toast.makeText(GogGameDetailActivity.this, "Error: " + msg, Toast.LENGTH_LONG).show();
                 });
             }
@@ -402,10 +400,8 @@ public class GogGameDetailActivity extends Activity {
                 uiHandler.post(() -> {
                     progressBar.setVisibility(View.GONE);
                     progressLabel.setVisibility(View.GONE);
-                    installBtn.setText("Install");
                     installBtn.setBackgroundColor(0xFF5533CC);
-                    launchBtn.setEnabled(true);
-                    setExeBtn.setEnabled(true);
+                    refreshActionState();
                 });
             }
         });
