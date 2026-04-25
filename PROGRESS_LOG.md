@@ -4,12 +4,60 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
-### [pre] — v3.4.1-pre1 — Fix Frontend Export missing from stable build (2026-04-25)
-**Commit:** `d729899`  |  **Tag:** v3.4.1-pre1  |  **CI:** run 24937880585 🔄
+### [fix] — v3.4.2-pre1 — GOG: skip non-critical metadata files on CDN failure (2026-04-25)
+**Commit:** TBD  |  **Tag:** v3.4.2-pre1  |  **CI:** pending
 #### What changed
-- `build.yml` was missing the Frontend Export menu item injection into `GameDetailSettingMenu`
-- `build-quick.yml` already had it — so the option showed in pre-releases but not in v3.4.0 stable
-- Added the `BhFrontendExportLambda` Option block after Import Config, matching the quick build
+- Added `isNonCriticalGogFile()` helper in `GogDownloadManager.java`: matches `goggame-*.hashdb/.info/.ico/.script`
+- On 3-retry CDN failure, matching files now log a warning and are skipped rather than setting `anyFailed` and aborting the entire install
+- Fixes No Man's Sky (and any game with a bundled secondary product ID) where GOG metadata files for the secondary product ID fail because the `secure_link` CDN token is scoped to the primary product only
+- Game content and exe are unaffected; these files are GOG Galaxy client metadata, not required for launch
+
+---
+
+### [rollback] — v3.4.2-pre1 + pre2 rolled back to v3.4.1 (2026-04-25)
+**Action:** Deleted remote tags `v3.4.2-pre1` and `v3.4.2-pre2`; force-reset `main` to `v3.4.1` SHA `9048216`
+#### What happened
+- NeoStation `fromSteamLib` fix (pre1 + pre2) was reverted — the work was dropped, not parked
+- Repo and main branch are clean at v3.4.1; no pre-release artifacts remain
+#### If re-implementing later
+- pre1: `startsWith("local_")` guard in `GameDetailActivity.smali` to block `fromSteamLib=true` for local import UUIDs
+- pre2: additional `startsWith("{")` guard for unresolved NeoStation template tags (e.g. `{tags.steamappid}`)
+
+---
+
+### [fix] — v3.4.2-pre2 — Block fromSteamLib for unresolved NeoStation templates (2026-04-25) ⚠️ ROLLED BACK
+**Commit:** `099ec34`  |  **Tag:** v3.4.2-pre2 (deleted)  |  **CI:** run 24941693436 ✅
+#### What changed
+- Extended pre1 fix: added `startsWith("{")` check alongside `startsWith("local_")` to block `fromSteamLib=true` when NeoStation sends a literal unresolved template tag (e.g. `{tags.steamappid}`) as the steamAppId
+#### Files touched
+- `GameDetailActivity.smali` (via CI patch in `build-quick.yml`)
+
+---
+
+### [fix] — v3.4.2-pre1 — Skip fromSteamLib=true for local_ import IDs from NeoStation (2026-04-25) ⚠️ ROLLED BACK
+**Commit:** `b23a28b`  |  **Tag:** v3.4.2-pre1 (deleted)  |  **CI:** run 24941057062 ✅
+#### What changed
+- When NeoStation launches a local import game via `LAUNCH_GAME` intent, `steamAppId` receives a `local_` UUID which has `length > 0`, incorrectly setting `fromSteamLib=true` and crashing on the Steam library code path
+- Added `startsWith("local_")` check after the length guard to route local imports correctly
+#### Files touched
+- `GameDetailActivity.smali` (via CI patch in `build-quick.yml`)
+
+---
+
+### [stable] — v3.4.1 — Hotfix: Frontend Export missing from stable build (2026-04-25)
+**Commit:** `9048216`  |  **Tag:** v3.4.1  |  **CI:** run 24938018763 ✅
+#### What changed
+- Cut stable from v3.4.1-pre1; no new code beyond the pre-release fix
+- Latest stable; main currently points here after v3.4.2 rollback
+
+---
+
+### [fix] — v3.4.1-pre1 — Add Frontend Export to stable build.yml smali patch (2026-04-25)
+**Commit:** `d729899`  |  **Tag:** v3.4.1-pre1  |  **CI:** run 24937880585 ✅
+#### What changed
+- `build-quick.yml` already had the `GameDetailSettingMenu` smali injection for Frontend Export; `build.yml` was missing it entirely
+- v3.4.0 stable shipped without the Frontend Export menu item; pre-releases worked fine
+- Added the matching injection block to `build.yml` to fix stable builds
 #### Files touched
 - `.github/workflows/build.yml`
 

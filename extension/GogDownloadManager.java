@@ -411,8 +411,12 @@ public final class GogDownloadManager {
                         }
                     }
                     fileLog2.add("FAIL file=" + df.relativePath);
-                    Log.e(TAG, "Gen2 file failed after 3 attempts: " + df.relativePath);
-                    anyFailed.set(true);
+                    if (isNonCriticalGogFile(df.relativePath)) {
+                        Log.w(TAG, "Gen2 non-critical file skipped after 3 attempts: " + df.relativePath);
+                    } else {
+                        Log.e(TAG, "Gen2 file failed after 3 attempts: " + df.relativePath);
+                        anyFailed.set(true);
+                    }
                     return null;
                 }));
             }
@@ -836,6 +840,14 @@ public final class GogDownloadManager {
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
+
+    /** GOG Galaxy metadata files — not needed to launch the game; skip on CDN failure. */
+    private static boolean isNonCriticalGogFile(String path) {
+        String name = path.contains("/") ? path.substring(path.lastIndexOf('/') + 1) : path;
+        return name.startsWith("goggame-") &&
+                (name.endsWith(".hashdb") || name.endsWith(".info") ||
+                 name.endsWith(".ico")    || name.endsWith(".script"));
+    }
 
     /** Parses a Gen 2 depot manifest and appends DepotFile entries to {@code out}. */
     private static void parseDepotManifest(String json, List<DepotFile> out) {
