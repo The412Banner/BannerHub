@@ -145,6 +145,13 @@ public class BhDownloadService extends Service {
     private static final Map<String, Integer>           lastPctMap     = new ConcurrentHashMap<>();
     private static final List<GlobalListener>           globalListeners = new CopyOnWriteArrayList<>();
 
+    public interface CountObserver { void onCountChanged(int count); }
+    private static volatile CountObserver sCountObserver;
+
+    public static void setCountObserver(CountObserver o) { sCountObserver = o; }
+    public static void clearCountObserver()              { sCountObserver = null; }
+    public static int  getActiveCount()                  { return activeJobs.size(); }
+
     public static void addListener(String gameId, DownloadListener l) {
         listeners.put(gameId, l);
     }
@@ -227,6 +234,7 @@ public class BhDownloadService extends Service {
         if (activeJobs.contains(gameId)) return START_NOT_STICKY;
 
         activeJobs.add(gameId);
+        fireCountObserver();
         gameNames.put(gameId, gameName != null ? gameName : "");
         gameStores.put(gameId, store);
         startForeground(NOTIF_ID, buildProgressNotif(gameName != null ? gameName : "", "Starting…", 0, gameId));
@@ -455,6 +463,7 @@ public class BhDownloadService extends Service {
     private void notifyComplete(String gameId, String installDir) {
         Log.i(TAG, "[" + gameId + "] complete");
         activeJobs.remove(gameId);
+        fireCountObserver();
         lastMsgMap.remove(gameId);
         lastPctMap.remove(gameId);
         String name  = gameNames.remove(gameId);
@@ -485,6 +494,7 @@ public class BhDownloadService extends Service {
     private void notifyError(String gameId, String msg) {
         Log.e(TAG, "[" + gameId + "] error: " + msg);
         activeJobs.remove(gameId);
+        fireCountObserver();
         lastMsgMap.remove(gameId);
         lastPctMap.remove(gameId);
         gameStores.remove(gameId);
@@ -510,6 +520,7 @@ public class BhDownloadService extends Service {
     private void notifyCancelled(String gameId) {
         Log.i(TAG, "[" + gameId + "] cancelled");
         activeJobs.remove(gameId);
+        fireCountObserver();
         lastMsgMap.remove(gameId);
         lastPctMap.remove(gameId);
         gameNames.remove(gameId);
@@ -521,6 +532,11 @@ public class BhDownloadService extends Service {
             stopForeground(true);
             stopSelf();
         }
+    }
+
+    private static void fireCountObserver() {
+        CountObserver o = sCountObserver;
+        if (o != null) o.onCountChanged(activeJobs.size());
     }
 
     // ── Notification helpers ──────────────────────────────────────────────────

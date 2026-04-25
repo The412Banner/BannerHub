@@ -6932,7 +6932,7 @@
 
     new-instance v1, Lcom/xj/landscape/launcher/ui/main/BciLauncherClickListener;
 
-    invoke-direct {v1, p0}, Lcom/xj/landscape/launcher/ui/main/BciLauncherClickListener;-><init>(Landroid/content/Context;)V
+    invoke-direct {v1, p0, v0}, Lcom/xj/landscape/launcher/ui/main/BciLauncherClickListener;-><init>(Landroid/content/Context;Landroid/view/View;)V
 
     invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
