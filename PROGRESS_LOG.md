@@ -4,6 +4,42 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [feat] — v3.3.1-pre2 — Frontend Export dialog description (2026-04-24)
+**Commit:** `028a04534`  |  **Tag:** v3.3.1-pre2  |  **CI:** ⏳ (triggered)
+#### What changed
+- Frontend Export dialog now shows a description above the frontend list: "Select a frontend. The output file will be saved to:" followed by the resolved base path (`Downloads/bannerhub/frontend/`)
+- Path is resolved at runtime via `Environment.getExternalStoragePublicDirectory`
+#### Files touched
+- `extension/BhSettingsExporter.java`
+
+> **README note for v3.3.1 stable:** Add a link to [RobZombie9043/steam-files-es-de](https://github.com/RobZombie9043/steam-files-es-de) in the ES-DE Frontend Export section as a community resource for pre-made `.steam` files for Steam library / catalog games.
+
+---
+
+### [feat] — v3.3.1-pre1 — ES-DE frontend export (.steam file) (2026-04-24)
+**Commit:** `02cc5984b`  |  **Tag:** v3.3.1-pre1  |  **CI:** ⏳ (triggered)
+#### What changed
+- Frontend Export dialog now lists two options: **Beacon** and **ES-DE**
+- ES-DE export writes the resolved gameId to `Downloads/bannerhub/frontend/ES-DE/{gameName}.steam`
+- Same gameId logic as Beacon: `localGameId` for imported games, `getSteamAppId()` for Steam catalog games
+- No smali changes required — gameId resolution already handled in `BhFrontendExportLambda.smali`
+#### Files touched
+- `extension/BhSettingsExporter.java`
+- `README.md`
+
+---
+
+### [fix] — v3.2.1-pre6 — Correct store pref keys for Launch from download manager (2026-04-24)
+**Commit:** `ddda57c3b`  |  **Tag:** v3.2.1-pre6  |  **CI:** ⏳ (triggered)
+#### What changed
+- GOG Launch from download manager was calling `GogLaunchHelper.triggerLaunch(this, exe)` which internally calls `activity.finish()` — closing BhDownloadsActivity instead of launching the game
+- Amazon Launch was writing `pending_epic_exe` (wrong key) to `bh_amazon_prefs` instead of `pending_amazon_exe` — launcher would never pick it up
+- Fix: `pendingLaunchExe` now takes an explicit pref-key parameter; each store passes its correct key (`pending_gog_exe` / `pending_epic_exe` / `pending_amazon_exe`); `GogLaunchHelper` no longer called from BhDownloadsActivity
+#### Files touched
+- `extension/BhDownloadsActivity.java`
+
+---
+
 ### [feat] — v3.2.1-pre5 — Persistent game library in download manager (2026-04-24)
 **Commit:** `72b1f4f32`  |  **Tag:** v3.2.1-pre5  |  **CI:** run 24916480827 ⏳
 #### What changed
