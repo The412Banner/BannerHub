@@ -454,7 +454,7 @@ public class GogGameDetailActivity extends Activity {
         String dirName = prefs.getString("gog_dir_" + gameId, null);
         if (dirName == null) return;
         new Thread(() -> {
-            File installPath = GogInstallPath.getInstallDir(this, dirName);
+            File installPath = new File(dirName);
             deleteDir(installPath);
             prefs.edit()
                 .remove("gog_dir_" + gameId)
