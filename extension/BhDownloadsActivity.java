@@ -351,19 +351,38 @@ public class BhDownloadsActivity extends Activity {
         startActivity(intent);
     }
 
+    private AlertDialog showUninstallProgress() {
+        android.widget.LinearLayout ll = new android.widget.LinearLayout(this);
+        ll.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        ll.setPadding(dp(24), dp(24), dp(24), dp(24));
+        ll.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        ll.addView(new android.widget.ProgressBar(this));
+        android.widget.TextView tv = new android.widget.TextView(this);
+        tv.setText("  Uninstalling…");
+        tv.setTextSize(16f);
+        ll.addView(tv);
+        AlertDialog d = new AlertDialog.Builder(this).setView(ll).setCancelable(false).create();
+        d.show();
+        return d;
+    }
+
     private void confirmUninstall(BhDownloadService.LibraryEntry entry, View card) {
         new AlertDialog.Builder(this)
                 .setTitle("Uninstall " + entry.name + "?")
                 .setMessage("This will delete all installed game files.")
-                .setPositiveButton("Uninstall", (d, w) -> new Thread(() -> {
-                    doUninstall(entry);
-                    uiHandler.post(() -> {
-                        View[] cr = completedRows.remove(entry.dlKey);
-                        if (cr != null) listLayout.removeView(cr[0]);
-                        updateEmptyState();
-                        Toast.makeText(this, entry.name + " uninstalled", Toast.LENGTH_SHORT).show();
-                    });
-                }).start())
+                .setPositiveButton("Uninstall", (d, w) -> {
+                    AlertDialog progress = showUninstallProgress();
+                    new Thread(() -> {
+                        doUninstall(entry);
+                        uiHandler.post(() -> {
+                            progress.dismiss();
+                            View[] cr = completedRows.remove(entry.dlKey);
+                            if (cr != null) listLayout.removeView(cr[0]);
+                            updateEmptyState();
+                            Toast.makeText(this, entry.name + " uninstalled", Toast.LENGTH_SHORT).show();
+                        });
+                    }).start();
+                })
                 .setNegativeButton("Cancel", null)
                 .show();
     }

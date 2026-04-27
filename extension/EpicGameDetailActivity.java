@@ -397,6 +397,21 @@ public class EpicGameDetailActivity extends Activity {
 
     // ── Uninstall ─────────────────────────────────────────────────────────────
 
+    private AlertDialog showUninstallProgress() {
+        android.widget.LinearLayout ll = new android.widget.LinearLayout(this);
+        ll.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        ll.setPadding(dp(24), dp(24), dp(24), dp(24));
+        ll.setGravity(Gravity.CENTER_VERTICAL);
+        ll.addView(new android.widget.ProgressBar(this));
+        android.widget.TextView tv = new android.widget.TextView(this);
+        tv.setText("  Uninstalling…");
+        tv.setTextSize(16f);
+        ll.addView(tv);
+        AlertDialog d = new AlertDialog.Builder(this).setView(ll).setCancelable(false).create();
+        d.show();
+        return d;
+    }
+
     private void confirmUninstall() {
         new AlertDialog.Builder(this)
             .setTitle("Uninstall " + title + "?")
@@ -404,6 +419,7 @@ public class EpicGameDetailActivity extends Activity {
             .setPositiveButton("Uninstall", (d, w) -> {
                 String dir = prefs.getString("epic_dir_" + appName, null);
                 if (dir == null) return;
+                AlertDialog progress = showUninstallProgress();
                 new Thread(() -> {
                     deleteDir(new File(dir));
                     prefs.edit()
@@ -411,6 +427,7 @@ public class EpicGameDetailActivity extends Activity {
                         .remove("epic_dir_" + appName)
                         .apply();
                     uiHandler.post(() -> {
+                        progress.dismiss();
                         setResult(RESULT_REFRESH);
                         refreshActionState();
                         Toast.makeText(this, title + " uninstalled", Toast.LENGTH_SHORT).show();

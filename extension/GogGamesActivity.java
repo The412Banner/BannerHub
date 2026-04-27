@@ -1142,6 +1142,7 @@ public class GogGamesActivity extends Activity {
             b.setNeutralButton("Uninstall", (d, w) -> {
                 String dirName = prefs.getString("gog_dir_" + game.gameId, null);
                 if (dirName != null) {
+                    android.app.AlertDialog progress = showUninstallProgress();
                     new Thread(() -> {
                         java.io.File dir = new java.io.File(dirName);
                         deleteDir(dir);
@@ -1151,6 +1152,7 @@ public class GogGamesActivity extends Activity {
                                 .remove("gog_cover_" + game.gameId)
                                 .apply();
                         uiHandler.post(() -> {
+                            progress.dismiss();
                             applyFilter(searchBar != null ? searchBar.getText().toString() : "");
                             Toast.makeText(this, game.title + " uninstalled", Toast.LENGTH_SHORT).show();
                         });
@@ -1380,9 +1382,25 @@ public class GogGamesActivity extends Activity {
         b.show();
     }
 
+    private android.app.AlertDialog showUninstallProgress() {
+        android.widget.LinearLayout ll = new android.widget.LinearLayout(this);
+        ll.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        ll.setPadding(dp(24), dp(24), dp(24), dp(24));
+        ll.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        ll.addView(new android.widget.ProgressBar(this));
+        android.widget.TextView tv = new android.widget.TextView(this);
+        tv.setText("  Uninstalling…");
+        tv.setTextSize(16f);
+        ll.addView(tv);
+        android.app.AlertDialog d = new android.app.AlertDialog.Builder(this).setView(ll).setCancelable(false).create();
+        d.show();
+        return d;
+    }
+
     private void uninstall(GogGame game, Runnable onUninstalled) {
         String dirName = prefs.getString("gog_dir_" + game.gameId, null);
         if (dirName != null) {
+            android.app.AlertDialog progress = showUninstallProgress();
             new Thread(() -> {
                 java.io.File installPath = new java.io.File(dirName);
                 deleteDir(installPath);
@@ -1392,6 +1410,7 @@ public class GogGamesActivity extends Activity {
                         .remove("gog_cover_" + game.gameId)
                         .apply();
                 uiHandler.post(() -> {
+                    progress.dismiss();
                     onUninstalled.run();
                     Toast.makeText(this, game.title + " uninstalled", Toast.LENGTH_SHORT).show();
                 });

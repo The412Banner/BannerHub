@@ -450,9 +450,25 @@ public class GogGameDetailActivity extends Activity {
             .show();
     }
 
+    private AlertDialog showUninstallProgress() {
+        android.widget.LinearLayout ll = new android.widget.LinearLayout(this);
+        ll.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        ll.setPadding(dp(24), dp(24), dp(24), dp(24));
+        ll.setGravity(Gravity.CENTER_VERTICAL);
+        ll.addView(new android.widget.ProgressBar(this));
+        android.widget.TextView tv = new android.widget.TextView(this);
+        tv.setText("  Uninstalling…");
+        tv.setTextSize(16f);
+        ll.addView(tv);
+        AlertDialog d = new AlertDialog.Builder(this).setView(ll).setCancelable(false).create();
+        d.show();
+        return d;
+    }
+
     private void doUninstall() {
         String dirName = prefs.getString("gog_dir_" + gameId, null);
         if (dirName == null) return;
+        AlertDialog progress = showUninstallProgress();
         new Thread(() -> {
             File installPath = new File(dirName);
             deleteDir(installPath);
@@ -462,6 +478,7 @@ public class GogGameDetailActivity extends Activity {
                 .remove("gog_cover_" + gameId)
                 .apply();
             uiHandler.post(() -> {
+                progress.dismiss();
                 setResult(RESULT_REFRESH);
                 refreshActionState();
                 Toast.makeText(this, title + " uninstalled", Toast.LENGTH_SHORT).show();
