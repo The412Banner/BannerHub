@@ -4,8 +4,60 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre-release] — v3.4.2-pre11 — feat(ui): storage location badge on install path row (2026-04-27)
+**Commit:** `f1b1696`  |  **Tag:** v3.4.2-pre11  |  **CI:** run 25023554124 ✅
+#### What changed
+- GOG, Epic, Amazon detail pages now show a colored pill badge next to the install path
+- `💾 SD Card` (green on dark green) when path starts with the stored SD card root (`steam_storage_path` pref)
+- `📱 Internal` (grey on dark grey) when path is in internal app storage
+- Path + badge share a horizontal `LinearLayout` row; badge re-evaluates on every `refreshActionState()` call
+- New fields: `storageTypeBadgeTV`, `installPathRow` (all three detail activities)
+- New helper: `updateStorageBadge(String dir)` in each detail activity
+#### Files touched
+- `extension/GogGameDetailActivity.java`
+- `extension/EpicGameDetailActivity.java`
+- `extension/AmazonGameDetailActivity.java`
+
+---
+
+### [pre-release] — v3.4.2-pre10 — feat(settings): SD card storage toggle confirmation dialog + rename (2026-04-27)
+**Commit:** `3455663`  |  **Tag:** v3.4.2-pre10  |  **CI:** run 25023075869 ✅
+#### What changed
+- Turning the storage toggle ON now shows a dialog explaining games will save to `{SD card}/bannerhub/{store}/{game}/` and that install location is locked at install time
+- Turning the toggle OFF shows a dialog explaining new games go to internal storage and existing SD card installs are not moved
+- Both dialogs have Cancel (reverts switch visual) and Turn On/Turn Off (applies change) buttons
+- Cancel path reverts the switch visually using `BhStorageToggleListener` (confirm=false → XOR newValue to restore old state)
+- Confirm path calls `GameHubPrefs.handleSettingToggle(0x18, newValue)` — if SD card not found it still returns false and the switch resets
+- Toggle label renamed from `"SD Card Storage"` → `"Save Store Games to External Storage (SD Card)"`
+#### New files
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhStorageToggleListener.smali`
+#### Files touched
+- `patches/smali_classes10/.../SettingSwitchHolder.smali` (intercept at `:cond_normal_toggle`)
+- `patches/smali_classes6/.../GameHubPrefs.smali` (rename label string)
+
+---
+
+### [pre-release] — v3.4.2-pre9 — feat(ui): uninstall progress spinner (2026-04-27)
+**Commit:** `1301cb7`  |  **Tag:** v3.4.2-pre9  |  **CI:** run 25022797024 ✅
+#### What changed
+- Shows a non-cancelable spinner dialog ("Uninstalling…") immediately after user confirms uninstall
+- Dismisses just before the completion toast, covering the file deletion delay
+- Applied to all uninstall paths across all three stores:
+  - `GogGameDetailActivity`, `EpicGameDetailActivity`, `AmazonGameDetailActivity`
+  - `GogGamesActivity` (game list context menu + `uninstall()` helper)
+  - `BhDownloadsActivity` (download manager)
+- New helper `showUninstallProgress()` added to each activity; returns non-cancelable `AlertDialog` with horizontal spinner + label
+#### Files touched
+- `extension/GogGameDetailActivity.java`
+- `extension/GogGamesActivity.java`
+- `extension/EpicGameDetailActivity.java`
+- `extension/AmazonGameDetailActivity.java`
+- `extension/BhDownloadsActivity.java`
+
+---
+
 ### [pre-release] — v3.4.2-pre8 — fix(gog): align detail page doUninstall with download manager (2026-04-27)
-**Commit:** `8865804`  |  **Tag:** v3.4.2-pre8  |  **CI:** pending
+**Commit:** `8865804`  |  **Tag:** v3.4.2-pre8  |  **CI:** run 25022366388 ✅
 #### What changed
 - `GogGameDetailActivity.doUninstall()` was calling `GogInstallPath.getInstallDir(this, dirName)` to reconstruct the path instead of using the stored absolute path directly
 - Changed to `new File(dirName)` — same pattern as `BhDownloadsActivity` and `GogGamesActivity`
