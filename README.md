@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/bannerhub-logo.jpg" alt="BannerHub" width="200"/>
+  <img src="assets/bannerhub-logo.jpg" alt="BannerHub" width="400"/>
 </p>
 
 # BannerHub
