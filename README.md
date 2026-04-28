@@ -4,7 +4,7 @@
 
 # BannerHub
 
-**GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, background download service with in-app cross-store download manager, Winlator HUD overlay (Normal + Extra Detailed + Konkr style with CPU/GPU/RAM/SWAP/temp/per-core metrics), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, community game configs browser, per-game config export/import with Frontend Export, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
+**GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, background download service with in-app cross-store download manager, SD card / external storage routing for store game downloads, Winlator HUD overlay (Normal + Extra Detailed + Konkr style with CPU/GPU/RAM/SWAP/temp/per-core metrics), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, community game configs browser, per-game config export/import with Frontend Export, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
 
 ## AI Disclaimer
 
@@ -33,6 +33,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Component Manager](#component-manager)
   - [In-App Component Downloader](#in-app-component-downloader)
   - [Download Manager Button](#download-manager-button)
+  - [External Storage — SD Card](#external-storage--sd-card)
   - [Winlator HUD Overlay](#winlator-hud-overlay) (Normal + Extra Detailed + Konkr Style)
   - [Performance Sidebar Toggles](#performance-sidebar-toggles)
   - [RTS Touch Controls](#rts-touch-controls)
@@ -318,6 +319,23 @@ A persistent screen showing all active and completed downloads across GOG, Amazo
 The ⬇ button in each store's header (GOG, Amazon, Epic) also opens the Download Manager directly from within the store view.
 
 All downloads are handled by **BhDownloadService**, an Android foreground service. A persistent notification with a **Cancel** action appears in the notification tray for each active download. Downloads survive leaving the detail screen, switching apps, or navigating elsewhere in BannerHub.
+
+---
+
+### External Storage — SD Card
+
+A **"Save Store Games to External Storage (SD Card)"** toggle in the BannerHub side menu settings controls where GOG, Epic, and Amazon game downloads are saved.
+
+- **Toggle OFF (default):** games install to internal app storage at `Android/data/<package>/files/{store}/{game}/`
+- **Toggle ON:** games install to your SD card at `{SD card}/bannerhub/{store}/{game}/` — visible as a `bannerhub/` folder at the root of the SD card with subfolders per store (`gog_games/`, `epic_games/`, `Amazon/`)
+
+**Turning the toggle on or off shows a confirmation dialog** explaining what will change before anything is applied. Pressing Cancel reverts the switch without making any change.
+
+**Install location is locked at install time.** The full absolute path is saved to SharedPreferences the moment a game finishes installing. All uninstall paths (game list, detail page, download manager) read and delete from that stored path directly — the toggle state at uninstall time is irrelevant. Installing with the toggle on, flipping it off, then uninstalling will still correctly remove the game from the SD card.
+
+**Install path display:** each game's detail page shows the full install path in the ACTIONS card when the game is installed, alongside a colored badge indicating the storage location:
+- **💾 SD Card** — green pill, game is on the SD card
+- **📁 Internal** — grey pill, game is in internal app storage
 
 ---
 
@@ -637,6 +655,8 @@ When a game is installed and launched, GameHub creates a Wine virtual container 
 
 - The **"My"** tab in the bottom navigation bar is renamed to **"My Games"** for clarity.
 - **Beacon launch no longer creates a second app entry in recents** — `GameDetailActivity` is marked `excludeFromRecents`, so Beacon launches do not leave an orphaned BannerHub task in the recent apps list.
+- **System bars hidden across all store screens** — the status bar and navigation bar are hidden on all GOG, Epic, and Amazon screens (store lists, detail pages, download manager, Component Manager, Component Download) so they no longer overlap UI buttons.
+- **Uninstall spinner** — a "Uninstalling…" spinner dialog appears immediately after confirming an uninstall, covering the file-deletion delay before the completion toast. Applies to all three stores across game lists, detail pages, and the download manager.
 
 ---
 
@@ -678,7 +698,7 @@ Yes. BannerHub supports Gen 1 downloads via the legacy byte-range download pipel
 
 **Q: Where are GOG / Amazon / Epic games installed?**
 
-Inside the app's private storage: `Android/data/<package>/files/gog_games/<name>/`, `amazon_games/<name>/`, or `epic_games/<name>/` respectively. GOG games have a **Copy to Downloads** button in the detail dialog to copy files to `Downloads/<name>/` for access from any file manager.
+By default, inside the app's private storage: `Android/data/<package>/files/gog_games/<name>/`, `amazon_games/<name>/`, or `epic_games/<name>/` respectively. If the **Save Store Games to External Storage (SD Card)** toggle is enabled in the side menu settings, games install to `{SD card}/bannerhub/{store}/{game}/` instead. The install path is shown on each game's detail page with a badge indicating whether it is on SD card or internal storage. GOG games have a **Copy to Downloads** button in the detail dialog to copy files to `Downloads/<name>/` for access from any file manager.
 
 **Q: Does Amazon login work with two-factor authentication (OTP)?**
 
