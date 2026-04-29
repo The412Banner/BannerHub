@@ -107,12 +107,11 @@ public class BhLsfgManager {
     }
 
     /**
-     * Scans Wine game install directories for Lossless.dll.
-     * The Steam game (App ID 993090) is installed under
-     * <filesDir>/xj_winemu/xj_install/game/ as a subdirectory.
+     * Scans Wine container home dirs for Lossless.dll.
+     * Containers live at <filesDir>/usr/home/virtual_containers/<id>/.
      */
     public static String autoDiscoverDll(Context ctx) {
-        File gameRoot = new File(ctx.getFilesDir(), "xj_winemu/xj_install/game");
+        File gameRoot = new File(ctx.getFilesDir(), "usr/home/virtual_containers");
         if (!gameRoot.isDirectory()) return null;
 
         File[] gameDirs = gameRoot.listFiles();
@@ -154,7 +153,7 @@ public class BhLsfgManager {
      * @return number of containers successfully updated
      */
     public static int applyToAllContainers(Context ctx) {
-        File gameRoot = new File(ctx.getFilesDir(), "xj_winemu/xj_install/game");
+        File gameRoot = new File(ctx.getFilesDir(), "usr/home/virtual_containers");
         if (!gameRoot.isDirectory()) return 0;
 
         File[] containers = gameRoot.listFiles();

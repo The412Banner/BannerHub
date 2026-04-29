@@ -266,8 +266,8 @@ public class BhLsfgSettingsActivity extends Activity {
     }
 
     private void openFilePicker() {
-        // Start in the Wine game install directory where Lossless Scaling lives
-        File startDir = new File(getFilesDir(), "xj_winemu/xj_install/game");
+        // Start in the Wine container home directory where Lossless Scaling installs
+        File startDir = new File(getFilesDir(), "usr/home/virtual_containers");
         Intent intent = new Intent(this, FilePickerActivity.class);
         intent.putExtra("filter_ext", ".dll");
         intent.putExtra("title", "Select Lossless.dll");
