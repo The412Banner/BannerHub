@@ -216,6 +216,7 @@ jobs:
           PYEOF
 
       - name: Apply LSFG Frame Gen smali patches
+        if: false  # LSFG moved to side menu via HomeLeftMenuDialog.smali — no runtime smali injection needed
         run: |
           python3 << 'PYEOF'
           import sys
