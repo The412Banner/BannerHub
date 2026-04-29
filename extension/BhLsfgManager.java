@@ -1,0 +1,290 @@
+package app.revanced.extension.gamehub;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Locale;
+
+/**
+ * Manages LSFG-VK (Lossless Scaling Frame Generation) Vulkan implicit layer
+ * for Wine containers in BannerHub.
+ *
+ * The layer intercepts vkQueuePresentKHR inside the Wine process and runs
+ * frame generation transparently — no overlay or MediaProjection needed.
+ *
+ * Flow:
+ *   1. User configures settings in BhLsfgSettingsActivity (saved to prefs).
+ *   2. At Wine launch time (smali injection in WinEmuServiceImpl), call
+ *      ensureRuntimeInstalled() + writeConfig() with the container path.
+ *   3. The Vulkan loader finds the implicit layer manifest and loads the .so.
+ *   4. The layer reads conf.toml from ~/.config/lsfg-vk/ and activates.
+ *
+ * Asset layout (bundled in APK):
+ *   assets/lsfg_vk/liblsfg-vk-layer.so
+ *   assets/lsfg_vk/VkLayer_LS_frame_generation.json
+ */
+public class BhLsfgManager {
+
+    public static final String PREFS = "bh_lsfg_prefs";
+
+    public static final String KEY_ENABLED      = "lsfg_enabled";
+    public static final String KEY_DLL_PATH     = "lsfg_dll_path";
+    public static final String KEY_MULTIPLIER   = "lsfg_multiplier";   // 0=off, 2, 3, or 4
+    public static final String KEY_FLOW_SCALE   = "lsfg_flow_scale";   // "1.00", "0.75", etc.
+    public static final String KEY_PERF_MODE    = "lsfg_perf_mode";
+
+    // Asset paths (relative to assets/)
+    private static final String ASSET_LIB      = "lsfg_vk/liblsfg-vk-layer.so";
+    private static final String ASSET_MANIFEST = "lsfg_vk/VkLayer_LS_frame_generation.json";
+
+    // Paths inside the container root (HOME = containerPath)
+    private static final String LIB_SUBDIR      = ".local/lib";
+    private static final String LIB_FILENAME    = "liblsfg-vk-layer.so";
+    private static final String MANIFEST_SUBDIR = ".local/share/vulkan/implicit_layer.d";
+    private static final String MANIFEST_FILE   = "VkLayer_LS_frame_generation.json";
+    private static final String CONFIG_SUBDIR   = ".config/lsfg-vk";
+    private static final String CONFIG_FILE     = "conf.toml";
+    private static final String VERSION_FILE    = ".lsfg_vk_version";
+
+    // Relative path written into the manifest's library_path field.
+    // implicit_layer.d → ../../.. → .local/lib/liblsfg-vk-layer.so
+    private static final String MANIFEST_LIB_PATH = "../../../lib/" + LIB_FILENAME;
+
+    // Bump this whenever the bundled .so changes so containers auto-reinstall.
+    private static final String RUNTIME_VERSION = "v1.4.0-android-arm64-v8a-ahb";
+
+    // Wine process exe names the layer config will match.
+    // wine64-preloader is the standard loader; wineloader is the Bionic variant.
+    private static final String[] WINE_EXE_NAMES = { "wine64-preloader", "wineloader", "wine64" };
+
+    // ── Prefs accessors ──────────────────────────────────────────────────────
+
+    public static boolean isEnabled(Context ctx) {
+        return prefs(ctx).getBoolean(KEY_ENABLED, false);
+    }
+
+    public static String getDllPath(Context ctx) {
+        return prefs(ctx).getString(KEY_DLL_PATH, "");
+    }
+
+    public static int getMultiplier(Context ctx) {
+        int m = prefs(ctx).getInt(KEY_MULTIPLIER, 2);
+        return (m == 0) ? 0 : Math.max(2, Math.min(4, m));
+    }
+
+    public static String getFlowScale(Context ctx) {
+        return prefs(ctx).getString(KEY_FLOW_SCALE, "1.00");
+    }
+
+    public static boolean getPerfMode(Context ctx) {
+        return prefs(ctx).getBoolean(KEY_PERF_MODE, false);
+    }
+
+    /** True when enabled, multiplier > 0, and Lossless.dll exists at the stored path. */
+    public static boolean isArmed(Context ctx) {
+        if (!isEnabled(ctx)) return false;
+        if (getMultiplier(ctx) == 0) return false;
+        String dll = resolveDll(ctx);
+        return dll != null;
+    }
+
+    // ── DLL discovery ────────────────────────────────────────────────────────
+
+    /**
+     * Returns the Lossless.dll path to use. Checks:
+     *   1. Stored user path (browsed or previously auto-detected).
+     *   2. Auto-scan of Wine game install directories.
+     * Returns null if not found.
+     */
+    public static String resolveDll(Context ctx) {
+        String stored = getDllPath(ctx);
+        if (!stored.isEmpty() && new File(stored).isFile()) return stored;
+        return autoDiscoverDll(ctx);
+    }
+
+    /**
+     * Scans Wine game install directories for Lossless.dll.
+     * The Steam game (App ID 993090) is installed under
+     * <filesDir>/xj_winemu/xj_install/game/ as a subdirectory.
+     */
+    public static String autoDiscoverDll(Context ctx) {
+        File gameRoot = new File(ctx.getFilesDir(), "xj_winemu/xj_install/game");
+        if (!gameRoot.isDirectory()) return null;
+
+        File[] gameDirs = gameRoot.listFiles();
+        if (gameDirs == null) return null;
+
+        for (File gameDir : gameDirs) {
+            String found = findDll(gameDir, 5);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    /** Recursive DFS search for Lossless.dll, limited to maxDepth levels. */
+    private static String findDll(File dir, int maxDepth) {
+        if (!dir.isDirectory() || maxDepth <= 0) return null;
+        File[] entries = dir.listFiles();
+        if (entries == null) return null;
+        for (File f : entries) {
+            if (f.isFile() && f.getName().equalsIgnoreCase("Lossless.dll")) {
+                return f.getAbsolutePath();
+            }
+        }
+        for (File f : entries) {
+            if (f.isDirectory()) {
+                String found = findDll(f, maxDepth - 1);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    // ── Runtime installation ─────────────────────────────────────────────────
+
+    /**
+     * Copies the prebuilt liblsfg-vk-layer.so and manifest into the container.
+     * Skips if already up-to-date (version stamp matches).
+     *
+     * @param containerPath  result of IEmuContainer.c() / IWinEmuService.h(gameId).c()
+     * @return true if installed/already current; false on failure
+     */
+    public static boolean ensureRuntimeInstalled(Context ctx, String containerPath) {
+        File root     = new File(containerPath);
+        File libDir   = new File(root, LIB_SUBDIR);
+        File layerDir = new File(root, MANIFEST_SUBDIR);
+        File libFile  = new File(libDir,   LIB_FILENAME);
+        File manifest = new File(layerDir, MANIFEST_FILE);
+        File stamp    = new File(layerDir, VERSION_FILE);
+
+        String installed = stamp.exists() ? readText(stamp).trim() : "";
+        if (RUNTIME_VERSION.equals(installed) && libFile.isFile() && manifest.isFile()) {
+            return true; // already current
+        }
+
+        try {
+            libDir.mkdirs();
+            layerDir.mkdirs();
+
+            copyAsset(ctx, ASSET_LIB, libFile);
+
+            // Patch the manifest's library_path to the relative path from implicit_layer.d
+            String manifestText = readAsset(ctx, ASSET_MANIFEST)
+                    .replace("\"library_path\": \"" + LIB_FILENAME + "\"",
+                             "\"library_path\": \"" + MANIFEST_LIB_PATH + "\"");
+            writeText(manifest, manifestText);
+
+            libFile.setExecutable(true, false);
+            libFile.setReadable(true, false);
+            manifest.setReadable(true, false);
+
+            writeText(stamp, RUNTIME_VERSION);
+            return libFile.isFile() && manifest.isFile();
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    // ── conf.toml generation ─────────────────────────────────────────────────
+
+    /**
+     * Writes (or overwrites) conf.toml into the container's ~/.config/lsfg-vk/.
+     * The Vulkan loader finds the manifest automatically; the layer then reads
+     * this config from the default $HOME/.config/lsfg-vk/ path.
+     *
+     * @param containerPath  result of IEmuContainer.c()
+     * @param dllPath        absolute path to Lossless.dll; null disables the layer
+     * @param multiplier     2, 3, or 4 (0 means disabled)
+     * @param flowScale      "1.00", "0.75", "0.50", or "0.25"
+     * @param perfMode       true = performance quality mode
+     * @return true on success
+     */
+    public static boolean writeConfig(String containerPath, String dllPath,
+                                      int multiplier, String flowScale, boolean perfMode) {
+        File configDir  = new File(containerPath, CONFIG_SUBDIR);
+        File configFile = new File(configDir, CONFIG_FILE);
+        configDir.mkdirs();
+
+        boolean armed = multiplier > 0 && dllPath != null && !dllPath.isEmpty()
+                && new File(dllPath).isFile();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("version = 1\n\n");
+        sb.append("[global]\n");
+        if (dllPath != null && !dllPath.isEmpty()) {
+            sb.append("dll = ").append(tomlStr(dllPath)).append("\n");
+        }
+        sb.append("no_fp16 = false\n");
+
+        if (armed) {
+            // Write one [[game]] entry per known Wine exe name so the layer
+            // activates regardless of which Wine variant the container uses.
+            for (String exe : WINE_EXE_NAMES) {
+                sb.append("\n[[game]]\n");
+                sb.append("exe = ").append(tomlStr(exe)).append("\n");
+                sb.append("multiplier = ").append(multiplier).append("\n");
+                sb.append("flow_scale = ").append(flowScale).append("\n");
+                sb.append("performance_mode = ").append(perfMode).append("\n");
+                sb.append("hdr_mode = false\n");
+                sb.append("experimental_present_mode = \"fifo\"\n");
+            }
+        }
+
+        try {
+            writeText(configFile, sb.toString());
+            configFile.setReadable(true, false);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static SharedPreferences prefs(Context ctx) {
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    private static String tomlStr(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    private static void copyAsset(Context ctx, String assetPath, File dest) throws IOException {
+        try (InputStream in = ctx.getAssets().open(assetPath);
+             FileOutputStream out = new FileOutputStream(dest)) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+        }
+    }
+
+    private static String readAsset(Context ctx, String assetPath) throws IOException {
+        try (InputStream in = ctx.getAssets().open(assetPath)) {
+            byte[] bytes = new byte[in.available()];
+            //noinspection ResultOfMethodCallIgnored
+            in.read(bytes);
+            return new String(bytes, "UTF-8");
+        }
+    }
+
+    private static String readText(File f) {
+        try (java.io.FileInputStream fis = new java.io.FileInputStream(f)) {
+            byte[] bytes = new byte[(int) f.length()];
+            //noinspection ResultOfMethodCallIgnored
+            fis.read(bytes);
+            return new String(bytes, "UTF-8");
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    private static void writeText(File f, String text) throws IOException {
+        try (FileOutputStream out = new FileOutputStream(f)) {
+            out.write(text.getBytes("UTF-8"));
+        }
+    }
+}
