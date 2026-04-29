@@ -530,7 +530,8 @@ jobs:
       - name: Sign
         id: sign
         run: |
-          APK_NAME="BannerHub-${GITHUB_REF_NAME}-${{ matrix.variant }}.apk"
+          SAFE_REF="${GITHUB_REF_NAME//\//-}"
+          APK_NAME="BannerHub-${SAFE_REF}-${{ matrix.variant }}.apk"
           BUILD_TOOLS=$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)
           ${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS}/apksigner sign \
             --key testkey.pk8 \

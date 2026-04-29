@@ -386,7 +386,8 @@ jobs:
           ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
 
           # Sign
-          APK_NAME="BannerHub-${GITHUB_REF_NAME}-Normal.apk"
+          SAFE_REF="${GITHUB_REF_NAME//\//-}"
+          APK_NAME="BannerHub-${SAFE_REF}-Normal.apk"
           ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/apksigner sign \
             --key testkey.pk8 \
             --cert testkey.x509.pem \
