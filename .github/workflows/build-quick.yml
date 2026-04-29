@@ -62,7 +62,13 @@ jobs:
 
       - name: Inject build version
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          RAW=${GITHUB_REF_NAME#v}
+          # Sanitize: if ref contains '/' (branch name), use a safe test version
+          if [[ "$RAW" == */* ]]; then
+            VERSION="test-build"
+          else
+            VERSION="$RAW"
+          fi
           echo "Build version: $VERSION"
           sed -i "s/^  versionName: .*/  versionName: $VERSION/" apktool_out/apktool.yml
           sed -i "s/static final String BH_VERSION = \"[^\"]*\"/static final String BH_VERSION = \"$VERSION\"/" extension/BhSettingsExporter.java
