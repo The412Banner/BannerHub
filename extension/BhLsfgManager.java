@@ -144,6 +144,52 @@ public class BhLsfgManager {
         return null;
     }
 
+    // ── Bulk container operations ────────────────────────────────────────────
+
+    /**
+     * Applies the current LSFG settings to every Wine container on the device.
+     * Call this after the user saves settings in BhLsfgSettingsActivity.
+     * Runs the install/delete on the calling thread — invoke from a background thread.
+     *
+     * @return number of containers successfully updated
+     */
+    public static int applyToAllContainers(Context ctx) {
+        File gameRoot = new File(ctx.getFilesDir(), "xj_winemu/xj_install/game");
+        if (!gameRoot.isDirectory()) return 0;
+
+        File[] containers = gameRoot.listFiles();
+        if (containers == null) return 0;
+
+        boolean enabled   = isEnabled(ctx);
+        String  dllPath   = resolveDll(ctx);
+        int     mult      = getMultiplier(ctx);
+        String  flow      = getFlowScale(ctx);
+        boolean perf      = getPerfMode(ctx);
+
+        int updated = 0;
+        for (File c : containers) {
+            if (!c.isDirectory()) continue;
+            String cPath = c.getAbsolutePath();
+            if (enabled && mult > 0) {
+                if (ensureRuntimeInstalled(ctx, cPath)) {
+                    writeConfig(cPath, dllPath, mult, flow, perf);
+                    updated++;
+                }
+            } else {
+                // Disabled — remove manifest so the Vulkan loader won't find the layer.
+                // The .so stays in place to avoid re-copying on re-enable.
+                removeManifest(cPath);
+                updated++;
+            }
+        }
+        return updated;
+    }
+
+    /** Deletes the Vulkan implicit layer manifest from a container, disabling the layer. */
+    public static void removeManifest(String containerPath) {
+        new File(containerPath, MANIFEST_SUBDIR + "/" + MANIFEST_FILE).delete();
+    }
+
     // ── Runtime installation ─────────────────────────────────────────────────
 
     /**

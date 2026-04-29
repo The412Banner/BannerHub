@@ -411,7 +411,18 @@ public class BhLsfgSettingsActivity extends Activity {
                 .putString(BhLsfgManager.KEY_FLOW_SCALE,  selectedFlowScale)
                 .putBoolean(BhLsfgManager.KEY_PERF_MODE,  perfModeSwitch.isChecked())
                 .apply();
-        Toast.makeText(this, "LSFG settings saved", Toast.LENGTH_SHORT).show();
+
+        Toast.makeText(this, "Applying to Wine containers…", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            int n = BhLsfgManager.applyToAllContainers(this);
+            uiHandler.post(() -> {
+                String msg = n > 0
+                        ? "LSFG settings saved — applied to " + n + " container(s)"
+                        : "LSFG settings saved (no containers found yet)";
+                Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+            });
+        }).start();
+
         setResult(RESULT_OK);
         finish();
     }

@@ -4,6 +4,54 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [feature branch] — LSFG-VK frame generation — feature/lsfg-vk — 2026-04-29
+**Branch:** `feature/lsfg-vk` | **Status:** CI not yet triggered — binaries now committed, ready to run
+
+#### What's in the branch
+- **FilePickerActivity.java** — in-app .dll browser (App Files / Internal / SD Card); tapping a `.dll` row returns the absolute path
+- **BhLsfgManager.java** — installs `liblsfg-vk-layer.so` + manifest into every Wine container under `xj_winemu/xj_install/game/`; writes `conf.toml` with `[[game]]` entries for `wine64-preloader`, `wineloader`, `wine64`; `applyToAllContainers()` runs on save; removes manifest when disabled (Vulkan loader won't find layer)
+- **BhLsfgSettingsActivity.java** — global LSFG settings: enable toggle, DLL path + Auto-Detect + Browse (FilePickerActivity), multiplier chips (Off/2x/3x/4x), flow scale chips (1.00/0.75/0.50/0.25), perf mode toggle; save applies to all containers via background thread
+- **patches/assets/lsfg_vk/** — prebuilt `liblsfg-vk-layer.so` (v1.4.0, 2.5MB, AHB+TMPDIR+bypass patches) + `VkLayer_LS_frame_generation.json` downloaded from GameNative PR #1322
+- **patches/AndroidManifest.xml** — FilePickerActivity + BhLsfgSettingsActivity registered
+- **build.yml** — 3 new smali patches (chained off Grant Root Access blocks):
+  - Patch 4: `SettingBtnHolder.w()` — contentType 0x65 → startActivity(BhLsfgSettingsActivity)
+  - Patch 5: `SettingItemEntity.getContentName()` — returns "LSFG Frame Gen" for 0x65
+  - Patch 6: `SettingItemViewModel.k()` — adds 0x65 button after Grant Root Access (0x64)
+
+#### Architecture
+- Settings are **global** (one `bh_lsfg_prefs` file, all containers share the same config)
+- Layer install: `.local/lib/liblsfg-vk-layer.so` + `.local/share/vulkan/implicit_layer.d/manifest` inside each container root (= `xj_winemu/xj_install/game/<gameId>/`)
+- Vulkan loader finds manifest via `$HOME/.local/share/vulkan/implicit_layer.d/` (HOME = container path in Bionic)
+- `conf.toml` at `{containerPath}/.config/lsfg-vk/conf.toml` — layer reads it from default HOME path
+- No env var injection needed — process matching via exe names in `[[game]]` blocks
+
+#### Still needed
+- Trigger CI on the branch to confirm compilation
+- Device test to verify Vulkan loader picks up implicit layer in Bionic container
+- Env var injection (`LSFG_PROCESS`) if exe-name matching proves unreliable
+
+---
+
+### [investigation] — Component Manager removal bug — 2026-04-29
+**Status:** Root cause identified, fix pending
+#### Bug
+Components removed via swipe-left or "Remove All" in the Component Manager disappear within the current session but reappear in per-game menus after the next app restart. Files are confirmed deleted from disk.
+#### Root cause
+`EmuComponents.D()` (called during install) writes to **two** places:
+1. In-memory `a: HashMap` on the `EmuComponents` singleton
+2. `sp_winemu_all_components12` SharedPreferences — key = component name, value = Gson-serialized `ComponentRepo`
+
+`removeComponent()` and `removeAllComponents()` both remove from the HashMap and clean up `banners_sources`, but **neither ever removes the key from `sp_winemu_all_components12`**.
+
+On next app start, `EmuComponents.s()` calls `sp_winemu_all_components12.getAll()`, deserializes every entry, and reloads them all into `a`. The removed component is resurrected because its SP entry was never deleted.
+#### Fix (not yet applied)
+In both `removeComponent()` and `removeAllComponents()` in `ComponentManagerActivity.smali`, after `EmuComponents.a.remove(dirName)`, add:
+```
+context.getSharedPreferences("sp_winemu_all_components12", 0).edit().remove(dirName).apply()
+```
+
+---
+
 ### [stable] — v3.5.0 — External storage, system bars, uninstall UX, storage badge (2026-04-27)
 **Tag:** v3.5.0  |  **CI:** run 25024033767 ✅  |  **Release:** https://github.com/The412Banner/BannerHub/releases/tag/v3.5.0
 #### What shipped (all pre1–pre12 over v3.4.1)

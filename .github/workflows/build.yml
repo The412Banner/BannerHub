@@ -215,6 +215,133 @@ jobs:
           print("\nAll Grant Root Access patches applied successfully.")
           PYEOF
 
+      - name: Apply LSFG Frame Gen smali patches
+        run: |
+          python3 << 'PYEOF'
+          import sys
+
+          def patch(path, old, new, label):
+              try:
+                  content = open(path, encoding='utf-8').read()
+              except UnicodeDecodeError:
+                  content = open(path, encoding='latin-1').read()
+              if old not in content:
+                  print(f"ERROR: anchor not found in {path} for: {label}")
+                  sys.exit(1)
+              open(path, 'w', encoding='utf-8').write(content.replace(old, new, 1))
+              print(f"OK: {label}")
+
+          # Patch 4: SettingBtnHolder.w() — LSFG click handler (contentType=0x65)
+          # Anchors on :bh_skip_root_grant label inserted by Patch 1 above.
+          patch(
+              'apktool_out_base/smali_classes6/com/xj/landscape/launcher/ui/setting/holder/SettingBtnHolder.smali',
+              '    :bh_skip_root_grant\n'
+              '\n'
+              '    .line 15\n'
+              '    sget-object p1, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;'
+              '->Companion:Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity$Companion;\n',
+              '    :bh_skip_root_grant\n'
+              '\n'
+              '    # BannerHub: LSFG Frame Gen (contentType=0x65)\n'
+              '    const/16 v0, 0x65\n'
+              '\n'
+              '    if-ne p0, v0, :bh_skip_lsfg\n'
+              '\n'
+              '    invoke-virtual {p2}, Landroid/view/View;->getContext()Landroid/content/Context;\n'
+              '\n'
+              '    move-result-object v1\n'
+              '\n'
+              '    new-instance v2, Landroid/content/Intent;\n'
+              '\n'
+              '    const-class v0, Lapp/revanced/extension/gamehub/BhLsfgSettingsActivity;\n'
+              '\n'
+              '    invoke-direct {v2, v1, v0}, Landroid/content/Intent;-><init>(Landroid/content/Context;Ljava/lang/Class;)V\n'
+              '\n'
+              '    invoke-virtual {v1, v2}, Landroid/content/Context;->startActivity(Landroid/content/Intent;)V\n'
+              '\n'
+              '    sget-object v0, Lkotlin/Unit;->a:Lkotlin/Unit;\n'
+              '\n'
+              '    return-object v0\n'
+              '\n'
+              '    :bh_skip_lsfg\n'
+              '\n'
+              '    .line 15\n'
+              '    sget-object p1, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;'
+              '->Companion:Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity$Companion;\n',
+              'SettingBtnHolder.w(): LSFG Frame Gen click handler (contentType=0x65)'
+          )
+
+          # Patch 5: SettingItemEntity.getContentName() — return "LSFG Frame Gen" for 0x65
+          # Anchors on :bh_skip_grant_name label inserted by Patch 2 above.
+          patch(
+              'apktool_out_base/smali_classes13/com/xj/landscape/launcher/data/model/entity/SettingItemEntity.smali',
+              '    :bh_skip_grant_name\n'
+              '    invoke-static {p0}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->getCustomSettingName(I)Ljava/lang/String;\n',
+              '    :bh_skip_grant_name\n'
+              '    # BannerHub: LSFG Frame Gen (contentType=0x65)\n'
+              '    const/16 v0, 0x65\n'
+              '\n'
+              '    if-ne p0, v0, :bh_skip_lsfg_name\n'
+              '\n'
+              '    const-string p0, "LSFG Frame Gen"\n'
+              '\n'
+              '    return-object p0\n'
+              '\n'
+              '    :bh_skip_lsfg_name\n'
+              '    invoke-static {p0}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->getCustomSettingName(I)Ljava/lang/String;\n',
+              'SettingItemEntity.getContentName(): return "LSFG Frame Gen" for contentType=0x65'
+          )
+
+          # Patch 6: SettingItemViewModel.k() — add LSFG Frame Gen button after Grant Root Access
+          # Anchors on the Grant Root Access block inserted by Patch 3 above.
+          patch(
+              'apktool_out_base/smali_classes3/com/xj/landscape/launcher/vm/SettingItemViewModel.smali',
+              '    # BannerHub: Grant Root Access button (contentType=0x64) below Clear Cache\n'
+              '    new-instance v0, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;\n'
+              '\n'
+              '    const/16 v2, 0x64\n'
+              '\n'
+              '    invoke-direct/range {v0 .. v6}, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;'
+              '-><init>(IILandroid/util/SparseArray;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
+              '\n'
+              '    invoke-interface {p0, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
+              '\n'
+              '    .line 79\n'
+              '    return-object p0\n'
+              '.end method\n'
+              '\n'
+              '.method public final m()Ljava/util/List;\n',
+              '    # BannerHub: Grant Root Access button (contentType=0x64) below Clear Cache\n'
+              '    new-instance v0, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;\n'
+              '\n'
+              '    const/16 v2, 0x64\n'
+              '\n'
+              '    invoke-direct/range {v0 .. v6}, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;'
+              '-><init>(IILandroid/util/SparseArray;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
+              '\n'
+              '    invoke-interface {p0, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
+              '\n'
+              '    # BannerHub: LSFG Frame Gen button (contentType=0x65) below Grant Root Access\n'
+              '    new-instance v0, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;\n'
+              '\n'
+              '    const/16 v2, 0x65\n'
+              '\n'
+              '    invoke-direct/range {v0 .. v6}, Lcom/xj/landscape/launcher/data/model/entity/SettingItemEntity;'
+              '-><init>(IILandroid/util/SparseArray;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
+              '\n'
+              '    invoke-interface {p0, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
+              '\n'
+              '    .line 79\n'
+              '    return-object p0\n'
+              '.end method\n'
+              '\n'
+              '.method public final m()Ljava/util/List;\n',
+              'SettingItemViewModel.k(): add LSFG Frame Gen TYPE_BTN after Grant Root Access'
+          )
+
+          print("\nAll LSFG Frame Gen patches applied successfully.")
+          PYEOF
+
       - name: Apply Settings Import/Export smali patch
         run: |
           python3 << 'PYEOF'
