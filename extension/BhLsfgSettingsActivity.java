@@ -20,44 +20,46 @@ import android.widget.Toast;
 import java.io.File;
 
 /**
- * Global LSFG-VK frame generation settings screen.
+ * Per-game LSFG-VK frame generation settings screen.
  *
- * Launched from the BannerHub settings menu (smali injection in SettingBtnHolder).
- * Settings are global (shared across all Wine containers).
+ * Launched from the per-game options menu (GameDetailSettingMenu via BhLsfgLambda).
+ * Requires EXTRA_GAME_ID intent extra. Settings are stored per-game in
+ * SharedPreferences keyed by gameId.
  *
- * At Wine launch time (smali injection in WinEmuServiceImpl), call:
- *   BhLsfgManager.ensureRuntimeInstalled(ctx, containerPath)
- *   BhLsfgManager.writeConfig(containerPath, ...)
+ * Lossless.dll is shared across all games — once picked or auto-detected it is
+ * copied to filesDir/lsfg/Lossless.dll and every game reads from that location.
  */
 public class BhLsfgSettingsActivity extends Activity {
 
     private static final int REQUEST_FILE_PICKER = 300;
 
-    private SharedPreferences prefs;
+    private String gameId;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
 
-    // UI refs updated by file picker result and auto-detect
     private TextView dllPathTV;
     private TextView dllStatusTV;
     private Button autoDetectBtn;
 
-    // State
     private Switch enableSwitch;
-    private int selectedMultiplier; // 0=off, 2, 3, 4
+    private int selectedMultiplier;
     private String selectedFlowScale;
     private Switch perfModeSwitch;
 
-    // Chip button groups (need refs to toggle selected state)
     private Button[] multiplierChips;
     private Button[] flowScaleChips;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        prefs = getSharedPreferences(BhLsfgManager.PREFS, MODE_PRIVATE);
+        gameId = getIntent().getStringExtra(BhLsfgManager.EXTRA_GAME_ID);
+        if (gameId == null || gameId.isEmpty()) {
+            Toast.makeText(this, "LSFG: no game ID received", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
 
-        selectedMultiplier = BhLsfgManager.getMultiplier(this);
-        selectedFlowScale  = BhLsfgManager.getFlowScale(this);
+        selectedMultiplier = BhLsfgManager.getMultiplier(this, gameId);
+        selectedFlowScale  = BhLsfgManager.getFlowScale(this, gameId);
 
         buildUi();
     }
@@ -81,8 +83,8 @@ public class BhLsfgSettingsActivity extends Activity {
         header.addView(titleTV);
 
         TextView subtitleTV = new TextView(this);
-        subtitleTV.setText("Lossless Scaling frame generation via Vulkan implicit layer.\n" +
-                "Hooks the game's swapchain directly — no overlay needed.");
+        subtitleTV.setText("Per-game Vulkan frame generation via implicit layer.\n" +
+                "Game: " + gameId);
         subtitleTV.setTextColor(0xFF8888AA);
         subtitleTV.setTextSize(12f);
         subtitleTV.setPadding(0, dp(4), 0, 0);
@@ -96,24 +98,14 @@ public class BhLsfgSettingsActivity extends Activity {
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(16), dp(12), dp(16), dp(32));
 
-        // Enable toggle
         content.addView(buildSection("Enable", buildEnableRow()));
-
-        // Lossless.dll
         content.addView(buildSection("Lossless.dll", buildDllSection()));
-
-        // Multiplier
         content.addView(buildSection("Frame Multiplier", buildMultiplierChips()));
-
-        // Flow Scale
         content.addView(buildSection("Flow Scale", buildFlowScaleChips()));
-
-        // Performance Mode
         content.addView(buildSection("Performance Mode", buildPerfModeRow()));
 
-        // Save button
         Button saveBtn = makeBtn("Save Settings", 0xFF1565C0);
-        saveBtn.setOnClickListener(v -> saveAndFinish());
+        saveBtn.setOnClickListener(v -> saveAndApply());
         LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(-1, dp(48));
         saveLp.topMargin = dp(16);
         content.addView(saveBtn, saveLp);
@@ -161,13 +153,13 @@ public class BhLsfgSettingsActivity extends Activity {
         row.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView desc = new TextView(this);
-        desc.setText("Enable frame generation for all Wine games");
+        desc.setText("Enable frame generation for this game");
         desc.setTextColor(0xFFDDDDFF);
         desc.setTextSize(13f);
         row.addView(desc, new LinearLayout.LayoutParams(0, -2, 1f));
 
         enableSwitch = new Switch(this);
-        enableSwitch.setChecked(BhLsfgManager.isEnabled(this));
+        enableSwitch.setChecked(BhLsfgManager.isEnabled(this, gameId));
         row.addView(enableSwitch, new LinearLayout.LayoutParams(-2, -2));
         return row;
     }
@@ -178,7 +170,6 @@ public class BhLsfgSettingsActivity extends Activity {
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
 
-        // Path display
         dllPathTV = new TextView(this);
         dllPathTV.setTextColor(0xFFBBBBDD);
         dllPathTV.setTextSize(12f);
@@ -188,11 +179,10 @@ public class BhLsfgSettingsActivity extends Activity {
         dllStatusTV.setTextSize(11f);
         dllStatusTV.setPadding(0, 0, 0, dp(10));
 
-        updateDllDisplay(BhLsfgManager.getDllPath(this));
+        refreshDllDisplay();
         container.addView(dllPathTV);
         container.addView(dllStatusTV);
 
-        // Button row
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -211,8 +201,8 @@ public class BhLsfgSettingsActivity extends Activity {
         container.addView(btnRow);
 
         TextView hintTV = new TextView(this);
-        hintTV.setText("Lossless Scaling must be installed via the Steam game list (App ID 993090)." +
-                " Auto-Detect finds it automatically. Use Browse if it's in a custom location.");
+        hintTV.setText("Once selected, Lossless.dll is saved to app storage and shared " +
+                "across all games automatically.");
         hintTV.setTextColor(0xFF666688);
         hintTV.setTextSize(11f);
         LinearLayout.LayoutParams hLp = new LinearLayout.LayoutParams(-1, -2);
@@ -223,23 +213,25 @@ public class BhLsfgSettingsActivity extends Activity {
         return container;
     }
 
-    private void updateDllDisplay(String storedPath) {
-        String resolved = BhLsfgManager.resolveDll(this);
-        if (resolved != null) {
-            // Abbreviate long paths for display
-            String display = resolved.length() > 60
-                    ? "…" + resolved.substring(resolved.length() - 57) : resolved;
+    private void refreshDllDisplay() {
+        File shared = BhLsfgManager.getSharedDllFile(this);
+        if (shared.isFile()) {
+            String path = shared.getAbsolutePath();
+            String display = path.length() > 60 ? "…" + path.substring(path.length() - 57) : path;
             dllPathTV.setText(display);
-            dllStatusTV.setText("✓ Found");
+            dllStatusTV.setText("✓ Shared DLL ready (" + (shared.length() / (1024 * 1024)) + " MB)");
             dllStatusTV.setTextColor(0xFF44CC44);
-        } else if (!storedPath.isEmpty()) {
-            dllPathTV.setText(storedPath);
-            dllStatusTV.setText("✗ File not found at stored path");
-            dllStatusTV.setTextColor(0xFFCC4444);
         } else {
-            dllPathTV.setText("Not set");
-            dllStatusTV.setText("Use Auto-Detect or Browse to locate Lossless.dll");
-            dllStatusTV.setTextColor(0xFF888888);
+            String discovered = BhLsfgManager.autoDiscoverDll(this);
+            if (discovered != null) {
+                dllPathTV.setText("Found in container (not yet copied to shared)");
+                dllStatusTV.setText("Use Auto-Detect to save it to shared storage");
+                dllStatusTV.setTextColor(0xFFCCAA44);
+            } else {
+                dllPathTV.setText("Not found");
+                dllStatusTV.setText("Install Lossless Scaling via Steam (App ID 993090) or use Browse");
+                dllStatusTV.setTextColor(0xFF888888);
+            }
         }
     }
 
@@ -247,14 +239,27 @@ public class BhLsfgSettingsActivity extends Activity {
         autoDetectBtn.setEnabled(false);
         autoDetectBtn.setText("Scanning…");
         new Thread(() -> {
+            // Check shared first
+            File shared = BhLsfgManager.getSharedDllFile(this);
+            if (shared.isFile()) {
+                uiHandler.post(() -> {
+                    autoDetectBtn.setEnabled(true);
+                    autoDetectBtn.setText("Auto-Detect");
+                    refreshDllDisplay();
+                    Toast.makeText(this, "Shared DLL already present", Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
+            // Discover in containers and copy to shared
             String found = BhLsfgManager.autoDiscoverDll(this);
             uiHandler.post(() -> {
                 autoDetectBtn.setEnabled(true);
                 autoDetectBtn.setText("Auto-Detect");
                 if (found != null) {
-                    prefs.edit().putString(BhLsfgManager.KEY_DLL_PATH, found).apply();
-                    updateDllDisplay(found);
-                    Toast.makeText(this, "Found: " + new File(found).getName(),
+                    boolean copied = BhLsfgManager.copyDllToShared(this, found);
+                    refreshDllDisplay();
+                    Toast.makeText(this,
+                            copied ? "DLL copied to shared storage" : "Found but copy failed",
                             Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(this,
@@ -266,7 +271,6 @@ public class BhLsfgSettingsActivity extends Activity {
     }
 
     private void openFilePicker() {
-        // Start in the Wine container home directory where Lossless Scaling installs
         File startDir = new File(getFilesDir(), "usr/home/virtual_containers");
         Intent intent = new Intent(this, FilePickerActivity.class);
         intent.putExtra("filter_ext", ".dll");
@@ -283,14 +287,20 @@ public class BhLsfgSettingsActivity extends Activity {
         if (requestCode == REQUEST_FILE_PICKER && resultCode == RESULT_OK && data != null) {
             String path = data.getStringExtra("path");
             if (path != null) {
-                // Warn if the chosen file isn't named Lossless.dll
                 if (!new File(path).getName().equalsIgnoreCase("Lossless.dll")) {
                     Toast.makeText(this,
                             "Warning: expected Lossless.dll, got " + new File(path).getName(),
                             Toast.LENGTH_LONG).show();
                 }
-                prefs.edit().putString(BhLsfgManager.KEY_DLL_PATH, path).apply();
-                updateDllDisplay(path);
+                new Thread(() -> {
+                    boolean copied = BhLsfgManager.copyDllToShared(this, path);
+                    uiHandler.post(() -> {
+                        refreshDllDisplay();
+                        Toast.makeText(this,
+                                copied ? "DLL saved to shared storage" : "Failed to copy DLL",
+                                Toast.LENGTH_SHORT).show();
+                    });
+                }).start();
             }
         }
     }
@@ -387,7 +397,7 @@ public class BhLsfgSettingsActivity extends Activity {
         row.addView(label, new LinearLayout.LayoutParams(0, -2, 1f));
 
         perfModeSwitch = new Switch(this);
-        perfModeSwitch.setChecked(BhLsfgManager.getPerfMode(this));
+        perfModeSwitch.setChecked(BhLsfgManager.getPerfMode(this, gameId));
         row.addView(perfModeSwitch, new LinearLayout.LayoutParams(-2, -2));
 
         col.addView(row);
@@ -402,9 +412,11 @@ public class BhLsfgSettingsActivity extends Activity {
         return col;
     }
 
-    // ── Save ──────────────────────────────────────────────────────────────────
+    // ── Save & apply ──────────────────────────────────────────────────────────
 
-    private void saveAndFinish() {
+    private void saveAndApply() {
+        SharedPreferences prefs = getSharedPreferences(
+                "bh_lsfg_" + gameId, MODE_PRIVATE);
         prefs.edit()
                 .putBoolean(BhLsfgManager.KEY_ENABLED,    enableSwitch.isChecked())
                 .putInt(BhLsfgManager.KEY_MULTIPLIER,     selectedMultiplier)
@@ -412,13 +424,13 @@ public class BhLsfgSettingsActivity extends Activity {
                 .putBoolean(BhLsfgManager.KEY_PERF_MODE,  perfModeSwitch.isChecked())
                 .apply();
 
-        Toast.makeText(this, "Applying to Wine containers…", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Applying LSFG settings…", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
-            int n = BhLsfgManager.applyToAllContainers(this);
+            boolean ok = BhLsfgManager.applyToContainer(this, gameId);
             uiHandler.post(() -> {
-                String msg = n > 0
-                        ? "LSFG settings saved — applied to " + n + " container(s)"
-                        : "LSFG settings saved (no containers found yet)";
+                String msg = ok
+                        ? "LSFG settings saved and applied"
+                        : "LSFG settings saved (container not found yet — will apply at next launch)";
                 Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
             });
         }).start();

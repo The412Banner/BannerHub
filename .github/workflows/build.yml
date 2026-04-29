@@ -417,9 +417,23 @@ jobs:
               '    invoke-direct/range {v9 .. v17}, Lcom/xj/common/view/popup/Option;-><init>(Ljava/lang/String;ZIIILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
               '    invoke-interface {v1, v9}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
               '\n'
+              '    # BH: LSFG Frame Gen option\n'
+              '    new-instance v9, Lcom/xj/common/view/popup/Option;\n'
+              '    const-string v10, "LSFG Frame Gen"\n'
+              '    const/4 v11, 0x0\n'
+              '    const/4 v12, 0x0\n'
+              '    const/4 v13, 0x0\n'
+              '    const/4 v14, 0x0\n'
+              '    new-instance v15, Lcom/xj/landscape/launcher/ui/gamedetail/BhLsfgLambda;\n'
+              '    invoke-direct {v15, v4, v3}, Lcom/xj/landscape/launcher/ui/gamedetail/BhLsfgLambda;-><init>(Lcom/xj/landscape/launcher/ui/gamedetail/GameDetailSettingMenu;Lcom/xj/common/service/bean/GameDetailEntity;)V\n'
+              '    const/16 v16, 0x1e\n'
+              '    const/16 v17, 0x0\n'
+              '    invoke-direct/range {v9 .. v17}, Lcom/xj/common/view/popup/Option;-><init>(Ljava/lang/String;ZIIILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
+              '    invoke-interface {v1, v9}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
+              '\n'
               '    return-object v1\n'
               '.end method\n',
-              'GameDetailSettingMenu.W(): inject Export Config + Import Config + Frontend Export options'
+              'GameDetailSettingMenu.W(): inject Export Config + Import Config + Frontend Export + LSFG Frame Gen options'
           )
           print("Settings Import/Export patch applied.")
           PYEOF
