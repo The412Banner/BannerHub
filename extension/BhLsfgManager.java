@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,27 +21,39 @@ public class BhLsfgManager {
 
     private static final String PREFS_PREFIX = "bh_lsfg_";
 
-    // Shared DLL stored once in app files; all games read from here
+    // Shared DLL stored once in app files; all games auto-use it
     private static final String SHARED_DLL_DIR  = "lsfg";
     private static final String SHARED_DLL_NAME = "Lossless.dll";
 
     // Asset paths (relative to assets/)
     private static final String ASSET_MANIFEST = "lsfg_vk/VkLayer_LS_frame_generation.json";
 
-    private static final String LIB_FILENAME    = "liblsfg-vk-layer.so";
+    private static final String LIB_FILENAME = "liblsfg-vk-layer.so";
+
+    // Container-relative paths (all relative to container root)
+    // .so lives here so the path is stable across APK reinstalls
+    private static final String LIB_SUBDIR      = ".local/lib";
     private static final String MANIFEST_SUBDIR = ".local/share/vulkan/implicit_layer.d";
     private static final String MANIFEST_FILE   = "VkLayer_LS_frame_generation.json";
+    // Relative path from manifest dir back to lib dir (3 levels up from implicit_layer.d)
+    private static final String MANIFEST_LIB_PATH = "../../../lib/" + LIB_FILENAME;
+    private static final String DLL_SUBDIR      = ".local/share/lsfg-vk";
     private static final String CONFIG_SUBDIR   = ".config/lsfg-vk";
     private static final String CONFIG_FILE     = "conf.toml";
     private static final String VERSION_FILE    = ".lsfg_vk_version";
 
-    private static final String ENV_PREFS_KEY  = "pc_ls_environment_variable";
-    private static final String ENV_LAYER_PATH = "VK_LAYER_PATH=";
-    private static final String ENV_LAYER_NAME = "VK_INSTANCE_LAYERS=";
+    // Version bump forces manifest + .so to be re-copied whenever this changes
+    private static final String RUNTIME_VERSION = "v1.4.0-android-arm64-v8a-ahb-r2";
 
-    private static final String RUNTIME_VERSION = "v1.4.0-android-arm64-v8a-ahb";
+    // Custom process identifier — must match [[game]] exe in conf.toml
+    private static final String LSFG_PROCESS = "bannerhub-lsfg";
 
-    private static final String[] WINE_EXE_NAMES = { "wine64-preloader", "wineloader", "wine64" };
+    // SharedPrefs key used by WinEmu to apply extra env vars at launch
+    private static final String ENV_PREFS_KEY    = "pc_ls_environment_variable";
+    private static final String ENV_LAYER_PATH   = "VK_LAYER_PATH=";
+    private static final String ENV_LAYER_NAME   = "VK_INSTANCE_LAYERS=";
+    private static final String ENV_LSFG_PROCESS = "LSFG_PROCESS=";
+    private static final String ENV_TMPDIR       = "TMPDIR=";
 
     private static final String TAG = "BhLsfg";
 
@@ -50,16 +63,12 @@ public class BhLsfgManager {
         return new File(ctx.getFilesDir(), SHARED_DLL_DIR + "/" + SHARED_DLL_NAME);
     }
 
-    /**
-     * Copies a user-picked Lossless.dll to the shared app-internal location so every
-     * game can find it automatically without per-game configuration.
-     */
     public static boolean copyDllToShared(Context ctx, String sourcePath) {
         File src = new File(sourcePath);
         if (!src.isFile()) return false;
         File dst = getSharedDllFile(ctx);
         dst.getParentFile().mkdirs();
-        try (java.io.FileInputStream in = new java.io.FileInputStream(src);
+        try (FileInputStream in = new FileInputStream(src);
              FileOutputStream out = new FileOutputStream(dst)) {
             byte[] buf = new byte[65536];
             int n;
@@ -146,11 +155,6 @@ public class BhLsfgManager {
 
     // ── Single container apply ────────────────────────────────────────────────
 
-    /**
-     * Installs or removes the LSFG layer for one specific game container.
-     * Call this after the user saves settings in BhLsfgSettingsActivity.
-     * Runs synchronously — invoke from a background thread.
-     */
     public static boolean applyToContainer(Context ctx, String gameId) {
         File containerRoot = new File(ctx.getFilesDir(), "usr/home/virtual_containers/" + gameId);
         if (!containerRoot.isDirectory()) {
@@ -158,21 +162,25 @@ public class BhLsfgManager {
             return false;
         }
         String containerPath = containerRoot.getAbsolutePath();
-        String manifestDir   = new File(containerRoot, MANIFEST_SUBDIR).getAbsolutePath();
 
         boolean enabled = isEnabled(ctx, gameId);
         int     mult    = getMultiplier(ctx, gameId);
         String  flow    = getFlowScale(ctx, gameId);
         boolean perf    = getPerfMode(ctx, gameId);
-        String  dllPath = resolveDll(ctx);
+        String  srcDll  = resolveDll(ctx);
 
         Log.d(TAG, "applyToContainer: game=" + gameId + " enabled=" + enabled
-                + " mult=" + mult + " dll=" + dllPath);
+                + " mult=" + mult + " dll=" + srcDll);
 
         if (enabled && mult > 0) {
+            // Copy Lossless.dll into the container so the path is stable
+            String containerDll = null;
+            if (srcDll != null) {
+                containerDll = copyDllToContainer(containerPath, srcDll);
+            }
             if (ensureRuntimeInstalled(ctx, containerPath)) {
-                writeConfig(containerPath, dllPath, mult, flow, perf);
-                injectVkLayerEnv(ctx, gameId, manifestDir);
+                writeConfig(containerPath, containerDll, mult, flow, perf);
+                injectVkLayerEnv(ctx, gameId, containerPath);
                 Log.d(TAG, "applyToContainer: LSFG armed for game=" + gameId);
                 return true;
             }
@@ -185,36 +193,86 @@ public class BhLsfgManager {
         }
     }
 
+    /**
+     * Copies Lossless.dll from the Android-side shared location into the container's
+     * .local/share/lsfg-vk/ so the LSFG layer can find it via a stable path.
+     * Returns the absolute path of the copy, or null on failure.
+     */
+    private static String copyDllToContainer(String containerPath, String srcDllPath) {
+        File src = new File(srcDllPath);
+        if (!src.isFile()) return null;
+        File dstDir = new File(containerPath, DLL_SUBDIR);
+        dstDir.mkdirs();
+        File dst = new File(dstDir, SHARED_DLL_NAME);
+        try (FileInputStream in = new FileInputStream(src);
+             FileOutputStream out = new FileOutputStream(dst)) {
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+            dst.setReadable(true, false);
+            Log.d(TAG, "DLL copied to container: " + dst.getAbsolutePath());
+            return dst.getAbsolutePath();
+        } catch (IOException e) {
+            Log.e(TAG, "copyDllToContainer failed: " + e.getMessage());
+            return null;
+        }
+    }
+
     public static void removeManifest(String containerPath) {
         new File(containerPath, MANIFEST_SUBDIR + "/" + MANIFEST_FILE).delete();
     }
 
     // ── Runtime installation ──────────────────────────────────────────────────
 
+    /**
+     * Installs the Vulkan layer into the container's filesystem:
+     *   .so  → <container>/.local/lib/liblsfg-vk-layer.so
+     *   JSON → <container>/.local/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json
+     *
+     * The .so is copied from nativeLibraryDir so the manifest can use a stable relative
+     * path (../../../lib/liblsfg-vk-layer.so) that won't break after APK reinstalls.
+     * HOME is set to the container root by WinEmu, so Turnip's Vulkan loader finds the
+     * manifest automatically via $HOME/.local/share/vulkan/implicit_layer.d/.
+     */
     public static boolean ensureRuntimeInstalled(Context ctx, String containerPath) {
-        File root     = new File(containerPath);
-        File layerDir = new File(root, MANIFEST_SUBDIR);
+        File containerRoot = new File(containerPath);
+        File libDir   = new File(containerRoot, LIB_SUBDIR);
+        File layerDir = new File(containerRoot, MANIFEST_SUBDIR);
+        File soFile   = new File(libDir, LIB_FILENAME);
         File manifest = new File(layerDir, MANIFEST_FILE);
         File stamp    = new File(layerDir, VERSION_FILE);
 
-        String soAbsPath = ctx.getApplicationInfo().nativeLibraryDir + "/" + LIB_FILENAME;
-
         String installed = stamp.exists() ? readText(stamp).trim() : "";
-        if (RUNTIME_VERSION.equals(installed) && manifest.isFile()) {
+        if (RUNTIME_VERSION.equals(installed) && manifest.isFile() && soFile.isFile()) {
             return true;
         }
 
         try {
+            libDir.mkdirs();
             layerDir.mkdirs();
 
+            // Copy .so from nativeLibraryDir into the container's own lib dir
+            String nativeLibDir = ctx.getApplicationInfo().nativeLibraryDir;
+            File srcSo = new File(nativeLibDir, LIB_FILENAME);
+            if (!srcSo.isFile()) {
+                Log.e(TAG, "liblsfg-vk-layer.so not found in nativeLibraryDir: " + nativeLibDir);
+                return false;
+            }
+            copyFile(srcSo, soFile);
+            soFile.setReadable(true, false);
+            soFile.setExecutable(true, false);
+            Log.d(TAG, "liblsfg-vk-layer.so copied to: " + soFile.getAbsolutePath());
+
+            // Write manifest with relative library_path so it survives APK reinstalls
             String manifestText = readAsset(ctx, ASSET_MANIFEST)
                     .replaceAll("\"library_path\":\\s*\"[^\"]*\"",
-                                "\"library_path\": \"" + soAbsPath + "\"");
+                                "\"library_path\": \"" + MANIFEST_LIB_PATH + "\"");
             writeText(manifest, manifestText);
             manifest.setReadable(true, false);
 
             writeText(stamp, RUNTIME_VERSION);
-            Log.d(TAG, "manifest written: " + manifest.getAbsolutePath() + " | so: " + soAbsPath);
+            Log.d(TAG, "manifest written: " + manifest.getAbsolutePath()
+                    + " | lib_path: " + MANIFEST_LIB_PATH);
             return manifest.isFile();
         } catch (IOException e) {
             Log.e(TAG, "ensureRuntimeInstalled failed for " + containerPath + ": " + e.getMessage());
@@ -224,33 +282,34 @@ public class BhLsfgManager {
 
     // ── conf.toml generation ──────────────────────────────────────────────────
 
-    public static boolean writeConfig(String containerPath, String dllPath,
+    public static boolean writeConfig(String containerPath, String containerDllPath,
                                       int multiplier, String flowScale, boolean perfMode) {
         File configDir  = new File(containerPath, CONFIG_SUBDIR);
         File configFile = new File(configDir, CONFIG_FILE);
         configDir.mkdirs();
 
-        boolean armed = multiplier > 0 && dllPath != null && !dllPath.isEmpty()
-                && new File(dllPath).isFile();
+        boolean hasDll = containerDllPath != null && !containerDllPath.isEmpty()
+                && new File(containerDllPath).isFile();
+        boolean armed = multiplier > 0 && hasDll;
 
         StringBuilder sb = new StringBuilder();
         sb.append("version = 1\n\n");
         sb.append("[global]\n");
-        if (dllPath != null && !dllPath.isEmpty()) {
-            sb.append("dll = ").append(tomlStr(dllPath)).append("\n");
+        if (hasDll) {
+            sb.append("dll = ").append(tomlStr(containerDllPath)).append("\n");
         }
         sb.append("no_fp16 = false\n");
 
         if (armed) {
-            for (String exe : WINE_EXE_NAMES) {
-                sb.append("\n[[game]]\n");
-                sb.append("exe = ").append(tomlStr(exe)).append("\n");
-                sb.append("multiplier = ").append(multiplier).append("\n");
-                sb.append("flow_scale = ").append(flowScale).append("\n");
-                sb.append("performance_mode = ").append(perfMode).append("\n");
-                sb.append("hdr_mode = false\n");
-                sb.append("experimental_present_mode = \"fifo\"\n");
-            }
+            // Single [[game]] entry using LSFG_PROCESS identifier — more reliable than
+            // matching Wine binary names which can vary across WinEmu versions
+            sb.append("\n[[game]]\n");
+            sb.append("exe = ").append(tomlStr(LSFG_PROCESS)).append("\n");
+            sb.append("multiplier = ").append(multiplier).append("\n");
+            sb.append("flow_scale = ").append(flowScale).append("\n");
+            sb.append("performance_mode = ").append(perfMode).append("\n");
+            sb.append("hdr_mode = false\n");
+            sb.append("experimental_present_mode = \"fifo\"\n");
         }
 
         try {
@@ -264,13 +323,28 @@ public class BhLsfgManager {
 
     // ── Env-var injection ─────────────────────────────────────────────────────
 
-    private static void injectVkLayerEnv(Context ctx, String gameId, String manifestDir) {
+    /**
+     * Injects LSFG env vars into the per-game SharedPrefs key that WinEmu applies at launch.
+     * - VK_LAYER_PATH: belt-and-suspenders in case HOME-based discovery doesn't apply
+     * - VK_INSTANCE_LAYERS: explicitly enables the implicit layer
+     * - LSFG_PROCESS: tells the layer which process to hook (matches conf.toml exe)
+     * - TMPDIR: the layer writes /tmp/lsfg-vk_last; if /tmp is missing it calls exit()
+     */
+    private static void injectVkLayerEnv(Context ctx, String gameId, String containerPath) {
+        String manifestDir = new File(containerPath, MANIFEST_SUBDIR).getAbsolutePath();
+        String tmpDir      = new File(containerPath, "usr/tmp").getAbsolutePath();
+
         SharedPreferences sp = ctx.getSharedPreferences("pc_g_setting" + gameId, Context.MODE_PRIVATE);
         String current = sp.getString(ENV_PREFS_KEY, "").trim();
+
         StringBuilder kept = new StringBuilder();
         for (String part : current.split(",")) {
             String t = part.trim();
-            if (!t.isEmpty() && !t.startsWith(ENV_LAYER_PATH) && !t.startsWith(ENV_LAYER_NAME)) {
+            if (!t.isEmpty()
+                    && !t.startsWith(ENV_LAYER_PATH)
+                    && !t.startsWith(ENV_LAYER_NAME)
+                    && !t.startsWith(ENV_LSFG_PROCESS)
+                    && !t.startsWith(ENV_TMPDIR)) {
                 if (kept.length() > 0) kept.append(",");
                 kept.append(t);
             }
@@ -278,6 +352,9 @@ public class BhLsfgManager {
         if (kept.length() > 0) kept.append(",");
         kept.append(ENV_LAYER_PATH).append(manifestDir);
         kept.append(",").append(ENV_LAYER_NAME).append("VK_LAYER_LS_frame_generation");
+        kept.append(",").append(ENV_LSFG_PROCESS).append(LSFG_PROCESS);
+        kept.append(",").append(ENV_TMPDIR).append(tmpDir);
+
         String envValue = kept.toString();
         sp.edit().putString(ENV_PREFS_KEY, envValue).apply();
         Log.d(TAG, "env injected game=" + gameId + " | " + envValue);
@@ -290,7 +367,11 @@ public class BhLsfgManager {
         StringBuilder kept = new StringBuilder();
         for (String part : current.split(",")) {
             String t = part.trim();
-            if (!t.isEmpty() && !t.startsWith(ENV_LAYER_PATH) && !t.startsWith(ENV_LAYER_NAME)) {
+            if (!t.isEmpty()
+                    && !t.startsWith(ENV_LAYER_PATH)
+                    && !t.startsWith(ENV_LAYER_NAME)
+                    && !t.startsWith(ENV_LSFG_PROCESS)
+                    && !t.startsWith(ENV_TMPDIR)) {
                 if (kept.length() > 0) kept.append(",");
                 kept.append(t);
             }
@@ -300,11 +381,6 @@ public class BhLsfgManager {
 
     // ── Context unwrapping ────────────────────────────────────────────────────
 
-    /**
-     * Walks the ContextWrapper chain to find WineActivity and extract the gameId
-     * from WineActivity.u.a via reflection. View.getContext() returns a wrapped
-     * context, not WineActivity directly, so direct check-cast fails.
-     */
     public static String getGameIdFromContext(Context ctx) {
         Context c = ctx;
         while (c != null) {
@@ -348,7 +424,7 @@ public class BhLsfgManager {
     }
 
     private static String readText(File f) {
-        try (java.io.FileInputStream fis = new java.io.FileInputStream(f)) {
+        try (FileInputStream fis = new FileInputStream(f)) {
             byte[] bytes = new byte[(int) f.length()];
             //noinspection ResultOfMethodCallIgnored
             fis.read(bytes);
@@ -361,6 +437,15 @@ public class BhLsfgManager {
     private static void writeText(File f, String text) throws IOException {
         try (FileOutputStream out = new FileOutputStream(f)) {
             out.write(text.getBytes("UTF-8"));
+        }
+    }
+
+    private static void copyFile(File src, File dst) throws IOException {
+        try (FileInputStream in = new FileInputStream(src);
+             FileOutputStream out = new FileOutputStream(dst)) {
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
         }
     }
 }
