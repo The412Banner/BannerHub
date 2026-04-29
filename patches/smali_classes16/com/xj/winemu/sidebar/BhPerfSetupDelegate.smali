@@ -29,6 +29,53 @@
     move-result-object v1
     if-eqz v1, :cond_done
 
+    # ── BH: inject LSFG gear button at top of Performance panel ──────────────
+    # Guard: skip if already added (sidebar can reopen without re-creating the layout)
+    const-string v3, "bh_lsfg_btn"
+    invoke-virtual {v0, v3}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
+    move-result-object v3
+    if-nez v3, :cond_lsfg_done
+
+    # Get gameId from WineActivity.u.a using a copy of v1 so v1 stays typed as Context
+    :try_start_lsfg
+    move-object v8, v1
+    check-cast v8, Lcom/xj/winemu/WineActivity;
+    iget-object v8, v8, Lcom/xj/winemu/WineActivity;->u:Lcom/xj/winemu/api/bean/WineActivityData;
+    if-eqz v8, :cond_lsfg_done
+    iget-object v8, v8, Lcom/xj/winemu/api/bean/WineActivityData;->a:Ljava/lang/String;
+    if-eqz v8, :cond_lsfg_done
+    :try_end_lsfg
+    .catch Ljava/lang/Exception; {:try_start_lsfg .. :try_end_lsfg} :cond_lsfg_done
+
+    # Build the button
+    new-instance v9, Landroid/widget/Button;
+    invoke-direct {v9, v1}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
+    const-string v10, "⚙  LSFG Frame Gen"
+    invoke-virtual {v9, v10}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
+    const v10, -0x1
+    invoke-virtual {v9, v10}, Landroid/widget/Button;->setTextColor(I)V
+
+    # Tag so the guard above fires on sidebar reopen
+    const-string v10, "bh_lsfg_btn"
+    invoke-virtual {v9, v10}, Landroid/view/View;->setTag(Ljava/lang/Object;)V
+
+    # Wire click listener → opens BhLsfgInGameDialog
+    new-instance v10, Lcom/xj/winemu/sidebar/BhLsfgGearClickListener;
+    invoke-direct {v10, v1, v8}, Lcom/xj/winemu/sidebar/BhLsfgGearClickListener;-><init>(Landroid/content/Context;Ljava/lang/String;)V
+    invoke-virtual {v9, v10}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    # Insert at index 0 (very top, above Native Rendering+)
+    new-instance v10, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v11, -0x1
+    const/4 v12, -0x2
+    invoke-direct {v10, v11, v12}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    check-cast v0, Landroid/view/ViewGroup;
+    const/4 v11, 0x0
+    invoke-virtual {v0, v9, v11, v10}, Landroid/view/ViewGroup;->addView(Landroid/view/View;ILandroid/view/ViewGroup$LayoutParams;)V
+
+    :cond_lsfg_done
+    # ─────────────────────────────────────────────────────────────────────────
+
     # v2 = SharedPreferences "bh_prefs"
     const-string v3, "bh_prefs"
     const/4 v4, 0x0
