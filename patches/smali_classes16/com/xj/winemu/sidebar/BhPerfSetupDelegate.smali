@@ -36,18 +36,7 @@
     move-result-object v3
     if-nez v3, :cond_lsfg_done
 
-    # Get gameId from WineActivity.u.a using a copy of v1 so v1 stays typed as Context
-    :try_start_lsfg
-    move-object v8, v1
-    check-cast v8, Lcom/xj/winemu/WineActivity;
-    iget-object v8, v8, Lcom/xj/winemu/WineActivity;->u:Lcom/xj/winemu/api/bean/WineActivityData;
-    if-eqz v8, :cond_lsfg_done
-    iget-object v8, v8, Lcom/xj/winemu/api/bean/WineActivityData;->a:Ljava/lang/String;
-    if-eqz v8, :cond_lsfg_done
-    :try_end_lsfg
-    .catch Ljava/lang/Exception; {:try_start_lsfg .. :try_end_lsfg} :cond_lsfg_done
-
-    # Build the button
+    # Build the button (gameId resolved from context at click time via BhLsfgManager.getGameIdFromContext)
     new-instance v9, Landroid/widget/Button;
     invoke-direct {v9, v1}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
     const-string v10, "⚙  LSFG Frame Gen"
@@ -61,7 +50,7 @@
 
     # Wire click listener → opens BhLsfgInGameDialog
     new-instance v10, Lcom/xj/winemu/sidebar/BhLsfgGearClickListener;
-    invoke-direct {v10, v1, v8}, Lcom/xj/winemu/sidebar/BhLsfgGearClickListener;-><init>(Landroid/content/Context;Ljava/lang/String;)V
+    invoke-direct {v10, v1}, Lcom/xj/winemu/sidebar/BhLsfgGearClickListener;-><init>(Landroid/content/Context;)V
     invoke-virtual {v9, v10}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     # Insert at index 0 (very top, above Native Rendering+)

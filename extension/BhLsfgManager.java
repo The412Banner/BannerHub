@@ -298,6 +298,40 @@ public class BhLsfgManager {
         sp.edit().putString(ENV_PREFS_KEY, kept.toString()).apply();
     }
 
+    // ── Context unwrapping ────────────────────────────────────────────────────
+
+    /**
+     * Walks the ContextWrapper chain to find WineActivity and extract the gameId
+     * from WineActivity.u.a via reflection. View.getContext() returns a wrapped
+     * context, not WineActivity directly, so direct check-cast fails.
+     */
+    public static String getGameIdFromContext(Context ctx) {
+        Context c = ctx;
+        while (c != null) {
+            try {
+                java.lang.reflect.Field uField = c.getClass().getDeclaredField("u");
+                uField.setAccessible(true);
+                Object data = uField.get(c);
+                if (data != null) {
+                    java.lang.reflect.Field aField = data.getClass().getDeclaredField("a");
+                    aField.setAccessible(true);
+                    Object id = aField.get(data);
+                    if (id instanceof String && !((String) id).isEmpty()) {
+                        Log.d(TAG, "getGameIdFromContext: gameId=" + id);
+                        return (String) id;
+                    }
+                }
+            } catch (Exception ignored) {}
+            if (c instanceof android.content.ContextWrapper) {
+                c = ((android.content.ContextWrapper) c).getBaseContext();
+            } else {
+                break;
+            }
+        }
+        Log.e(TAG, "getGameIdFromContext: gameId not found");
+        return null;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static String tomlStr(String value) {
