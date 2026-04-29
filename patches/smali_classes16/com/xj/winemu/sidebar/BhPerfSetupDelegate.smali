@@ -43,6 +43,9 @@
     invoke-virtual {v9, v10}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v10, -0x1
     invoke-virtual {v9, v10}, Landroid/widget/Button;->setTextColor(I)V
+    # Explicit background so the button is visible in the dark sidebar panel
+    const v10, 0xFF1565C0
+    invoke-virtual {v9, v10}, Landroid/view/View;->setBackgroundColor(I)V
 
     # Tag so the guard above fires on sidebar reopen
     const-string v10, "bh_lsfg_btn"
