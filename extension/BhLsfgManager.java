@@ -2,6 +2,7 @@ package app.revanced.extension.gamehub;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -54,6 +55,8 @@ public class BhLsfgManager {
 
     // Bump this whenever the bundled .so changes so containers auto-reinstall.
     private static final String RUNTIME_VERSION = "v1.4.0-android-arm64-v8a-ahb";
+
+    private static final String TAG = "BhLsfg";
 
     // Wine process exe names the layer config will match.
     // wine64-preloader is the standard loader; wineloader is the Bionic variant.
@@ -163,6 +166,7 @@ public class BhLsfgManager {
         String  flow      = getFlowScale(ctx);
         boolean perf      = getPerfMode(ctx);
 
+        Log.d(TAG, "applyToAllContainers: enabled=" + enabled + " mult=" + mult + " dll=" + dllPath);
         int updated = 0;
         for (File c : containers) {
             if (!c.isDirectory()) continue;
@@ -181,6 +185,7 @@ public class BhLsfgManager {
                 updated++;
             }
         }
+        Log.d(TAG, "applyToAllContainers: updated " + updated + "/" + containers.length + " containers");
         return updated;
     }
 
@@ -224,8 +229,10 @@ public class BhLsfgManager {
             manifest.setReadable(true, false);
 
             writeText(stamp, RUNTIME_VERSION);
+            Log.d(TAG, "manifest written: " + manifest.getAbsolutePath() + " | so: " + soAbsPath);
             return manifest.isFile();
         } catch (IOException e) {
+            Log.e(TAG, "ensureRuntimeInstalled failed for " + containerPath + ": " + e.getMessage());
             return false;
         }
     }
@@ -305,7 +312,9 @@ public class BhLsfgManager {
         if (kept.length() > 0) kept.append(",");
         kept.append(ENV_LAYER_PATH).append(manifestDir);
         kept.append(",").append(ENV_LAYER_NAME).append("VK_LAYER_LS_frame_generation");
-        sp.edit().putString(ENV_PREFS_KEY, kept.toString()).apply();
+        String envValue = kept.toString();
+        sp.edit().putString(ENV_PREFS_KEY, envValue).apply();
+        Log.d(TAG, "env injected game=" + gameId + " | " + envValue);
     }
 
     /** Strips LSFG env vars from per-game prefs, leaving any other user env vars intact. */
