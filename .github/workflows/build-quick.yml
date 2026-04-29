@@ -362,6 +362,11 @@ jobs:
           sed -i "s/gamehub\.lite/com.tencent.ig/g" apktool_out/AndroidManifest.xml
           sed -i 's/android:label="GameHub Revanced"/android:label="BannerHub PuBG"/' apktool_out/AndroidManifest.xml
 
+      - name: Install LSFG-VK layer into APK lib
+        run: |
+          mkdir -p apktool_out/lib/arm64-v8a
+          cp patches/assets/lsfg_vk/liblsfg-vk-layer.so apktool_out/lib/arm64-v8a/
+
       - name: Rebuild and Sign (Normal variant only)
         run: |
           echo "Building Normal variant (com.tencent.ig — pre/beta isolated package)..."

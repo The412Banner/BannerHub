@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
 
 /**
  * Manages LSFG-VK (Lossless Scaling Frame Generation) Vulkan implicit layer
@@ -38,11 +37,9 @@ public class BhLsfgManager {
     public static final String KEY_PERF_MODE    = "lsfg_perf_mode";
 
     // Asset paths (relative to assets/)
-    private static final String ASSET_LIB      = "lsfg_vk/liblsfg-vk-layer.so";
     private static final String ASSET_MANIFEST = "lsfg_vk/VkLayer_LS_frame_generation.json";
 
-    // Paths inside the container root (HOME = containerPath)
-    private static final String LIB_SUBDIR      = ".local/lib";
+    // The .so is packaged in lib/arm64-v8a/ and extracted by Android to nativeLibraryDir.
     private static final String LIB_FILENAME    = "liblsfg-vk-layer.so";
     private static final String MANIFEST_SUBDIR = ".local/share/vulkan/implicit_layer.d";
     private static final String MANIFEST_FILE   = "VkLayer_LS_frame_generation.json";
@@ -50,9 +47,10 @@ public class BhLsfgManager {
     private static final String CONFIG_FILE     = "conf.toml";
     private static final String VERSION_FILE    = ".lsfg_vk_version";
 
-    // Relative path written into the manifest's library_path field.
-    // implicit_layer.d → ../../.. → .local/lib/liblsfg-vk-layer.so
-    private static final String MANIFEST_LIB_PATH = "../../../lib/" + LIB_FILENAME;
+    // SharedPreferences key used by GameHub to pass env vars into the Wine process.
+    private static final String ENV_PREFS_KEY  = "pc_ls_environment_variable";
+    private static final String ENV_LAYER_PATH = "VK_LAYER_PATH=";
+    private static final String ENV_LAYER_NAME = "VK_INSTANCE_LAYERS=";
 
     // Bump this whenever the bundled .so changes so containers auto-reinstall.
     private static final String RUNTIME_VERSION = "v1.4.0-android-arm64-v8a-ahb";
@@ -168,16 +166,18 @@ public class BhLsfgManager {
         int updated = 0;
         for (File c : containers) {
             if (!c.isDirectory()) continue;
-            String cPath = c.getAbsolutePath();
+            String cPath   = c.getAbsolutePath();
+            String gameId  = c.getName();
+            String manifestDir = new File(c, MANIFEST_SUBDIR).getAbsolutePath();
             if (enabled && mult > 0) {
                 if (ensureRuntimeInstalled(ctx, cPath)) {
                     writeConfig(cPath, dllPath, mult, flow, perf);
+                    injectVkLayerEnv(ctx, gameId, manifestDir);
                     updated++;
                 }
             } else {
-                // Disabled — remove manifest so the Vulkan loader won't find the layer.
-                // The .so stays in place to avoid re-copying on re-enable.
                 removeManifest(cPath);
+                removeVkLayerEnv(ctx, gameId);
                 updated++;
             }
         }
@@ -200,35 +200,31 @@ public class BhLsfgManager {
      */
     public static boolean ensureRuntimeInstalled(Context ctx, String containerPath) {
         File root     = new File(containerPath);
-        File libDir   = new File(root, LIB_SUBDIR);
         File layerDir = new File(root, MANIFEST_SUBDIR);
-        File libFile  = new File(libDir,   LIB_FILENAME);
         File manifest = new File(layerDir, MANIFEST_FILE);
         File stamp    = new File(layerDir, VERSION_FILE);
 
+        // The .so is extracted by Android's package manager to nativeLibraryDir.
+        String soAbsPath = ctx.getApplicationInfo().nativeLibraryDir + "/" + LIB_FILENAME;
+
         String installed = stamp.exists() ? readText(stamp).trim() : "";
-        if (RUNTIME_VERSION.equals(installed) && libFile.isFile() && manifest.isFile()) {
+        if (RUNTIME_VERSION.equals(installed) && manifest.isFile()) {
             return true; // already current
         }
 
         try {
-            libDir.mkdirs();
             layerDir.mkdirs();
 
-            copyAsset(ctx, ASSET_LIB, libFile);
-
-            // Patch the manifest's library_path to the relative path from implicit_layer.d
+            // Rewrite library_path to the absolute APK native-lib path so Android's
+            // Vulkan loader can dlopen it from a non-debuggable process.
             String manifestText = readAsset(ctx, ASSET_MANIFEST)
-                    .replace("\"library_path\": \"" + LIB_FILENAME + "\"",
-                             "\"library_path\": \"" + MANIFEST_LIB_PATH + "\"");
+                    .replaceAll("\"library_path\":\\s*\"[^\"]*\"",
+                                "\"library_path\": \"" + soAbsPath + "\"");
             writeText(manifest, manifestText);
-
-            libFile.setExecutable(true, false);
-            libFile.setReadable(true, false);
             manifest.setReadable(true, false);
 
             writeText(stamp, RUNTIME_VERSION);
-            return libFile.isFile() && manifest.isFile();
+            return manifest.isFile();
         } catch (IOException e) {
             return false;
         }
@@ -288,6 +284,46 @@ public class BhLsfgManager {
         }
     }
 
+    // ── Env-var injection ────────────────────────────────────────────────────
+
+    /**
+     * Writes VK_LAYER_PATH + VK_INSTANCE_LAYERS into the per-game GameHub prefs so
+     * Android's libvulkan.so finds and loads the LSFG implicit layer inside the Wine
+     * process at game launch. Preserves any other env vars the user has set.
+     */
+    private static void injectVkLayerEnv(Context ctx, String gameId, String manifestDir) {
+        SharedPreferences sp = ctx.getSharedPreferences("pc_g_setting" + gameId, Context.MODE_PRIVATE);
+        String current = sp.getString(ENV_PREFS_KEY, "").trim();
+        StringBuilder kept = new StringBuilder();
+        for (String part : current.split(",")) {
+            String t = part.trim();
+            if (!t.isEmpty() && !t.startsWith(ENV_LAYER_PATH) && !t.startsWith(ENV_LAYER_NAME)) {
+                if (kept.length() > 0) kept.append(",");
+                kept.append(t);
+            }
+        }
+        if (kept.length() > 0) kept.append(",");
+        kept.append(ENV_LAYER_PATH).append(manifestDir);
+        kept.append(",").append(ENV_LAYER_NAME).append("VK_LAYER_LS_frame_generation");
+        sp.edit().putString(ENV_PREFS_KEY, kept.toString()).apply();
+    }
+
+    /** Strips LSFG env vars from per-game prefs, leaving any other user env vars intact. */
+    private static void removeVkLayerEnv(Context ctx, String gameId) {
+        SharedPreferences sp = ctx.getSharedPreferences("pc_g_setting" + gameId, Context.MODE_PRIVATE);
+        String current = sp.getString(ENV_PREFS_KEY, "").trim();
+        if (current.isEmpty()) return;
+        StringBuilder kept = new StringBuilder();
+        for (String part : current.split(",")) {
+            String t = part.trim();
+            if (!t.isEmpty() && !t.startsWith(ENV_LAYER_PATH) && !t.startsWith(ENV_LAYER_NAME)) {
+                if (kept.length() > 0) kept.append(",");
+                kept.append(t);
+            }
+        }
+        sp.edit().putString(ENV_PREFS_KEY, kept.toString()).apply();
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static SharedPreferences prefs(Context ctx) {
@@ -296,15 +332,6 @@ public class BhLsfgManager {
 
     private static String tomlStr(String value) {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
-    }
-
-    private static void copyAsset(Context ctx, String assetPath, File dest) throws IOException {
-        try (InputStream in = ctx.getAssets().open(assetPath);
-             FileOutputStream out = new FileOutputStream(dest)) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-        }
     }
 
     private static String readAsset(Context ctx, String assetPath) throws IOException {

@@ -496,6 +496,11 @@ jobs:
           fi
           sed -i "s/android:label=\"GameHub Revanced\"/android:label=\"$LABEL\"/" apktool_out/AndroidManifest.xml
 
+      - name: Install LSFG-VK layer into APK lib
+        run: |
+          mkdir -p apktool_out/lib/arm64-v8a
+          cp patches/assets/lsfg_vk/liblsfg-vk-layer.so apktool_out/lib/arm64-v8a/
+
       - name: Rebuild APK
         run: |
           java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
