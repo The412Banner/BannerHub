@@ -5,7 +5,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 ---
 
 ### [feature branch] — LSFG-VK frame generation — feature/lsfg-vk — 2026-04-29
-**Branch:** `feature/lsfg-vk` | **Status:** CI not yet triggered — binaries now committed, ready to run
+**Branch:** `feature/lsfg-vk` | **Status:** CI green (run 25134708468 in progress) | **Latest commit:** 2449feb
 
 #### What's in the branch
 - **FilePickerActivity.java** — in-app .dll browser (App Files / Internal / SD Card); tapping a `.dll` row returns the absolute path
@@ -25,10 +25,43 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 - `conf.toml` at `{containerPath}/.config/lsfg-vk/conf.toml` — layer reads it from default HOME path
 - No env var injection needed — process matching via exe names in `[[game]]` blocks
 
+#### CI history (feature/lsfg-vk)
+| Run | Commit | Result | Notes |
+|-----|--------|--------|-------|
+| 25119727872 | initial | ✗ | `sed` broke on `/` in branch name during version inject |
+| 25119831609 | c6e697e | ✗ | APK signed OK but `apksigner --out` failed — slash in `BannerHub-feature/lsfg-vk-Normal.apk` |
+| 25120334634 | bd2e62e | ✗ | Artifact upload rejected — slash in `BannerHub-pre-feature/lsfg-vk` artifact name |
+| 25120590642 | a65b2b4 | ✓ | Full green — artifact `BannerHub-pre-feature-lsfg-vk` uploaded |
+| 25122209140 | (same) | ✓ | Green |
+| 25121278467 | (same) | ✓ | Green |
+| **25124338406** | **603a7ee** | **✓** | **Vulkan layer loading fix — .so in lib/arm64-v8a + VK_LAYER_PATH env var injection** |
+
+#### Architecture revision (2026-04-29 — from logcat analysis)
+Previous approach (HOME-based implicit layer path, no env vars) was replaced after logcat confirmed:
+- Wine runs as `com.tencent.ig:wine` (Android process, not Linux); uses Android's `libvulkan.so`
+- Android's libvulkan.so in non-debuggable apps only dlopens .so from the app's `nativeLibraryDir`
+- **Fix 1**: `.so` placed in `lib/arm64-v8a/` in APK → extracted to nativeLibraryDir by Android on install
+- **Fix 2**: manifest `library_path` rewritten at runtime to absolute nativeLibraryDir path (`ensureRuntimeInstalled`)
+- **Fix 3**: `VK_LAYER_PATH` set to `{containerPath}/.local/share/vulkan/implicit_layer.d/` via `pc_ls_environment_variable` SharedPrefs key (`pc_g_setting<gameId>`)
+- `VK_INSTANCE_LAYERS=VK_LAYER_LS_frame_generation` also injected via same prefs key
+
+#### What was added today (2026-04-29)
+- **Per-game menu entry** — LSFG Frame Gen moved from side menu to per-game options (alongside Export/Import/Frontend Export); `BhLsfgLambda.smali` resolves gameId and launches settings
+- **Per-game settings** — prefs now keyed `bh_lsfg_<gameId>`; `BhLsfgManager.applyToContainer(ctx, gameId)` replaces `applyToAllContainers()`
+- **Shared DLL** — `copyDllToShared()` copies Lossless.dll to `filesDir/lsfg/Lossless.dll` once; all games read from there automatically
+- **In-game gear button** — `⚙ LSFG Frame Gen` button injected at top of Performance panel via `BhPerfSetupDelegate`; tag-guarded against double-add
+- **In-game dialog** — `BhLsfgInGameDialog.java` floating dialog with enable toggle, Off/2x/3x/4x multiplier, flow scale, perf mode, Save & Apply
+- **`BhLsfgGearClickListener.smali`** — opens dialog; mirrors RTS cog pattern
+
+#### Bug fixes (commit 736ba8d — 2026-04-29)
+- **Bug 1 fixed**: `build-quick.yml` was missing the `BhLsfgLambda` block in `GameDetailSettingMenu.W()` patch — LSFG Frame Gen option never appeared in per-game menu. Added matching block.
+- **Bug 2 fixed**: `BhPerfSetupDelegate` direct `check-cast` to `WineActivity` threw `ClassCastException` because `View.getContext()` returns a `ContextWrapper`, not WineActivity. Removed the broken try-catch. Added `BhLsfgManager.getGameIdFromContext(Context)` which walks the ContextWrapper chain via reflection. `BhLsfgGearClickListener` now takes Context only and calls this at click time.
+- CI run 25137022881 triggered to verify both fixes.
+
+| **25137022881** | **736ba8d** | ⏳ | **Both LSFG bugs fixed** |
+
 #### Still needed
-- Trigger CI on the branch to confirm compilation
-- Device test to verify Vulkan loader picks up implicit layer in Bionic container
-- Env var injection (`LSFG_PROCESS`) if exe-name matching proves unreliable
+- Device test to verify both options appear and Vulkan layer intercepts Wine's swapchain
 
 ---
 
