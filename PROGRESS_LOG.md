@@ -56,9 +56,10 @@ Previous approach (HOME-based implicit layer path, no env vars) was replaced aft
 #### Bug fixes (commit 736ba8d — 2026-04-29)
 - **Bug 1 fixed**: `build-quick.yml` was missing the `BhLsfgLambda` block in `GameDetailSettingMenu.W()` patch — LSFG Frame Gen option never appeared in per-game menu. Added matching block.
 - **Bug 2 fixed**: `BhPerfSetupDelegate` direct `check-cast` to `WineActivity` threw `ClassCastException` because `View.getContext()` returns a `ContextWrapper`, not WineActivity. Removed the broken try-catch. Added `BhLsfgManager.getGameIdFromContext(Context)` which walks the ContextWrapper chain via reflection. `BhLsfgGearClickListener` now takes Context only and calls this at click time.
-- CI run 25137022881 triggered to verify both fixes.
+- **Bug 3 fixed (commit d832517)**: In-game button was being created and tappable (dialog opened correctly on tap) but was invisible — no background set, default Button style invisible in dark sidebar. Added `setBackgroundColor(0xFF1565C0)` (blue) to BhPerfSetupDelegate.
 
-| **25137022881** | **736ba8d** | ⏳ | **Both LSFG bugs fixed** |
+| **25137022881** | **736ba8d** | ⏳ | Code bugs 1+2 fixed (superseded by next run) |
+| **25137109874** | **d832517** | ⏳ | **All three fixes — use this artifact** |
 
 #### Still needed
 - Device test to verify both options appear and Vulkan layer intercepts Wine's swapchain
