@@ -60,7 +60,7 @@ Previous approach (HOME-based implicit layer path, no env vars) was replaced aft
 
 | **25137022881** | **736ba8d** | ✗ | Code bugs 1+2 fixed (superseded) |
 | **25137109874** | **d832517** | ✓ | Button visible fix |
-| **25138309242** | **28335a6** | ⏳ | **LSFG runtime fixes — use this artifact** |
+| **25138309242** | **28335a6** | ✓ | LSFG runtime fixes — stable .so path, TMPDIR, LSFG_PROCESS, DLL in container |
 
 #### LSFG runtime bugs fixed (commit 28335a6 — 2026-04-29)
 Device test (logcat log_2026_04_29_18_38_54) showed settings applied but no FPS change.
@@ -93,8 +93,8 @@ Four root causes identified and fixed:
 
 ---
 
-### [fix] — LSFG env var format + container path revert — feature/lsfg-vk — 2026-04-30
-**Commit:** `bedc2b7` (container path) + env format fix (pending push) | **CI:** run 25183046959 (container fix)
+### [fix] — LSFG env var format + container path + CI sed fix — feature/lsfg-vk — 2026-04-30
+**Commits:** `bedc2b7` (container path), `c8911f4` (env format), `99f875e` (CI sed fix) | **CI:** run 25189347077 (queued)
 
 #### Container path revert (commit bedc2b7)
 Previous commit `a617c7c` incorrectly changed `usr/home/virtual_containers` to `usr/home/containers` with a fallback to `usr/opt`. Reverted — confirmed correct path is `usr/home/virtual_containers/<gameId>/`.
@@ -111,6 +111,15 @@ Key files for Option B:
 - GameHub smali target: `EnvironmentController` smali (look for the `g(` method that builds env vars and ends with `this.f.e(this.b.p())`)
 - BhLsfgManager new method needed: `applyLaunchEnv(Context ctx, String gameId, Object envVars)` — use reflection to call `envVars.d(key, value)` on GameHub's `EnvVars` object
 - GameNative reference: `gamenative-pr-1322/pr-1322-lsfg-vk.patch` → `BionicProgramLauncherComponent.java` hook
+
+#### CI sed delimiter fix (commit 99f875e)
+Both `build.yml` and `build-quick.yml` had `sed -i "s/^  versionName: .*/  versionName: $VERSION/"` which breaks whenever `VERSION` contains `/` (e.g. `feature/lsfg-vk`). Fixed both sed calls (versionName + BH_VERSION) in both files by switching to `|` delimiter: `sed -i "s|pattern|replacement|"`. This is a permanent fix — all future feature branches with slashes in their names will build correctly.
+
+| Run | Commit | Result |
+|-----|--------|--------|
+| 25183046959 | bedc2b7 | ✗ container path revert — sed slash re-emerged |
+| 25188404062 | c8911f4 | ✗ env format fix — same sed slash bug |
+| **25189347077** | **99f875e** | **⏳ sed delimiter fix** |
 
 ---
 
