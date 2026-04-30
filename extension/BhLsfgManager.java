@@ -335,20 +335,20 @@ public class BhLsfgManager {
         String current = sp.getString(ENV_PREFS_KEY, "").trim();
 
         StringBuilder kept = new StringBuilder();
-        for (String part : current.split(",")) {
+        for (String part : current.split("\\s+")) {
             String t = part.trim();
             if (!t.isEmpty()
                     && !t.startsWith(ENV_LAYER_PATH)
                     && !t.startsWith(ENV_TMPDIR)
                     && !t.startsWith("LSFG_PROCESS=")
                     && !t.startsWith("VK_INSTANCE_LAYERS=")) {
-                if (kept.length() > 0) kept.append(",");
+                if (kept.length() > 0) kept.append(" ");
                 kept.append(t);
             }
         }
-        if (kept.length() > 0) kept.append(",");
+        if (kept.length() > 0) kept.append(" ");
         kept.append(ENV_LAYER_PATH).append(manifestDir);
-        kept.append(",").append(ENV_TMPDIR).append(tmpDir);
+        kept.append(" ").append(ENV_TMPDIR).append(tmpDir);
 
         String envValue = kept.toString();
         sp.edit().putString(ENV_PREFS_KEY, envValue).apply();
@@ -360,14 +360,14 @@ public class BhLsfgManager {
         String current = sp.getString(ENV_PREFS_KEY, "").trim();
         if (current.isEmpty()) return;
         StringBuilder kept = new StringBuilder();
-        for (String part : current.split(",")) {
+        for (String part : current.split("\\s+")) {
             String t = part.trim();
             if (!t.isEmpty()
                     && !t.startsWith(ENV_LAYER_PATH)
                     && !t.startsWith(ENV_TMPDIR)
                     && !t.startsWith("LSFG_PROCESS=")
                     && !t.startsWith("VK_INSTANCE_LAYERS=")) {
-                if (kept.length() > 0) kept.append(",");
+                if (kept.length() > 0) kept.append(" ");
                 kept.append(t);
             }
         }

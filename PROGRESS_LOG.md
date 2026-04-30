@@ -58,11 +58,59 @@ Previous approach (HOME-based implicit layer path, no env vars) was replaced aft
 - **Bug 2 fixed**: `BhPerfSetupDelegate` direct `check-cast` to `WineActivity` threw `ClassCastException` because `View.getContext()` returns a `ContextWrapper`, not WineActivity. Removed the broken try-catch. Added `BhLsfgManager.getGameIdFromContext(Context)` which walks the ContextWrapper chain via reflection. `BhLsfgGearClickListener` now takes Context only and calls this at click time.
 - **Bug 3 fixed (commit d832517)**: In-game button was being created and tappable (dialog opened correctly on tap) but was invisible — no background set, default Button style invisible in dark sidebar. Added `setBackgroundColor(0xFF1565C0)` (blue) to BhPerfSetupDelegate.
 
-| **25137022881** | **736ba8d** | ⏳ | Code bugs 1+2 fixed (superseded by next run) |
-| **25137109874** | **d832517** | ⏳ | **All three fixes — use this artifact** |
+| **25137022881** | **736ba8d** | ✗ | Code bugs 1+2 fixed (superseded) |
+| **25137109874** | **d832517** | ✓ | Button visible fix |
+| **25138309242** | **28335a6** | ⏳ | **LSFG runtime fixes — use this artifact** |
+
+#### LSFG runtime bugs fixed (commit 28335a6 — 2026-04-29)
+Device test (logcat log_2026_04_29_18_38_54) showed settings applied but no FPS change.
+Four root causes identified and fixed:
+
+- **Root cause 1 (critical)**: `library_path` in manifest was absolute nativeLibraryDir path containing `~~hash` component. This hash changes on every APK reinstall → Vulkan loader couldn't find .so after reinstall.
+  **Fix**: `ensureRuntimeInstalled()` now copies `.so` from nativeLibraryDir INTO container at `<containerRoot>/.local/lib/liblsfg-vk-layer.so`. Manifest `library_path` is now relative: `"../../../lib/liblsfg-vk-layer.so"` — stable forever.
+
+- **Root cause 2**: Missing `TMPDIR` env var. LSFG layer writes `/tmp/lsfg-vk_last` at startup; if `/tmp` doesn't exist it calls `exit(EXIT_FAILURE)`, killing the game silently.
+  **Fix**: `injectVkLayerEnv()` now also injects `TMPDIR=<containerRoot>/usr/tmp`.
+
+- **Root cause 3**: Missing `LSFG_PROCESS` env var + three unreliable exe names in conf.toml (`wine64-preloader`, `wineloader`, `wine64`). Layer matches against process name — Wine binary names vary by container config.
+  **Fix**: `injectVkLayerEnv()` injects `LSFG_PROCESS=bannerhub-lsfg`. `writeConfig()` now uses single `[[game]]` entry with `exe = "bannerhub-lsfg"` matching that env var.
+
+- **Root cause 4**: Lossless.dll path in conf.toml pointed to Android-side `filesDir/lsfg/Lossless.dll` which may not be accessible from within the container's Vulkan environment.
+  **Fix**: New `copyDllToContainer()` copies DLL into `<containerRoot>/.local/share/lsfg-vk/Lossless.dll`. `writeConfig()` uses container-internal path.
+
+- `RUNTIME_VERSION` bumped to `v1.4.0-android-arm64-v8a-ahb-r2` to force manifest + .so re-copy on next `applyToContainer()` call.
+
+#### Architecture (revised — matches GameNative PR #1322 pattern)
+- `.so` → `<containerRoot>/.local/lib/liblsfg-vk-layer.so` (stable, container-internal)
+- Manifest `library_path` → relative `"../../../lib/liblsfg-vk-layer.so"`
+- DLL → `<containerRoot>/.local/share/lsfg-vk/Lossless.dll`
+- conf.toml → `<containerRoot>/.config/lsfg-vk/conf.toml` with single `exe = "bannerhub-lsfg"` entry
+- Env vars injected via `pc_ls_environment_variable` prefs: `VK_LAYER_PATH`, `VK_INSTANCE_LAYERS`, `LSFG_PROCESS`, `TMPDIR`
+- Turnip/Mesa Vulkan loader finds manifest via `$VK_LAYER_PATH` (explicit) + `$HOME/.local/share/vulkan/implicit_layer.d/` (implicit)
 
 #### Still needed
-- Device test to verify both options appear and Vulkan layer intercepts Wine's swapchain
+- Device test to verify LSFG actually changes FPS + button is now visible
+
+---
+
+### [fix] — LSFG env var format + container path revert — feature/lsfg-vk — 2026-04-30
+**Commit:** `bedc2b7` (container path) + env format fix (pending push) | **CI:** run 25183046959 (container fix)
+
+#### Container path revert (commit bedc2b7)
+Previous commit `a617c7c` incorrectly changed `usr/home/virtual_containers` to `usr/home/containers` with a fallback to `usr/opt`. Reverted — confirmed correct path is `usr/home/virtual_containers/<gameId>/`.
+
+#### Env var format fix (this session)
+`injectVkLayerEnv()` and `removeVkLayerEnv()` were using comma as separator (`VK_LAYER_PATH=...,TMPDIR=...`) when writing to `pc_ls_environment_variable`. GameHub's own `EnvVars.toString()` uses **space-separated** format. Fixed: separator changed to space and `split(",")` changed to `split("\\s+")` to match GameHub's expected format and tolerate any existing user-set vars with either separator.
+
+#### Decision log — env var injection strategy
+**Option A (current):** Inject via `pc_ls_environment_variable` SharedPrefs key with space-separated `KEY=VALUE` pairs — matches `EnvVars.toString()` format. GameHub reads this key in `PcGameSettingOperations.X()` and somehow parses it into the launch environment. This is a **best-effort assumption** — the parsing code is in native JNI, not visible in the Java decompile.
+
+**If Option A fails on device** (LSFG shows in settings but still no FPS change after these fixes): switch to **Option B** — smali-patch GameHub's `EnvironmentController.g()` or `ProgramLauncher.e()` to directly call `BhLsfgManager.applyLaunchEnv(ctx, gameId, envVars)` on the live `EnvVars` object before Wine starts. This mirrors exactly what GameNative PR #1322 does by patching `BionicProgramLauncherComponent.java` to call `LsfgVkManager.applyLaunchEnv(container, envVars)`. Option B eliminates all format ambiguity because we write directly into the `LinkedHashMap` via `EnvVars.d(key, value)` calls — no string parsing at all.
+
+Key files for Option B:
+- GameHub smali target: `EnvironmentController` smali (look for the `g(` method that builds env vars and ends with `this.f.e(this.b.p())`)
+- BhLsfgManager new method needed: `applyLaunchEnv(Context ctx, String gameId, Object envVars)` — use reflection to call `envVars.d(key, value)` on GameHub's `EnvVars` object
+- GameNative reference: `gamenative-pr-1322/pr-1322-lsfg-vk.patch` → `BionicProgramLauncherComponent.java` hook
 
 ---
 
