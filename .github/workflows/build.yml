@@ -64,7 +64,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "Build version: $VERSION"
-          sed -i "s/^  versionName: .*/  versionName: $VERSION/" apktool_out_base/apktool.yml
+          sed -i "s|^  versionName: .*|  versionName: $VERSION|" apktool_out_base/apktool.yml
           echo "versionName -> $VERSION"
 
       - name: Patch AppUtils phone-home version
@@ -525,7 +525,7 @@ jobs:
       - name: Inject BH_VERSION into extension
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          sed -i "s/static final String BH_VERSION = \"[^\"]*\"/static final String BH_VERSION = \"$VERSION\"/" extension/BhSettingsExporter.java
+          sed -i "s|static final String BH_VERSION = \"[^\"]*\"|static final String BH_VERSION = \"$VERSION\"|" extension/BhSettingsExporter.java
           echo "BH_VERSION -> $VERSION"
 
       - name: Compile and inject GOG extension dex

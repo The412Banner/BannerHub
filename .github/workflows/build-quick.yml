@@ -70,8 +70,8 @@ jobs:
             VERSION="$RAW"
           fi
           echo "Build version: $VERSION"
-          sed -i "s/^  versionName: .*/  versionName: $VERSION/" apktool_out/apktool.yml
-          sed -i "s/static final String BH_VERSION = \"[^\"]*\"/static final String BH_VERSION = \"$VERSION\"/" extension/BhSettingsExporter.java
+          sed -i "s|^  versionName: .*|  versionName: $VERSION|" apktool_out/apktool.yml
+          sed -i "s|static final String BH_VERSION = \"[^\"]*\"|static final String BH_VERSION = \"$VERSION\"|" extension/BhSettingsExporter.java
           echo "versionName -> $VERSION"
           echo "BH_VERSION  -> $VERSION"
 
