@@ -117,15 +117,13 @@ public class BhLsfgManager {
     // ── DLL discovery ─────────────────────────────────────────────────────────
 
     public static String autoDiscoverDll(Context ctx) {
-        for (String subPath : new String[]{"usr/home/containers", "usr/opt"}) {
-            File gameRoot = new File(ctx.getFilesDir(), subPath);
-            if (!gameRoot.isDirectory()) continue;
-            File[] gameDirs = gameRoot.listFiles();
-            if (gameDirs == null) continue;
-            for (File gameDir : gameDirs) {
-                String found = findDll(gameDir, 5);
-                if (found != null) return found;
-            }
+        File gameRoot = new File(ctx.getFilesDir(), "usr/home/virtual_containers");
+        if (!gameRoot.isDirectory()) return null;
+        File[] gameDirs = gameRoot.listFiles();
+        if (gameDirs == null) return null;
+        for (File gameDir : gameDirs) {
+            String found = findDll(gameDir, 5);
+            if (found != null) return found;
         }
         return null;
     }
@@ -150,19 +148,10 @@ public class BhLsfgManager {
 
     // ── Single container apply ────────────────────────────────────────────────
 
-    private static File resolveContainerRoot(Context ctx, String gameId) {
-        for (String subPath : new String[]{"usr/home/containers", "usr/opt"}) {
-            File candidate = new File(ctx.getFilesDir(), subPath + "/" + gameId);
-            if (candidate.isDirectory()) return candidate;
-        }
-        return null;
-    }
-
     public static boolean applyToContainer(Context ctx, String gameId) {
-        File containerRoot = resolveContainerRoot(ctx, gameId);
-        if (containerRoot == null) {
-            Log.e(TAG, "container not found for gameId=" + gameId
-                    + " (checked usr/home/containers, usr/opt)");
+        File containerRoot = new File(ctx.getFilesDir(), "usr/home/virtual_containers/" + gameId);
+        if (!containerRoot.isDirectory()) {
+            Log.e(TAG, "container not found: " + containerRoot.getAbsolutePath());
             return false;
         }
         String containerPath = containerRoot.getAbsolutePath();
