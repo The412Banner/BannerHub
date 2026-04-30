@@ -45,15 +45,10 @@ public class BhLsfgManager {
     // Version bump forces manifest + .so to be re-copied whenever this changes
     private static final String RUNTIME_VERSION = "v1.4.0-android-arm64-v8a-ahb-r2";
 
-    // Custom process identifier — must match [[game]] exe in conf.toml
-    private static final String LSFG_PROCESS = "bannerhub-lsfg";
-
     // SharedPrefs key used by WinEmu to apply extra env vars at launch
-    private static final String ENV_PREFS_KEY    = "pc_ls_environment_variable";
-    private static final String ENV_LAYER_PATH   = "VK_LAYER_PATH=";
-    private static final String ENV_LAYER_NAME   = "VK_INSTANCE_LAYERS=";
-    private static final String ENV_LSFG_PROCESS = "LSFG_PROCESS=";
-    private static final String ENV_TMPDIR       = "TMPDIR=";
+    private static final String ENV_PREFS_KEY  = "pc_ls_environment_variable";
+    private static final String ENV_LAYER_PATH = "VK_LAYER_PATH=";
+    private static final String ENV_TMPDIR     = "TMPDIR=";
 
     private static final String TAG = "BhLsfg";
 
@@ -301,15 +296,16 @@ public class BhLsfgManager {
         sb.append("no_fp16 = false\n");
 
         if (armed) {
-            // Single [[game]] entry using LSFG_PROCESS identifier — more reliable than
-            // matching Wine binary names which can vary across WinEmu versions
-            sb.append("\n[[game]]\n");
-            sb.append("exe = ").append(tomlStr(LSFG_PROCESS)).append("\n");
-            sb.append("multiplier = ").append(multiplier).append("\n");
-            sb.append("flow_scale = ").append(flowScale).append("\n");
-            sb.append("performance_mode = ").append(perfMode).append("\n");
-            sb.append("hdr_mode = false\n");
-            sb.append("experimental_present_mode = \"fifo\"\n");
+            // One entry per Wine process name that may own the Vulkan swapchain
+            for (String exe : new String[]{"wine64-preloader", "wine64", "wineloader"}) {
+                sb.append("\n[[game]]\n");
+                sb.append("exe = ").append(tomlStr(exe)).append("\n");
+                sb.append("multiplier = ").append(multiplier).append("\n");
+                sb.append("flow_scale = ").append(flowScale).append("\n");
+                sb.append("performance_mode = ").append(perfMode).append("\n");
+                sb.append("hdr_mode = false\n");
+                sb.append("experimental_present_mode = \"fifo\"\n");
+            }
         }
 
         try {
@@ -325,14 +321,17 @@ public class BhLsfgManager {
 
     /**
      * Injects LSFG env vars into the per-game SharedPrefs key that WinEmu applies at launch.
-     * - VK_LAYER_PATH: belt-and-suspenders in case HOME-based discovery doesn't apply
-     * - VK_INSTANCE_LAYERS: explicitly enables the implicit layer
-     * - LSFG_PROCESS: tells the layer which process to hook (matches conf.toml exe)
+     * - VK_LAYER_PATH: points Vulkan loader to our per-game implicit_layer.d
      * - TMPDIR: the layer writes /tmp/lsfg-vk_last; if /tmp is missing it calls exit()
+     *
+     * We do NOT set LSFG_PROCESS or VK_INSTANCE_LAYERS — the layer activates via
+     * implicit layer discovery + conf.toml exe matching, same as GameNative.
      */
     private static void injectVkLayerEnv(Context ctx, String gameId, String containerPath) {
         String manifestDir = new File(containerPath, MANIFEST_SUBDIR).getAbsolutePath();
-        String tmpDir      = new File(containerPath, "usr/tmp").getAbsolutePath();
+        File tmpDirFile    = new File(containerPath, "tmp");
+        tmpDirFile.mkdirs();
+        String tmpDir = tmpDirFile.getAbsolutePath();
 
         SharedPreferences sp = ctx.getSharedPreferences("pc_g_setting" + gameId, Context.MODE_PRIVATE);
         String current = sp.getString(ENV_PREFS_KEY, "").trim();
@@ -342,17 +341,15 @@ public class BhLsfgManager {
             String t = part.trim();
             if (!t.isEmpty()
                     && !t.startsWith(ENV_LAYER_PATH)
-                    && !t.startsWith(ENV_LAYER_NAME)
-                    && !t.startsWith(ENV_LSFG_PROCESS)
-                    && !t.startsWith(ENV_TMPDIR)) {
+                    && !t.startsWith(ENV_TMPDIR)
+                    && !t.startsWith("LSFG_PROCESS=")
+                    && !t.startsWith("VK_INSTANCE_LAYERS=")) {
                 if (kept.length() > 0) kept.append(",");
                 kept.append(t);
             }
         }
         if (kept.length() > 0) kept.append(",");
         kept.append(ENV_LAYER_PATH).append(manifestDir);
-        kept.append(",").append(ENV_LAYER_NAME).append("VK_LAYER_LS_frame_generation");
-        kept.append(",").append(ENV_LSFG_PROCESS).append(LSFG_PROCESS);
         kept.append(",").append(ENV_TMPDIR).append(tmpDir);
 
         String envValue = kept.toString();
@@ -369,9 +366,9 @@ public class BhLsfgManager {
             String t = part.trim();
             if (!t.isEmpty()
                     && !t.startsWith(ENV_LAYER_PATH)
-                    && !t.startsWith(ENV_LAYER_NAME)
-                    && !t.startsWith(ENV_LSFG_PROCESS)
-                    && !t.startsWith(ENV_TMPDIR)) {
+                    && !t.startsWith(ENV_TMPDIR)
+                    && !t.startsWith("LSFG_PROCESS=")
+                    && !t.startsWith("VK_INSTANCE_LAYERS=")) {
                 if (kept.length() > 0) kept.append(",");
                 kept.append(t);
             }
