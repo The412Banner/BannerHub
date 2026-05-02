@@ -3,6 +3,52 @@
 
 
 # ─────────────────────────────────────────────────────
+#  bhLog(String msg) -> void
+#  Log.d("BH_INJECT", msg)
+# ─────────────────────────────────────────────────────
+.method public static bhLog(Ljava/lang/String;)V
+    .locals 1
+    const-string v0, "BH_INJECT"
+    invoke-static {v0, p0}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    return-void
+.end method
+
+# ─────────────────────────────────────────────────────
+#  bhLogI(String msg, int n) -> void
+#  Log.d("BH_INJECT", msg + n)
+# ─────────────────────────────────────────────────────
+.method public static bhLogI(Ljava/lang/String;I)V
+    .locals 3
+    const-string v0, "BH_INJECT"
+    new-instance v1, Ljava/lang/StringBuilder;
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v1, p0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1, p1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v2
+    invoke-static {v0, v2}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    return-void
+.end method
+
+# ─────────────────────────────────────────────────────
+#  bhLogS(String msg, String s) -> void
+#  Log.d("BH_INJECT", msg + s)
+# ─────────────────────────────────────────────────────
+.method public static bhLogS(Ljava/lang/String;Ljava/lang/String;)V
+    .locals 3
+    const-string v0, "BH_INJECT"
+    new-instance v1, Ljava/lang/StringBuilder;
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v1, p0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v2
+    invoke-static {v0, v2}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+    return-void
+.end method
+
+
+# ─────────────────────────────────────────────────────
 #  getFirstByte(Context, Uri) -> int
 #  Reads first byte of URI stream (unsigned 0-255).
 #  Returns -1 on error. 0x28=Zstd  0xFD=XZ  0x50=ZIP
@@ -443,6 +489,14 @@
     # With .locals 20: v0-v19 are locals; p0=v20 p1=v21 p2=v22 p3=v23 p4=v24
     # Params above v15 must use move-object/from16 or move/from16
 
+    # LOG: registerComponent entry
+    const-string v0, "register: enter type="
+    move/from16 v1, p4
+    invoke-static {v0, v1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogI(Ljava/lang/String;I)V
+    const-string v0, "register: name="
+    move-object/from16 v1, p1
+    invoke-static {v0, v1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
+
     # ── Build EnvLayerEntity via invoke-direct/range {v0..v19} ──
     # EnvLayerEntity <init> param→field (verified from smali):
     #  v0=this  v1=blurb  v2=fileMd5  v3+v4=fileSize(J)  v5=id(I)
@@ -490,10 +544,18 @@
     # v0 = initialized ComponentRepo
 
     # ── Register with EmuComponents.D() ──
+    # LOG: about to call EmuComponents.D
+    const-string v2, "register: calling EmuComponents.D"
+    invoke-static {v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLog(Ljava/lang/String;)V
+
     sget-object v1, Lcom/xj/winemu/EmuComponents;->c:Lcom/xj/winemu/EmuComponents$Companion;
     invoke-virtual {v1}, Lcom/xj/winemu/EmuComponents$Companion;->a()Lcom/xj/winemu/EmuComponents;
     move-result-object v1
     invoke-virtual {v1, v0}, Lcom/xj/winemu/EmuComponents;->D(LComponentRepo;)V
+
+    # LOG: EmuComponents.D returned
+    const-string v2, "register: EmuComponents.D done"
+    invoke-static {v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLog(Ljava/lang/String;)V
 
     return-void
 .end method
@@ -514,12 +576,24 @@
     # v3=name  v4=version  v5=desc  v6=targetDir  v7=flatten(Z)/tmp  v8=tmp  v9=File(rename)
 
     :try_start
+    # LOG: inject entry
+    const-string v8, "inject: enter type="
+    invoke-static {v8, p2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogI(Ljava/lang/String;I)V
+
     invoke-static {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->getFirstByte(Landroid/content/Context;Landroid/net/Uri;)I
     move-result v0
+
+    # LOG: first byte detected
+    const-string v8, "inject: firstByte="
+    invoke-static {v8, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogI(Ljava/lang/String;I)V
 
     # ZIP check: first byte 0x50 = 'P'
     const/16 v8, 0x50
     if-ne v0, v8, :wcp_path
+
+    # LOG: ZIP branch taken
+    const-string v8, "inject: ZIP branch"
+    invoke-static {v8}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLog(Ljava/lang/String;)V
 
     # ── ZIP branch ────────────────────────────────────
     invoke-static {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->getDisplayName(Landroid/content/Context;Landroid/net/Uri;)Ljava/lang/String;
@@ -580,11 +654,19 @@
     invoke-virtual {v8, v9}, Ljava/io/File;->renameTo(Ljava/io/File;)Z
 
     :zip_register
+    # LOG: about to register ZIP component
+    const-string v8, "inject: ZIP registering name="
+    invoke-static {v8, v3}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
+
     invoke-static {p0, v3, v4, v5, p2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->registerComponent(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
     goto :show_success
 
     # ── WCP branch ────────────────────────────────────
     :wcp_path
+    # LOG: WCP branch taken
+    const-string v8, "inject: WCP branch"
+    invoke-static {v8}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLog(Ljava/lang/String;)V
+
     invoke-static {p0, p1, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->readWcpProfile(Landroid/content/Context;Landroid/net/Uri;I)Ljava/lang/String;
     move-result-object v1
 
@@ -638,10 +720,18 @@
     # extract WCP files
     invoke-static {p0, p1, v0, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->extractWcp(Landroid/content/Context;Landroid/net/Uri;ILjava/io/File;Z)V
 
+    # LOG: WCP extracted, about to register
+    const-string v8, "inject: WCP registering name="
+    invoke-static {v8, v3}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
+
     # register
     invoke-static {p0, v3, v4, v5, p2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->registerComponent(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
 
     :show_success
+    # LOG: success path
+    const-string v8, "inject: SUCCESS name="
+    invoke-static {v8, v3}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
+
     # build "Added to GameHub: <name>"
     new-instance v1, Ljava/lang/StringBuilder;
     invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
@@ -667,6 +757,9 @@
     if-nez v8, :has_msg
     const-string v8, "Injection failed"
     :has_msg
+    # LOG: error path
+    const-string v0, "inject: ERROR: "
+    invoke-static {v0, v8}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
     new-instance v1, Ljava/lang/StringBuilder;
     invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
     const-string v2, "Error: "
@@ -696,12 +789,26 @@
     # v6 = DialogSettingListItemEntity  v7 = String temp  v8 = bool/int temp
 
     :try_start
+    # LOG: append entry
+    const-string v8, "append: enter type="
+    invoke-static {v8, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogI(Ljava/lang/String;I)V
+
     invoke-static {}, Lcom/xj/winemu/EmuComponents;->e()Lcom/xj/winemu/EmuComponents;
     move-result-object v0
     if-eqz v0, :done
 
+    # LOG: EmuComponents instance acquired
+    const-string v8, "append: got EmuComponents"
+    invoke-static {v8}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLog(Ljava/lang/String;)V
+
     iget-object v1, v0, Lcom/xj/winemu/EmuComponents;->a:Ljava/util/HashMap;
     if-eqz v1, :done
+
+    # LOG: HashMap size
+    invoke-virtual {v1}, Ljava/util/HashMap;->size()I
+    move-result v8
+    const-string v0, "append: HashMap size="
+    invoke-static {v0, v8}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogI(Ljava/lang/String;I)V
 
     invoke-virtual {v1}, Ljava/util/HashMap;->values()Ljava/util/Collection;
     move-result-object v1
@@ -745,6 +852,10 @@
     move-result-object v7
     invoke-virtual {v6, v7}, Lcom/xj/winemu/bean/DialogSettingListItemEntity;->setTitle(Ljava/lang/String;)V
 
+    # LOG: matched component appended
+    const-string v8, "append: matched name="
+    invoke-static {v8, v7}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
+
     # setDisplayName(entity.displayName or name fallback)
     invoke-virtual {v4}, Lcom/xj/winemu/api/bean/EnvLayerEntity;->getDisplayName()Ljava/lang/String;
     move-result-object v7
@@ -774,11 +885,24 @@
     goto :iter_loop
 
     :done
+    # LOG: append done — list size after appending
+    invoke-interface {p0}, Ljava/util/List;->size()I
+    move-result v8
+    const-string v0, "append: done list size="
+    invoke-static {v0, v8}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogI(Ljava/lang/String;I)V
     return-void
 
     :try_end
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :catch_al
     :catch_al
     move-exception v0
+    # LOG: append error
+    invoke-virtual {v0}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+    move-result-object v8
+    if-nez v8, :ap_has_msg
+    const-string v8, "(no message)"
+    :ap_has_msg
+    const-string v0, "append: ERROR: "
+    invoke-static {v0, v8}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
     return-void
 .end method

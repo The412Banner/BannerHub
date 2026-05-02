@@ -28,6 +28,10 @@
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;->val$uri:Landroid/net/Uri;
     iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;->val$componentDir:Ljava/io/File;
 
+    # LOG: WcpExtractor path entry
+    const-string v4, "wcpext: starting (legacy CM path)"
+    invoke-static {v4}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLog(Ljava/lang/String;)V
+
     invoke-virtual {v0}, Landroid/app/Activity;->getContentResolver()Landroid/content/ContentResolver;
     move-result-object v4
 
@@ -35,6 +39,10 @@
     invoke-static {v4, v2, v3}, Lcom/xj/landscape/launcher/ui/menu/WcpExtractor;->extract(Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/io/File;)V
     :try_end
     .catch Ljava/lang/Throwable; {:try_start .. :try_end} :catch_t
+
+    # LOG: WcpExtractor.extract returned (success)
+    const-string v4, "wcpext: extract returned ok"
+    invoke-static {v4}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLog(Ljava/lang/String;)V
 
     # Success: query filename from URI using activity helper, then save to SharedPreferences
     # v0=activity, v1=handler, v2=uri, v3=componentDir are all still valid
@@ -53,6 +61,10 @@
     move-result-object v2
     invoke-interface {v2}, Landroid/content/SharedPreferences$Editor;->apply()V
 
+    # LOG: bh_injected SP write done
+    const-string v2, "wcpext: bh_injected SP write done dir="
+    invoke-static {v2, v3}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
+
     # Post UI runnable with null result (success)
     new-instance v2, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$2;
     const/4 v3, 0x0
@@ -64,6 +76,13 @@
     move-exception v2
     invoke-virtual {v2}, Ljava/lang/Throwable;->getMessage()Ljava/lang/String;
     move-result-object v2
+
+    # LOG: WcpExtractor error
+    const-string v3, "wcpext: ERROR: "
+    if-nez v2, :wpe_has_msg
+    const-string v2, "(no message)"
+    :wpe_has_msg
+    invoke-static {v3, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLogS(Ljava/lang/String;Ljava/lang/String;)V
 
     # Failure: post UI runnable with error message
     new-instance v3, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$2;

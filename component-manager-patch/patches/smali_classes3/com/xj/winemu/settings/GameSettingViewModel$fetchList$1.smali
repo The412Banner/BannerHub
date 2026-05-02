@@ -2943,6 +2943,9 @@
 
     invoke-virtual {v0, v7}, Lcom/xj/common/data/model/CommResultEntity;->setData(Ljava/lang/Object;)V
 
+    # LOG: fetchList hook firing
+    const-string v0, "fetchList: hook firing"
+    invoke-static {v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->bhLog(Ljava/lang/String;)V
     iget v0, v5, Lcom/xj/winemu/settings/GameSettingViewModel$fetchList$1;->$contentType:I
     invoke-static {v7, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->appendLocalComponents(Ljava/util/List;I)V
 
