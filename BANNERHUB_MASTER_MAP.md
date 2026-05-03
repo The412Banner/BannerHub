@@ -1697,6 +1697,8 @@ Full mapping of internal component type IDs (from `ComponentDownloadActivity.det
 | `10` | GPU Driver/Turnip | filename contains `"turnip"`, `"adreno"`, `"driver"`, or `"qualcomm"` |
 | `32` | Graphics Drivers (group) | matches type 10 OR 94 OR 95 in `ComponentInjectorHelper` filter |
 
+**Reference dump:** [`sp_winemu_all_components12_by_type.txt`](sp_winemu_all_components12_by_type.txt) — every component name from the live GameHub 5.3.5 `sp_winemu_all_components12.xml` SharedPreferences cache, grouped by the JSON `"type":N` field (1=FEX/Box64, 2=GPU drivers, 3=DXVK, 4=VKD3D, 5=per-game settings, 6=winetricks-style libs, 7=steam_client).
+
 ---
 
 ## 49. Component Download Repos (`ComponentDownloadActivity`)
