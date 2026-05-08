@@ -290,14 +290,88 @@ jobs:
               '    invoke-direct/range {v9 .. v17}, Lcom/xj/common/view/popup/Option;-><init>(Ljava/lang/String;ZIIILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
               '    invoke-interface {v1, v9}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
               '\n'
+              '    # BH: PC Vibration Settings option — inserted right AFTER the\n'
+              '    # "PC Game Settings" entry instead of appended at the end. Tencent\'s\n'
+              '    # popup widget has no scroll indicator and overflows past 5 items,\n'
+              '    # so a tail-appended option is invisible until the user happens to\n'
+              '    # discover the scroll behaviour. Build the Option first (so the\n'
+              '    # construction can use the wide v9..v17 range), then walk the list\n'
+              '    # with low registers (v10 = idx) and List.add(idx+1, opt). Falls\n'
+              '    # back to append-at-end if "PC Game Settings" isn\'t in the list\n'
+              '    # (non-English locale, etc.) so the option is never lost.\n'
+              '    new-instance v9, Lcom/xj/common/view/popup/Option;\n'
+              '    const-string v10, "PC Vibration Settings"\n'
+              '    const/4 v11, 0x0\n'
+              '    const/4 v12, 0x0\n'
+              '    const/4 v13, 0x0\n'
+              '    const/4 v14, 0x0\n'
+              '    new-instance v15, Lcom/xj/landscape/launcher/ui/gamedetail/BhVibrationLambda;\n'
+              '    invoke-direct {v15, v4, v3}, Lcom/xj/landscape/launcher/ui/gamedetail/BhVibrationLambda;-><init>(Lcom/xj/landscape/launcher/ui/gamedetail/GameDetailSettingMenu;Lcom/xj/common/service/bean/GameDetailEntity;)V\n'
+              '    const/16 v16, 0x1e\n'
+              '    const/16 v17, 0x0\n'
+              '    invoke-direct/range {v9 .. v17}, Lcom/xj/common/view/popup/Option;-><init>(Ljava/lang/String;ZIIILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
+              '\n'
+              '    # v9 = constructed Option; v10..v17 are now dead. Use v10 as idx\n'
+              '    # and v11/v12 as scratch — all in the v0..v15 range that the 4-bit\n'
+              '    # register encodings for if-ge / invoke-interface require.\n'
+              '    const/4 v10, 0x0\n'
+              '    :bh_vib_search_loop\n'
+              '    invoke-interface {v1}, Ljava/util/List;->size()I\n'
+              '    move-result v11\n'
+              '    if-ge v10, v11, :bh_vib_search_done\n'
+              '    invoke-interface {v1, v10}, Ljava/util/List;->get(I)Ljava/lang/Object;\n'
+              '    move-result-object v11\n'
+              '    check-cast v11, Lcom/xj/common/view/popup/Option;\n'
+              '    iget-object v11, v11, Lcom/xj/common/view/popup/Option;->a:Ljava/lang/String;\n'
+              '    const-string v12, "PC Game Settings"\n'
+              '    invoke-virtual {v11, v12}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z\n'
+              '    move-result v11\n'
+              '    if-eqz v11, :bh_vib_search_next\n'
+              '    add-int/lit8 v10, v10, 0x1\n'
+              '    goto :bh_vib_search_done\n'
+              '    :bh_vib_search_next\n'
+              '    add-int/lit8 v10, v10, 0x1\n'
+              '    goto :bh_vib_search_loop\n'
+              '    :bh_vib_search_done\n'
+              '\n'
+              '    invoke-interface {v1, v10, v9}, Ljava/util/List;->add(ILjava/lang/Object;)V\n'
+              '\n'
               '    return-object v1\n'
               '.end method\n',
-              'GameDetailSettingMenu.W(): inject Export Config + Import Config + Frontend Export options'
+              'GameDetailSettingMenu.W(): inject Export Config + Import Config + Frontend Export + PC Vibration Settings options'
           )
-          print("Settings Import/Export patch applied.")
+          print("Settings Import/Export + Vibration patches applied.")
           PYEOF
 
-      - name: Apply EOS launch-args smali patch
+      - name: Build libevshim.so (guest-side SDL keepalive)
+        run: |
+          set -e
+          NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}"
+          if [ -z "$NDK_HOME" ] || [ ! -d "$NDK_HOME" ]; then
+            NDK_HOME=$(ls -d "${ANDROID_SDK_ROOT}"/ndk/* 2>/dev/null | sort -V | tail -1)
+          fi
+          if [ -z "$NDK_HOME" ] || [ ! -d "$NDK_HOME" ]; then
+            NDK_HOME="${ANDROID_SDK_ROOT}/ndk-bundle"
+          fi
+          echo "Using NDK: $NDK_HOME"
+          if ! command -v ninja >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y ninja-build
+          fi
+          cmake -S native/evshim -B build/evshim \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-29 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -G Ninja
+          ninja -C build/evshim
+          mkdir -p apktool_out_base/lib/arm64-v8a
+          cp build/evshim/libevshim.so apktool_out_base/lib/arm64-v8a/libevshim.so
+          chmod 0755 apktool_out_base/lib/arm64-v8a/libevshim.so
+          file apktool_out_base/lib/arm64-v8a/libevshim.so
+          ls -la apktool_out_base/lib/arm64-v8a/libevshim.so
+
+      - name: Apply BhVibration smali patches
         run: |
           python3 << 'PYEOF'
           import sys
@@ -313,55 +387,199 @@ jobs:
               open(path, 'w', encoding='utf-8').write(content.replace(old, new, 1))
               print(f"OK: {label}")
 
-          # Inject BhEpicLaunchArgs.maybeInject(args, exePath) at the end of
-          # WineHelper$Companion.b() — the single chokepoint for assembling the
-          # Wine launch command. For Epic-installed games this appends -EpicPortal,
-          # -epicusername, -epicuserid, -epicsandboxid, -epiclocale, and
-          # (when available) -epicdeploymentid so EOS-integrated titles can
-          # authenticate to Epic Online Services.
+          # Patch 1: GamepadServerManager.onRumble(III)V — entry hook
+          # Calls BhVibrationController.onRumble(slot, low, high). If it returns true,
+          # the controller fallthrough is skipped (Off / Device-only modes).
+          patch(
+              'apktool_out_base/smali_classes10/com/winemu/core/gamepad/GamepadServerManager.smali',
+              '.method private final onRumble(III)V\n'
+              '    .locals 2\n'
+              '    .annotation build Landroidx/annotation/Keep;\n'
+              '    .end annotation\n'
+              '\n'
+              '    .line 1\n'
+              '    if-ltz p1, :cond_0\n',
+              '.method private final onRumble(III)V\n'
+              '    .locals 2\n'
+              '    .annotation build Landroidx/annotation/Keep;\n'
+              '    .end annotation\n'
+              '\n'
+              '    # BH: PC-accurate rumble dispatcher hook\n'
+              '    invoke-static {p1, p2, p3}, Lcom/xj/winemu/vibration/BhVibrationController;->onRumble(III)Z\n'
+              '\n'
+              '    move-result v0\n'
+              '\n'
+              '    if-eqz v0, :bh_rumble_fallthrough\n'
+              '\n'
+              '    return-void\n'
+              '\n'
+              '    :bh_rumble_fallthrough\n'
+              '\n'
+              '    .line 1\n'
+              '    if-ltz p1, :cond_0\n',
+              'GamepadServerManager.onRumble(III)V: inject BhVibrationController entry hook'
+          )
+
+          # Patch 2: GamepadDevice$Physical.h(II)V — controller dispatch delegate
+          # Reads deviceId from field d:I and hands (deviceId, low, high) to the extension.
+          # If it returns true (mode=Controller/Both handled it, or mode=Off/Device silenced it),
+          # skip the stock per-vibrator fallback entirely.
+          patch(
+              'apktool_out_base/smali_classes5/com/winemu/core/gamepad/GamepadDevice$Physical.smali',
+              '.method public h(II)V\n'
+              '    .locals 3\n'
+              '\n'
+              '    .line 1\n'
+              '    const v0, 0xffff\n',
+              '.method public h(II)V\n'
+              '    .locals 3\n'
+              '\n'
+              '    # BH: PC-accurate controller dispatch\n'
+              '    iget v0, p0, Lcom/winemu/core/gamepad/GamepadDevice$Physical;->d:I\n'
+              '\n'
+              '    invoke-static {v0, p1, p2}, Lcom/xj/winemu/vibration/BhVibrationController;->dispatchToController(III)Z\n'
+              '\n'
+              '    move-result v0\n'
+              '\n'
+              '    if-eqz v0, :bh_phys_fallthrough\n'
+              '\n'
+              '    return-void\n'
+              '\n'
+              '    :bh_phys_fallthrough\n'
+              '\n'
+              '    .line 1\n'
+              '    const v0, 0xffff\n',
+              'GamepadDevice$Physical.h(II)V: inject BhVibrationController.dispatchToController'
+          )
+
+          # NOTE: PC Vibration Settings is exposed in the per-game settings menu
+          # (GameDetailSettingMenu.W() patch above) — NOT in BannerHub's global
+          # Advanced settings sidebar. This way the settings file backing them
+          # is pc_g_setting<gameId>, which BhSettingsExporter already exports
+          # and imports as part of the per-game config bundle. No new sidebar
+          # contentType needed; the launch path goes through BhVibrationLambda.
+
+          # Patch 3: EnvironmentController.b(Wine, String) — prepend libevshim.so to LD_PRELOAD.
+          # The shim is preloaded into Wine processes so it can interpose SDL_JoystickRumble
+          # in libSDL2-2.0.so, keeping SDL's internal ~1 s rumble timer perpetually reset.
+          # Without this, sustained rumble cuts out at exactly 1000 ms (SDL auto-expiry sends
+          # OnRumble(0,0) to libvfs.so's VirtualJoystickDesc.Rumble callback, which IPCs
+          # "stop" to the host).
+          # Anchor: just before `EnvVars.f("LD_PRELOAD", v1)`, after both branches join.
+          patch(
+              'apktool_out_base/smali_classes6/com/winemu/core/controller/EnvironmentController.smali',
+              '    :cond_2\n'
+              '    :goto_1\n'
+              '    const-string v2, "LD_PRELOAD"\n',
+              '    :cond_2\n'
+              '    :goto_1\n'
+              '\n'
+              '    # BH: prepend libevshim.so to LD_PRELOAD list (guest-side SDL keepalive)\n'
+              '    iget-object v2, p0, Lcom/winemu/core/controller/EnvironmentController;->a:Landroid/content/Context;\n'
+              '    invoke-virtual {v2}, Landroid/content/Context;->getApplicationInfo()Landroid/content/pm/ApplicationInfo;\n'
+              '    move-result-object v2\n'
+              '    iget-object v2, v2, Landroid/content/pm/ApplicationInfo;->nativeLibraryDir:Ljava/lang/String;\n'
+              '    new-instance v3, Ljava/lang/StringBuilder;\n'
+              '    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V\n'
+              '    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;\n'
+              '    const-string v2, "/libevshim.so"\n'
+              '    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;\n'
+              '    invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;\n'
+              '    move-result-object v2\n'
+              '    new-instance v3, Ljava/io/File;\n'
+              '    invoke-direct {v3, v2}, Ljava/io/File;-><init>(Ljava/lang/String;)V\n'
+              '    invoke-virtual {v3}, Ljava/io/File;->exists()Z\n'
+              '    move-result v3\n'
+              '    if-eqz v3, :bh_skip_evshim_preload\n'
+              '    const/4 v3, 0x0\n'
+              '    invoke-interface {v1, v3, v2}, Ljava/util/List;->add(ILjava/lang/Object;)V\n'
+              '    :bh_skip_evshim_preload\n'
+              '\n'
+              '    const-string v2, "LD_PRELOAD"\n',
+              'EnvironmentController.b(Wine, String): prepend libevshim.so to LD_PRELOAD'
+          )
+
+          # Patch 4: GamepadDevice$Physical.g()V — stop hook.
+          # Stock GamepadDevice.f(II)V routes (0,0) -> g() and non-zero -> h(II)V.
+          # Our Patch 2 only hooks h(II)V, so (0,0) would bypass our handler.
+          # onStop is void: it issues our pre-cancel supersede pattern
+          # (Samsung-HAL workaround) then falls through to stock g(), which
+          # iterates the vibrators and cancels each.
+          patch(
+              'apktool_out_base/smali_classes5/com/winemu/core/gamepad/GamepadDevice$Physical.smali',
+              '.method public g()V\n'
+              '    .locals 1\n'
+              '\n'
+              '    .line 1\n'
+              '    invoke-virtual {p0}, Lcom/winemu/core/gamepad/GamepadDevice$Physical;->o()Ljava/util/List;\n',
+              '.method public g()V\n'
+              '    .locals 1\n'
+              '\n'
+              '    # BH: dispatch to our handler (supersede pattern), then fall through.\n'
+              '    iget v0, p0, Lcom/winemu/core/gamepad/GamepadDevice$Physical;->d:I\n'
+              '    invoke-static {v0}, Lcom/xj/winemu/vibration/BhVibrationController;->onStop(I)V\n'
+              '\n'
+              '    .line 1\n'
+              '    invoke-virtual {p0}, Lcom/winemu/core/gamepad/GamepadDevice$Physical;->o()Ljava/util/List;\n',
+              'GamepadDevice$Physical.g(): inject BhVibrationController.onStop pre-cancel supersede'
+          )
+
+          # Patch 5: GamepadManager.B0(GamepadConnectionEvent)V — connect hook.
+          # On controller-connect, libvfs lazily registers the virtual SDL joystick
+          # and only emits SDL_JOYDEVICEADDED on first input. Until that fires,
+          # winebus.so doesn't open the slot's joystick and rumble dispatches
+          # silently no-op. Multi-controller users see the second/Nth controller's
+          # rumble fail until they press any button on it.
           #
-          # IMPORTANT: p1 (exePath) is reassigned multiple times in the method
-          # (once with WinUtils.a() result, later with the int return of
-          # p2.length()). Referencing p1 directly at the end fails ART
-          # verification with "register v5 has type Conflict but expected
-          # Reference: java.lang.String" — verifier can't prove the type.
-          # Fix: bump .locals 4→5, save the original p1 to a fresh local v0
-          # at method entry, use v0 at the end. NOTE: bumping .locals shifts
-          # the physical register numbers for p-notation params (p0 was v4,
-          # becomes v5; p1 was v5, becomes v6; etc.). Smali assembler handles
-          # this remapping for all p-notation references automatically. We
-          # verified that the method body contains no LITERAL v5+ references
-          # within method b() — only p-notation — so the bump is safe.
+          # We extract slot via GamepadSlotManager.m(GamepadDevice)I (field e on
+          # GamepadManager) and pass the GamepadServerManager (field c) plus slot
+          # to BhVibrationController.scheduleWakeup, which queues a button-14
+          # flicker on the slot's GamepadState gated on libevshim's winedevice
+          # ready marker. drainPendingWakeups() then fires staggered (200 ms per
+          # slot, ascending) so libvfs registers each slot before the next.
+          #
+          # Inject BEFORE stock body so registers v0..v3 (declared by .locals 4)
+          # are reused after our injection — stock's first instruction
+          # const-string v0, "event" overwrites v0 cleanly.
           patch(
-              'apktool_out_base/smali_classes5/com/winemu/core/WineHelper$Companion.smali',
-              '.method public final b(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/util/List;\n'
-              '    .locals 4\n',
-              '.method public final b(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/util/List;\n'
-              '    .locals 5\n'
+              'apktool_out_base/smali_classes7/com/winemu/core/gamepad/GamepadManager.smali',
+              '.method public B0(Lcom/winemu/core/gamepad/GamepadConnectionEvent;)V\n'
+              '    .locals 4\n'
               '\n'
-              '    # BannerHub Phase 1 EOS: stash original exePath into a fresh local; p1 gets\n'
-              '    # reassigned later in the method, but v4 stays a single-typed String reference.\n'
-              '    move-object/from16 v4, p1\n'
-              '\n',
-              'WineHelper$Companion.b(): bump .locals + save exePath to v4'
+              '    .line 1\n'
+              '    const-string v0, "event"\n',
+              '.method public B0(Lcom/winemu/core/gamepad/GamepadConnectionEvent;)V\n'
+              '    .locals 4\n'
+              '\n'
+              '    # BH: schedule synthetic wake-up so libvfs registers this slot\n'
+              '    # with SDL before the user presses anything.\n'
+              '    #\n'
+              '    # Only run for GamepadDevice$Physical. The virtual touch-controls\n'
+              '    # gamepad (GamepadDevice$Virtual) does NOT need a libvfs lazy-\n'
+              '    # attach trigger, and calling GamepadSlotManager.m() on it has a\n'
+              '    # side-effect of pre-registering the slot — which then makes\n'
+              '    # stock B0\'s own registration throw "Virtual gamepad already\n'
+              '    # exists in slot 0", leaves GamepadManager in a broken state,\n'
+              '    # and causes WineActivity to crash later with\n'
+              '    # "Virtual gamepad enabled but no controller found".\n'
+              '    invoke-virtual {p1}, Lcom/winemu/core/gamepad/GamepadConnectionEvent;->a()Lcom/winemu/core/gamepad/GamepadDevice;\n'
+              '    move-result-object v0\n'
+              '    if-eqz v0, :bh_wakeup_skip\n'
+              '    instance-of v3, v0, Lcom/winemu/core/gamepad/GamepadDevice$Physical;\n'
+              '    if-eqz v3, :bh_wakeup_skip\n'
+              '    iget-object v1, p0, Lcom/winemu/core/gamepad/GamepadManager;->e:Lcom/winemu/core/gamepad/GamepadSlotManager;\n'
+              '    invoke-virtual {v1, v0}, Lcom/winemu/core/gamepad/GamepadSlotManager;->m(Lcom/winemu/core/gamepad/GamepadDevice;)I\n'
+              '    move-result v1\n'
+              '    iget-object v2, p0, Lcom/winemu/core/gamepad/GamepadManager;->c:Lcom/winemu/core/gamepad/GamepadServerManager;\n'
+              '    invoke-static {v2, v1}, Lcom/xj/winemu/vibration/BhVibrationController;->scheduleWakeup(Ljava/lang/Object;I)V\n'
+              '    :bh_wakeup_skip\n'
+              '\n'
+              '    .line 1\n'
+              '    const-string v0, "event"\n',
+              'GamepadManager.B0(): inject BhVibrationController.scheduleWakeup post-connect'
           )
-          patch(
-              'apktool_out_base/smali_classes5/com/winemu/core/WineHelper$Companion.smali',
-              '    :cond_2\n'
-              '    :goto_1\n'
-              '    return-object p0\n'
-              '.end method\n',
-              '    :cond_2\n'
-              '    :goto_1\n'
-              '\n'
-              '    # BannerHub Phase 1 EOS: inject Epic launch args for Epic-installed games\n'
-              '    invoke-static {p0, v4}, Lapp/revanced/extension/gamehub/BhEpicLaunchArgs;->maybeInject(Ljava/util/List;Ljava/lang/String;)V\n'
-              '\n'
-              '    return-object p0\n'
-              '.end method\n',
-              'WineHelper$Companion.b(): append Epic launch args (using saved v4)'
-          )
-          print("EOS launch-args patch applied.")
+
+          print("\nBhVibration smali patches applied successfully.")
           PYEOF
 
       - name: Upload patched source
