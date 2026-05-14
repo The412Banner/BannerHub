@@ -7,6 +7,9 @@
 [![Downloads](https://img.shields.io/github/downloads/The412Banner/BannerHub/total.svg?logo=github&label=Downloads&color=blue)](https://github.com/The412Banner/BannerHub/releases)
 [![Latest Release Downloads](https://img.shields.io/github/downloads/The412Banner/BannerHub/latest/total.svg?logo=github&label=Latest%20Release&color=brightgreen)](https://github.com/The412Banner/BannerHub/releases/latest)
 
+<p align="center">
+  <a href="https://github.com/The412Banner/BannerHub/releases/latest"><strong>📥 Latest stable: v3.7.2</strong></a>
+</p>
 
 **GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, background download service with in-app cross-store download manager, SD card / external storage routing for store game downloads, Winlator HUD overlay (Normal + Extra Detailed + Konkr style with CPU/GPU/RAM/SWAP/temp/per-core metrics), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, community game configs browser, per-game config export/import with Frontend Export, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
 
