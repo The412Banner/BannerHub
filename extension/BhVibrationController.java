@@ -18,6 +18,9 @@ import android.view.InputDevice;
 import android.os.FileObserver;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,6 +44,9 @@ import java.util.concurrent.atomic.AtomicLongArray;
  *     the head of GamepadDevice$Physical.h(II)V. Returns true to short-circuit
  *     the stock dispatch (which lacks amplitude-control checks, VibrationAttributes,
  *     and CombinedVibration.startParallel).
+ *   - onStop(deviceId): stop hook, invoked at the head of
+ *     GamepadDevice$Physical.g()V. Clears the keepalive map and issues the
+ *     Samsung-HAL pre-cancel supersede pattern.
  *   - scheduleWakeup(serverManager, slot): post-connect wake-up, invoked at the
  *     head of GamepadManager.B0(GamepadConnectionEvent)V. Queues a synthetic
  *     button-14 press/release on the slot's GamepadState — libvfs's poller
@@ -48,9 +54,23 @@ import java.util.concurrent.atomic.AtomicLongArray;
  *     winebus open the joystick BEFORE the user has pressed anything
  *     (otherwise rumble silently no-ops on freshly-connected controllers in
  *     multi-controller setups until each is "activated" by an input event).
- *     Wake-ups are gated on a winedevice readiness marker written by libevshim
- *     and staggered 200 ms per slot ascending so libvfs has time to register
- *     each before the next stimulus arrives.
+ *     Wake-ups are gated on the winedevice readiness marker (written by
+ *     ensureWinebusDurationPatchOnce after a short post-launch delay) and
+ *     staggered 200 ms per slot ascending so libvfs has time to register each
+ *     before the next stimulus arrives.
+ *   - ensureWinebusDurationPatchOnce(ctx): pre-launch disk-patch trigger,
+ *     invoked from the env builder (EnvironmentController.b) immediately
+ *     before the LD_PRELOAD env var is set. Scans the app's files tree for
+ *     every winebus.so and rewrites the two non-zero SDL_JoystickRumble call
+ *     sites to pass 0xffffffff as the duration so SDL2's ~1 s rumble_expiration
+ *     never fires. Both aarch64-unix and x86_64-unix winebus.so variants are
+ *     patched, so x86_64 Wine containers get the same sustained-rumble fix as
+ *     aarch64. An AtomicBoolean gates against repeat scans. This entry also
+ *     schedules the readiness marker write (5 s later, matching libvfs init
+ *     budget) so multi-controller auto-wake fires regardless of container arch.
+ *     Preload-free: no LD_PRELOAD modification, no extra .so mapped into Wine
+ *     subprocess address spaces (which silently exits a small set of games
+ *     like Shotgun King under any extra preload).
  *
  * Modes:
  *   0 = Off         — no rumble anywhere
@@ -126,7 +146,95 @@ public final class BhVibrationController {
     private static final long DEVICE_RUMBLE_REFRESH_MS = 140L; // < DEVICE_RUMBLE_MS
     private static final long RUMBLE_KEEPALIVE_MS = 1500L;     // refresh controller before 2s expiry
 
+    // Delay between env-builder firing and the Java-side readiness-marker
+    // write. Replaces libevshim's "patch winebus, then write marker" trigger.
+    // Java can't observe winedevice.exe directly, so we wait long enough that
+    // libvfs-client should be polling GamepadState by the time the marker
+    // arrives. 5 s matches the empirical winedevice-boot budget libevshim
+    // itself used (its constructor slept 5 s before scanning winebus).
+    private static final long READINESS_MARKER_DELAY_MS = 5000L;
+
     private static volatile BhVibrationController INSTANCE;
+
+    private static final AtomicBoolean WINEBUS_DURATION_PATCH_ATTEMPTED = new AtomicBoolean(false);
+    private static final int WINEBUS_SCAN_MAX_DEPTH = 16;
+    private static final int WINEBUS_SCAN_MAX_FILES = 100000;
+    private static final long WINEBUS_PATCH_MAX_BYTES = 16L * 1024L * 1024L;
+    private static final byte[] WINEBUS_ELF_MAGIC = new byte[] {
+            0x7f, 0x45, 0x4c, 0x46
+    };
+    private static final byte[] WINEBUS_RUMBLE_STRING = new byte[] {
+            0x53, 0x44, 0x4c, 0x5f, 0x4a, 0x6f, 0x79, 0x73,
+            0x74, 0x69, 0x63, 0x6b, 0x52, 0x75, 0x6d, 0x62,
+            0x6c, 0x65
+    };
+    // aarch64-unix SDL_JoystickRumble call site: `ldur w3, [x29, #-0x14]; blr x8`.
+    // Patch replaces the 4-byte ldur with `mov w3, #-1`, leaving the blr intact.
+    private static final byte[] WINEBUS_ORIGINAL_SITE = new byte[] {
+            (byte) 0xa3, (byte) 0xc3, 0x5e, (byte) 0xb8,  // ldur w3, [x29, #-0x14]
+            0x00, 0x01, 0x3f, (byte) 0xd6                 // blr x8
+    };
+    private static final byte[] WINEBUS_PATCHED_SITE = new byte[] {
+            0x03, 0x00, (byte) 0x80, 0x12,                // mov w3, #-1
+            0x00, 0x01, 0x3f, (byte) 0xd6                 // blr x8
+    };
+    private static final byte[] WINEBUS_PATCHED_LOAD = new byte[] {
+            0x03, 0x00, (byte) 0x80, 0x12
+    };
+
+    // ELF e_machine values at offset 0x12 (little-endian 16-bit).
+    private static final int ELF_MACHINE_AARCH64 = 0xb7;  // EM_AARCH64 (183)
+    private static final int ELF_MACHINE_X86_64  = 0x3e;  // EM_X86_64 (62)
+
+    // x86_64 SDL_JoystickRumble / SDL_JoystickRumbleTriggers call-site detection.
+    //
+    // Wine's bus_sdl.c sdl_device_haptics_start passes `duration_ms` as the
+    // 4th argument (ECX in System V x86_64) to both pSDL_JoystickRumble and
+    // pSDL_JoystickRumbleTriggers. The compiler clang/NDK r26 we observed in
+    // wine_proton9.0-x64-3 loads the function pointer into RAX first, then
+    // sets up args, then issues `call *%rax`. Each call site looks like:
+    //
+    //     8B 4D <disp8>     mov   ecx, DWORD PTR [rbp+disp8]   ; duration_ms
+    //     0F B7 F6          movzwl %si, %esi                    ; 2nd arg fixup
+    //     0F B7 D2          movzwl %dx, %edx                    ; 3rd arg fixup
+    //     FF D0             call  *%rax
+    //
+    // That's an 11-byte window where 10 bytes are fixed and only the disp8
+    // floats. The movzwl pair is the discriminator: the corresponding
+    // sdl_device_haptics_stop path is `xor ecx, ecx; mov esi, ecx; mov edx,
+    // ecx; call *%rax` which doesn't match this signature, so we won't touch
+    // the stop sites.
+    //
+    // Patch: replace the 3-byte `mov ecx, [rbp+disp8]` with `or ecx, -1`
+    // (83 C9 FF). ECX becomes 0xFFFFFFFF regardless of prior value; the rest
+    // of the 11-byte window is preserved, so the RIP-relative loads and the
+    // indirect call all stay valid.
+    //
+    // Heuristic: exactly 2 matches required. 0 or >2 → skip and dump the
+    // file under <externalFilesDir>/winebus_dump_x86_64.so for offline
+    // refinement (e.g. if a different proton build emits a reordered arg
+    // sequence or a different addressing mode).
+    private static final byte[] X86_64_PATCHED_LOAD = new byte[] {
+            (byte) 0x83, (byte) 0xc9, (byte) 0xff   // or ecx, -1
+    };
+    private static final byte[] X86_64_PATTERN = new byte[] {
+            (byte) 0x8b, (byte) 0x4d, 0x00,
+            (byte) 0x0f, (byte) 0xb7, (byte) 0xf6,
+            (byte) 0x0f, (byte) 0xb7, (byte) 0xd2,
+            (byte) 0xff, (byte) 0xd0
+    };
+    private static final boolean[] X86_64_PATTERN_FIXED = new boolean[] {
+            true,  true,  false,
+            true,  true,  true,
+            true,  true,  true,
+            true,  true
+    };
+    private static final byte[] X86_64_PATCHED_PATTERN = new byte[] {
+            (byte) 0x83, (byte) 0xc9, (byte) 0xff,
+            (byte) 0x0f, (byte) 0xb7, (byte) 0xf6,
+            (byte) 0x0f, (byte) 0xb7, (byte) 0xd2,
+            (byte) 0xff, (byte) 0xd0
+    };
 
     public static BhVibrationController getInstance() {
         BhVibrationController local = INSTANCE;
@@ -185,20 +293,19 @@ public final class BhVibrationController {
     //
     // Earlier builds of this controller suppressed any (0,0) arriving in a
     // [950, 1050] ms window after the previous non-zero — the signature of
-    // SDL2's internal 1 s rumble auto-expiry. With the libevshim guest-side
-    // shim now patching winebus.so's pSDL_JoystickRumble pointer to our
-    // wrapper, the keepalive thread re-issues the active rumble every 500 ms
-    // with a 2 s duration, which resets SDL2's internal rumble_expiration on
-    // every call (SDL2 updates the timer even when low/high are unchanged).
-    // The phantom can no longer fire, so suppressing in this window only
-    // produced false positives on legitimate ~1 s game-driven holds (e.g.
-    // a 1.05 s press registered as gap=1050 ms → host suppresses for another
-    // 1 s = ~2 s of rumble for a 1 s press). PC-accurate behavior is to
-    // trust every (0,0) as a real game release and stop instantly.
+    // SDL2's internal 1 s rumble auto-expiry. With the disk patch now
+    // rewriting winebus.so's two non-zero SDL_JoystickRumble call sites to
+    // pass 0xffffffff as the duration, SDL2's internal rumble_expiration is
+    // ~50 days out and never fires. The phantom can no longer reach us, so
+    // suppressing in this window only produced false positives on legitimate
+    // ~1 s game-driven holds (e.g. a 1.05 s press registered as gap=1050 ms
+    // → host suppresses for another 1 s = ~2 s of rumble for a 1 s press).
+    // PC-accurate behavior is to trust every (0,0) as a real game release
+    // and stop instantly.
     //
     // The DIAG line still tags the [900, 1200] ms window as
-    // "[SDL_AUTO_EXPIRY?]" for telemetry — useful if the keepalive ever
-    // breaks again — but no functional path branches on it.
+    // "[SDL_AUTO_EXPIRY?]" for telemetry — useful if the disk patch ever
+    // misses a winebus.so — but no functional path branches on it.
 
     // Last device-effect time so we don't overwhelm phone vibrator.
     private volatile long lastDeviceDispatch = 0L;
@@ -386,9 +493,9 @@ public final class BhVibrationController {
     // Patch 7 hooks g()V to call onStop(deviceId), which always issues our
     // pre-cancel supersede pattern (Samsung-HAL workaround) and falls through
     // to stock g() afterwards. Returns void — the previous boolean return
-    // (for SDL phantom suppression) became vestigial when libevshim's
-    // keepalive made phantom suppression unnecessary; the smali patch no
-    // longer branches on the result.
+    // (for SDL phantom suppression) became vestigial once the disk-patched
+    // winebus.so duration kept SDL's auto-expiry from ever firing; the smali
+    // patch no longer branches on the result.
     // ─────────────────────────────────────────────────────────────────────────
     public static void onStop(int deviceId) {
         try {
@@ -399,7 +506,284 @@ public final class BhVibrationController {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Smali entry 4: GamepadManager.B0(GamepadConnectionEvent)V — connect hook.
+    // Smali entry 4: env builder (EnvironmentController.b) pre-launch trigger.
+    //
+    // Fires once per Wine launch, immediately before the env builder writes
+    // LD_PRELOAD and hands off to the Wine launcher. We do two things here:
+    //
+    //   (a) Scan every winebus.so in app storage and rewrite the two non-zero
+    //       SDL_JoystickRumble call sites to pass 0xffffffff as the duration
+    //       so SDL2's ~1 s rumble_expiration never fires. Zero-duration stop
+    //       calls are separate sites and stay untouched. Both aarch64-unix
+    //       and x86_64-unix winebus.so variants are patched, so x86_64 Wine
+    //       containers get the same sustained-rumble fix as aarch64.
+    //
+    //   (b) Schedule a delayed write of the winedevice ready marker file.
+    //       This replaces the marker libevshim used to write from inside
+    //       winedevice.exe. We can't observe winedevice directly from Java,
+    //       so we wait READINESS_MARKER_DELAY_MS (matching libevshim's own
+    //       pre-patch sleep) and assume libvfs-client has finished init by
+    //       then. The FileObserver in handleScheduleWakeup picks up the
+    //       marker write and fires the queued button-14 wake-ups so multi-
+    //       controller auto-attach works regardless of container arch.
+    //
+    // No LD_PRELOAD modification — Wine's preloader is famously sensitive to
+    // address-space layout, and a small set of games (Shotgun King is the
+    // canonical case) silently exit at launch when any extra .so is mapped
+    // into their Wine subprocess address space. Patching winebus.so on disk
+    // gives us the keepalive without introducing a new mapping.
+    //
+    // Smali patches 1-3 (dual-motor dispatch + instant release) are
+    // independent of this and work whether the disk patch lands or not.
+    // ─────────────────────────────────────────────────────────────────────────
+    public static void ensureWinebusDurationPatchOnce(Context ctx) {
+        try {
+            if (ctx == null) return;
+            ensureWinebusDurationPatch(ctx);
+            // Always schedule the marker write, even if the disk patch was
+            // already attempted this app instance — each Wine launch needs
+            // to re-arm wake-ups for any newly-connected controllers, and
+            // libvfs-client is a fresh process in each Wine launch.
+            getInstance().scheduleDelayedReadinessMarker(ctx);
+        } catch (Throwable t) {
+            Log.w(TAG, "ensureWinebusDurationPatchOnce failed", t);
+        }
+    }
+
+    private static void ensureWinebusDurationPatch(Context ctx) {
+        if (!WINEBUS_DURATION_PATCH_ATTEMPTED.compareAndSet(false, true)) return;
+        try {
+            File root = ctx.getFilesDir();
+            if (root == null || !root.isDirectory()) {
+                Log.i(TAG, "winebus duration patch skipped: no files dir");
+                return;
+            }
+
+            int[] stats = new int[4]; // files visited, winebus found, patched, already patched
+            scanWinebusFiles(ctx, root, 0, stats);
+            Log.i(TAG, "winebus duration patch scan files=" + stats[0]
+                    + " winebus=" + stats[1]
+                    + " patched=" + stats[2]
+                    + " already=" + stats[3]);
+            if (stats[1] == 0) {
+                // Game files may not be unpacked yet on first launch — let
+                // the next launch retry rather than declaring "done forever".
+                WINEBUS_DURATION_PATCH_ATTEMPTED.set(false);
+            }
+        } catch (Throwable t) {
+            WINEBUS_DURATION_PATCH_ATTEMPTED.set(false);
+            Log.w(TAG, "winebus duration patch scan failed", t);
+        }
+    }
+
+    private static void scanWinebusFiles(Context ctx, File file, int depth, int[] stats) {
+        if (file == null || depth > WINEBUS_SCAN_MAX_DEPTH || stats[0] >= WINEBUS_SCAN_MAX_FILES) {
+            return;
+        }
+
+        stats[0]++;
+        if (file.isDirectory()) {
+            if (shouldSkipWinebusScanDir(file)) return;
+            File[] children = file.listFiles();
+            if (children == null) return;
+            for (File child : children) {
+                if (stats[0] >= WINEBUS_SCAN_MAX_FILES) break;
+                scanWinebusFiles(ctx, child, depth + 1, stats);
+            }
+            return;
+        }
+
+        if (!"winebus.so".equals(file.getName())) return;
+        stats[1]++;
+        try {
+            int result = patchWinebusDurationFile(ctx, file);
+            if (result == 1) stats[2]++;
+            else if (result == 2) stats[3]++;
+        } catch (Throwable t) {
+            Log.w(TAG, "winebus duration patch failed for " + file.getAbsolutePath(), t);
+        }
+    }
+
+    private static boolean shouldSkipWinebusScanDir(File dir) {
+        // Skip large subtrees that never hold winebus.so but can be huge:
+        //   - Steam game payloads (Steam/steamapps/steam_data on GameHub-Steam)
+        //   - Per-game Wine prefixes (virtual_containers) — winebus.so lives
+        //     in Wine's runtime tree, not the per-game prefix
+        String name = dir.getName();
+        return "Steam".equals(name)
+                || "steamapps".equals(name)
+                || "steam_data".equals(name)
+                || "virtual_containers".equals(name);
+    }
+
+    private static int patchWinebusDurationFile(Context ctx, File file) throws IOException {
+        long len = file.length();
+        if (len < WINEBUS_ORIGINAL_SITE.length || len > WINEBUS_PATCH_MAX_BYTES) {
+            Log.i(TAG, "winebus duration patch skipped unexpected size="
+                    + len + " path=" + file.getAbsolutePath());
+            return 0;
+        }
+
+        byte[] blob = new byte[(int) len];
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+            raf.readFully(blob);
+            if (!startsWith(blob, WINEBUS_ELF_MAGIC) || indexOf(blob, WINEBUS_RUMBLE_STRING, 0) < 0) {
+                Log.i(TAG, "winebus duration patch skipped non-target path=" + file.getAbsolutePath());
+                return 0;
+            }
+
+            int machine = readElfMachine(blob);
+            if (machine == ELF_MACHINE_AARCH64) {
+                return patchAarch64Sites(file, blob, raf);
+            }
+            if (machine == ELF_MACHINE_X86_64) {
+                int result = patchX86_64Sites(file, blob, raf);
+                if (result == 0) {
+                    // Pattern didn't match — dump for offline pattern refinement.
+                    dumpForOfflineAnalysis(ctx, file, blob, "x86_64");
+                }
+                return result;
+            }
+
+            Log.i(TAG, "winebus duration patch skipped unknown e_machine=0x"
+                    + Integer.toHexString(machine) + " path=" + file.getAbsolutePath());
+            return 0;
+        }
+    }
+
+    private static int readElfMachine(byte[] blob) {
+        if (blob.length < 20) return -1;
+        return (blob[18] & 0xff) | ((blob[19] & 0xff) << 8);
+    }
+
+    private static int patchAarch64Sites(File file, byte[] blob, RandomAccessFile raf) throws IOException {
+        int[] originalHits = new int[4];
+        int originalCount = collectHits(blob, WINEBUS_ORIGINAL_SITE, originalHits);
+        int patchedCount = collectHits(blob, WINEBUS_PATCHED_SITE, null);
+
+        if (originalCount == 0 && patchedCount == 2) {
+            Log.i(TAG, "winebus duration patch already applied path=" + file.getAbsolutePath());
+            return 2;
+        }
+        if (originalCount != 2) {
+            Log.i(TAG, "winebus duration patch skipped pattern mismatch original="
+                    + originalCount + " patched=" + patchedCount
+                    + " path=" + file.getAbsolutePath());
+            return 0;
+        }
+
+        for (int i = 0; i < originalCount; i++) {
+            raf.seek(originalHits[i]);
+            raf.write(WINEBUS_PATCHED_LOAD);
+        }
+        Log.i(TAG, "winebus duration patch applied path=" + file.getAbsolutePath()
+                + " offsets=0x" + Integer.toHexString(originalHits[0])
+                + ",0x" + Integer.toHexString(originalHits[1]));
+        return 1;
+    }
+
+    private static int patchX86_64Sites(File file, byte[] blob, RandomAccessFile raf) throws IOException {
+        int[] hits = new int[8];
+        int originalCount = collectWildcardHits(blob, X86_64_PATTERN, X86_64_PATTERN_FIXED, hits);
+        int patchedCount = collectHits(blob, X86_64_PATCHED_PATTERN, null);
+
+        if (originalCount == 0 && patchedCount == 2) {
+            Log.i(TAG, "winebus duration patch already applied path=" + file.getAbsolutePath());
+            return 2;
+        }
+        if (originalCount != 2) {
+            Log.i(TAG, "winebus duration patch skipped pattern mismatch (x86_64)"
+                    + " original=" + originalCount + " patched=" + patchedCount
+                    + " path=" + file.getAbsolutePath());
+            return 0;
+        }
+
+        for (int i = 0; i < 2; i++) {
+            raf.seek(hits[i]);
+            raf.write(X86_64_PATCHED_LOAD);
+        }
+        Log.i(TAG, "winebus duration patch applied (x86_64) path=" + file.getAbsolutePath()
+                + " offsets=0x" + Integer.toHexString(hits[0])
+                + ",0x" + Integer.toHexString(hits[1]));
+        return 1;
+    }
+
+    private static int collectWildcardHits(byte[] blob, byte[] pattern, boolean[] fixed, int[] hits) {
+        int count = 0;
+        int max = blob.length - pattern.length;
+        for (int i = 0; i <= max; i++) {
+            boolean ok = true;
+            for (int j = 0; j < pattern.length; j++) {
+                if (fixed[j] && blob[i + j] != pattern[j]) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (ok) {
+                if (hits != null && count < hits.length) hits[count] = i;
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // Dumps `blob` to <externalFilesDir>/winebus_dump_<tag>.so once, so the
+    // unmatched binary can be pulled off the device with adb and disassembled
+    // offline to refine the byte-pattern heuristics. Idempotent: skips if
+    // the dump already exists.
+    private static void dumpForOfflineAnalysis(Context ctx, File source, byte[] blob, String tag) {
+        if (ctx == null) return;
+        try {
+            File dir = ctx.getExternalFilesDir(null);
+            if (dir == null) return;
+            File dump = new File(dir, "winebus_dump_" + tag + ".so");
+            if (dump.exists()) return;
+            FileOutputStream fos = new FileOutputStream(dump);
+            try {
+                fos.write(blob);
+            } finally {
+                fos.close();
+            }
+            Log.i(TAG, "winebus dump for offline analysis: "
+                    + source.getAbsolutePath() + " -> " + dump.getAbsolutePath());
+        } catch (Throwable t) {
+            Log.w(TAG, "winebus dump failed", t);
+        }
+    }
+
+    private static boolean startsWith(byte[] blob, byte[] prefix) {
+        if (blob.length < prefix.length) return false;
+        for (int i = 0; i < prefix.length; i++) {
+            if (blob[i] != prefix[i]) return false;
+        }
+        return true;
+    }
+
+    private static int collectHits(byte[] blob, byte[] needle, int[] offsets) {
+        int count = 0;
+        int start = 0;
+        while (true) {
+            int pos = indexOf(blob, needle, start);
+            if (pos < 0) return count;
+            if (offsets != null && count < offsets.length) offsets[count] = pos;
+            count++;
+            start = pos + 1;
+        }
+    }
+
+    private static int indexOf(byte[] blob, byte[] needle, int start) {
+        if (needle.length == 0) return start <= blob.length ? start : -1;
+        int max = blob.length - needle.length;
+        for (int i = Math.max(0, start); i <= max; i++) {
+            int j = 0;
+            while (j < needle.length && blob[i + j] == needle[j]) j++;
+            if (j == needle.length) return i;
+        }
+        return -1;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Smali entry 5: GamepadManager.B0(GamepadConnectionEvent)V — connect hook.
     //
     // When a controller connects, libvfs.so creates a virtual SDL joystick for
     // the slot but does NOT emit SDL_JOYDEVICEADDED until first input arrives.
@@ -410,11 +794,12 @@ public final class BhVibrationController {
     //
     // This hook fires once per connect with the GamepadServerManager + slot
     // available. We queue a wake-up gated on a winedevice readiness marker
-    // written by libevshim; once the marker fires, drainPendingWakeups()
-    // staggers each slot's button-14 press/release through the slot's
-    // GamepadState (200 ms apart, ascending). libvfs's poller sees the
-    // button-byte change → emits SDL_JOYDEVICEADDED → winebus opens the
-    // joystick → rumble dispatch works without user input.
+    // written by scheduleDelayedReadinessMarker (fired from the env-builder
+    // hook ~5 s after Wine launches); once the marker fires,
+    // drainPendingWakeups() staggers each slot's button-14 press/release
+    // through the slot's GamepadState (200 ms apart, ascending). libvfs's
+    // poller sees the button-byte change → emits SDL_JOYDEVICEADDED →
+    // winebus opens the joystick → rumble dispatch works without user input.
     //
     // Reflection-based to avoid compile-time dependency on Tencent's
     // gamepad classes.
@@ -521,13 +906,16 @@ public final class BhVibrationController {
      * (in winedevice.exe) to emit SDL_JOYDEVICEADDED so winebus.so can
      * open the joystick before the user provides input.
      *
-     * Detection-driven, not timing-driven: connects are queued in
-     * pendingWakeups and fired only when libevshim writes the
-     * .bh_winedevice_ready marker file from inside winedevice.exe (after
-     * its winebus GOT patch lands, which by construction is AFTER libvfs-
-     * client has fully initialized its mmap'd shared buffer). A FileObserver
-     * on the marker drains the queue. Eliminates the timing guess of the
-     * earlier multi-shot approach.
+     * Marker-driven: connects are queued in pendingWakeups and fired only
+     * when scheduleDelayedReadinessMarker writes the .bh_winedevice_ready
+     * marker file (5 s after the env-builder hook fires, which is itself
+     * ~immediately before Wine launches). A FileObserver on the marker
+     * drains the queue. The fixed-delay approach replaces an earlier
+     * libevshim-driven path where the marker was written from inside
+     * winedevice.exe after a runtime GOT patch; we now patch winebus.so on
+     * disk pre-launch instead, so there's no in-process signal to ride. The
+     * 5 s wait matches libevshim's own pre-patch sleep — long enough for
+     * libvfs-client to finish init on any device we've tested.
      *
      * Stimulus is a button-14 press/release (50 ms apart) via
      * GamepadState.b(int, boolean). Index 14 is the highest the
@@ -586,6 +974,60 @@ public final class BhVibrationController {
         return new File(dir, READY_MARKER_NAME);
     }
 
+    /**
+     * Java-side replacement for libevshim's "patch winebus, then write marker"
+     * trigger. Called from ensureWinebusDurationPatchOnce once per Wine launch.
+     * Posts a runnable on the worker thread that delete+creates the marker
+     * READINESS_MARKER_DELAY_MS later. The fixed delay is calibrated to
+     * libvfs-client's typical init budget — libevshim itself slept 5 s before
+     * patching, and that's the same window we wait here.
+     *
+     * delete+create guarantees a fresh CREATE inotify event the FileObserver
+     * picks up, even on repeat Wine launches within the same app process
+     * where the marker from the previous launch still exists.
+     *
+     * Idempotent only in the sense that re-firing produces a no-op drain when
+     * no wake-ups are queued. We intentionally do NOT gate this to "only fire
+     * once" — each Wine launch is a fresh winedevice.exe and its libvfs needs
+     * the wake-up trigger fired against the new process's polling loop.
+     */
+    private void scheduleDelayedReadinessMarker(Context ctx) {
+        if (ctx != null && appContext == null) {
+            appContext = ctx.getApplicationContext();
+        }
+        if (appContext == null) {
+            Log.w(TAG, "scheduleDelayedReadinessMarker: no Context, skipping");
+            return;
+        }
+        worker.postDelayed(new Runnable() {
+            @Override public void run() {
+                File marker = readyMarkerFile();
+                if (marker == null) {
+                    Log.w(TAG, "readiness marker: getFilesDir unavailable, skipping");
+                    return;
+                }
+                try {
+                    // delete+create to guarantee a fresh CREATE event even
+                    // when the marker from a prior Wine launch still exists.
+                    if (marker.exists()) {
+                        marker.delete();
+                    }
+                    FileOutputStream fos = new FileOutputStream(marker);
+                    try {
+                        fos.write(("pid=" + android.os.Process.myPid() + "\n").getBytes());
+                    } finally {
+                        fos.close();
+                    }
+                    Log.i(TAG, "wrote readiness marker (Java env-builder + "
+                            + READINESS_MARKER_DELAY_MS + " ms): "
+                            + marker.getAbsolutePath());
+                } catch (Throwable t) {
+                    Log.w(TAG, "readiness marker write failed", t);
+                }
+            }
+        }, READINESS_MARKER_DELAY_MS);
+    }
+
     private void ensureReadinessWatcher() {
         if (readinessWatcherStarted.get()) return;
         Context ctx = appContext;
@@ -599,17 +1041,17 @@ public final class BhVibrationController {
         // valid only for the *current* winedevice process. On a fresh
         // BannerHub launch, the previous marker is meaningless — if we
         // saw it, we'd fire the wake-up before the new winedevice's
-        // libvfs has come up. Force evshim's next write to be a fresh
-        // CREATE event we can trust.
+        // libvfs has come up. Force the next env-builder-triggered write
+        // to be a fresh CREATE event we can trust.
         File staleMarker = new File(dir, READY_MARKER_NAME);
         if (staleMarker.exists()) {
             boolean deleted = staleMarker.delete();
             Log.i(TAG, "deleted stale ready marker (deleted=" + deleted + ")");
         }
 
-        // Watch CREATE (fresh marker after a winedevice respawn — evshim
-        // unlinks before recreating to guarantee this fires) and MODIFY
-        // (in case the unlink races with FileObserver registration).
+        // Watch CREATE (fresh marker after the env-builder hook's delayed
+        // write — we delete+create to guarantee this fires) and MODIFY (in
+        // case the unlink races with FileObserver registration).
         FileObserver fo = new FileObserver(dir.getAbsolutePath(),
                 FileObserver.CREATE | FileObserver.MODIFY | FileObserver.MOVED_TO) {
             @Override public void onEvent(int event, String path) {

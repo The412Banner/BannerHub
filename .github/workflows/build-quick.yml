@@ -413,37 +413,12 @@ jobs:
           print("Settings Import/Export + Vibration patches applied.")
           PYEOF
 
-      - name: Build libevshim.so (guest-side SDL keepalive)
-        run: |
-          set -e
-          # Locate Android NDK
-          NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}"
-          if [ -z "$NDK_HOME" ] || [ ! -d "$NDK_HOME" ]; then
-            NDK_HOME=$(ls -d "${ANDROID_SDK_ROOT}"/ndk/* 2>/dev/null | sort -V | tail -1)
-          fi
-          if [ -z "$NDK_HOME" ] || [ ! -d "$NDK_HOME" ]; then
-            NDK_HOME="${ANDROID_SDK_ROOT}/ndk-bundle"
-          fi
-          echo "Using NDK: $NDK_HOME"
-          # Ensure ninja
-          if ! command -v ninja >/dev/null 2>&1; then
-            sudo apt-get update -qq
-            sudo apt-get install -y ninja-build
-          fi
-          # Configure + build
-          cmake -S native/evshim -B build/evshim \
-            -DCMAKE_TOOLCHAIN_FILE="$NDK_HOME/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-29 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -G Ninja
-          ninja -C build/evshim
-          # Install into apktool tree so apktool b packages it
-          mkdir -p apktool_out/lib/arm64-v8a
-          cp build/evshim/libevshim.so apktool_out/lib/arm64-v8a/libevshim.so
-          chmod 0755 apktool_out/lib/arm64-v8a/libevshim.so
-          file apktool_out/lib/arm64-v8a/libevshim.so
-          ls -la apktool_out/lib/arm64-v8a/libevshim.so
+      # libevshim.so removed: the LD_PRELOAD'd keepalive shim's in-memory
+      # winebus patcher corrupted box64's dynarec (every x86-64/box64 launch
+      # CPU-spun ~60s then the wine process died — v3.7.0 regression).
+      # Replaced by the preload-free on-disk winebus duration patch in
+      # BhVibrationController.ensureWinebusDurationPatchOnce() (ported from
+      # GameNative PR #1214 / TideGear). No extra .so is mapped into Wine.
 
       - name: Apply BhVibration smali patches
         run: |
@@ -533,12 +508,18 @@ jobs:
           # and imports as part of the per-game config bundle. No new sidebar
           # contentType needed; the launch path goes through BhVibrationLambda.
 
-          # Patch 3: EnvironmentController.b(Wine, String) — prepend libevshim.so to LD_PRELOAD.
-          # The shim is preloaded into Wine processes so it can interpose SDL_JoystickRumble
-          # in libSDL2-2.0.so, keeping SDL's internal ~1 s rumble timer perpetually reset.
-          # Without this, sustained rumble cuts out at exactly 1000 ms (SDL auto-expiry sends
-          # OnRumble(0,0) to libvfs.so's VirtualJoystickDesc.Rumble callback, which IPCs
-          # "stop" to the host).
+          # Patch 3: EnvironmentController.b(Wine, String) — preload-free winebus
+          # duration patch trigger (REPLACES the old libevshim LD_PRELOAD inject).
+          # The old approach LD_PRELOAD'd libevshim.so into every Wine subprocess;
+          # its in-memory winebus patcher corrupted box64's dynarec, so every
+          # x86-64/box64 game launch CPU-spun ~60s then the wine process died
+          # (v3.7.0 regression). Instead, fire BhVibrationController.ensure-
+          # WinebusDurationPatchOnce(ctx) here — env builder, just before the
+          # Wine handoff, Context available at p0->a. It scans the files tree
+          # for every winebus.so and rewrites the SDL duration loads on disk
+          # (aarch64 + x86_64), so SDL2's ~1 s rumble auto-expiry never fires.
+          # No extra .so is mapped into Wine. Method self-gates repeat scans;
+          # NO LD_PRELOAD modification. Ported from GameNative PR #1214 (TideGear).
           # Anchor: just before `EnvVars.f("LD_PRELOAD", v1)`, after both branches join.
           patch(
               'apktool_out/smali_classes6/com/winemu/core/controller/EnvironmentController.smali',
@@ -548,29 +529,12 @@ jobs:
               '    :cond_2\n'
               '    :goto_1\n'
               '\n'
-              '    # BH: prepend libevshim.so to LD_PRELOAD list (guest-side SDL keepalive)\n'
+              '    # BH: preload-free winebus duration patch (replaces libevshim LD_PRELOAD)\n'
               '    iget-object v2, p0, Lcom/winemu/core/controller/EnvironmentController;->a:Landroid/content/Context;\n'
-              '    invoke-virtual {v2}, Landroid/content/Context;->getApplicationInfo()Landroid/content/pm/ApplicationInfo;\n'
-              '    move-result-object v2\n'
-              '    iget-object v2, v2, Landroid/content/pm/ApplicationInfo;->nativeLibraryDir:Ljava/lang/String;\n'
-              '    new-instance v3, Ljava/lang/StringBuilder;\n'
-              '    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V\n'
-              '    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;\n'
-              '    const-string v2, "/libevshim.so"\n'
-              '    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;\n'
-              '    invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;\n'
-              '    move-result-object v2\n'
-              '    new-instance v3, Ljava/io/File;\n'
-              '    invoke-direct {v3, v2}, Ljava/io/File;-><init>(Ljava/lang/String;)V\n'
-              '    invoke-virtual {v3}, Ljava/io/File;->exists()Z\n'
-              '    move-result v3\n'
-              '    if-eqz v3, :bh_skip_evshim_preload\n'
-              '    const/4 v3, 0x0\n'
-              '    invoke-interface {v1, v3, v2}, Ljava/util/List;->add(ILjava/lang/Object;)V\n'
-              '    :bh_skip_evshim_preload\n'
+              '    invoke-static {v2}, Lcom/xj/winemu/vibration/BhVibrationController;->ensureWinebusDurationPatchOnce(Landroid/content/Context;)V\n'
               '\n'
               '    const-string v2, "LD_PRELOAD"\n',
-              'EnvironmentController.b(Wine, String): prepend libevshim.so to LD_PRELOAD'
+              'EnvironmentController.b(Wine, String): preload-free winebus duration patch (replaces libevshim LD_PRELOAD)'
           )
 
           # Patch 4: GamepadDevice$Physical.g()V — stop hook.
