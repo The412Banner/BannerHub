@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/The412Banner/BannerHub/releases/latest"><strong>📥 Latest stable: v3.7.3</strong></a>
+  <a href="https://github.com/The412Banner/BannerHub/releases/latest"><strong>📥 Latest stable: v3.7.4</strong></a>
 </p>
 
 **GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, background download service with in-app cross-store download manager, SD card / external storage routing for store game downloads, Winlator HUD overlay (Normal + Extra Detailed + Konkr style with CPU/GPU/RAM/SWAP/temp/per-core metrics), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, community game configs browser, per-game config export/import with Frontend Export, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
@@ -538,7 +538,7 @@ Tap the **gear icon** in the Controls tab to configure pan direction and pinch-t
 
 ### PC Vibration / Rumble
 
-*Thanks to [@TideGear](https://github.com/TideGear) for [PR #80](https://github.com/The412Banner/BannerHub/pull/80) — originally landed on GameNative as PR #1214.*
+*Thanks to [@TideGear](https://github.com/TideGear) for the original feature ([PR #80](https://github.com/The412Banner/BannerHub/pull/80), from [GameNative PR #1214](https://github.com/utkarshdalal/GameNative/pull/1214)) and for the v3.7.4 x86_64 / Box64 compatibility rework ([PR #91](https://github.com/The412Banner/BannerHub/pull/91)).*
 
 Routes Wine's `XInputSetState(slot, low, high)` rumble calls into Android's `VibratorManager` so PC games actually shake your controller.
 
@@ -546,7 +546,7 @@ Routes Wine's `XInputSetState(slot, low, high)` rumble calls into Android's `Vib
 
 - **Independent low/high motors** on dual-motor pads (DualSense, DualShock 4) via `CombinedVibration.startParallel`
 - **Single-motor blend fallback** (`low × 0.80 + high × 0.33`) on 1-motor pads and the phone vibrator
-- **Sustained holds** — a Wine-side LD_PRELOAD shim re-issues `SDL_JoystickRumble` every 500 ms with a 2 s duration so SDL2's 1 s rumble expiration never auto-stops the motor mid-hold
+- **Sustained holds** — *(reworked in v3.7.4)* every `winebus.so` in the container is patched on disk so SDL2's ~1 s rumble auto-expiry never fires, giving continuous rumble for as long as the game asks for it. This replaces the v3.7.0–v3.7.3 `libevshim.so` LD_PRELOAD shim, which mapped an extra library into the Wine process and broke x86_64 / Box64 game launches (see scope notes). No extra library is loaded anymore — same sustained-rumble behavior, no launch regression.
 - **Instant release** on let-go (no phantom-suppression timer)
 - **Multi-controller auto-wake** up to XInput's 4-slot cap, with 200 ms per-slot stagger for clean 3+ controller setups (no button presses required after connect)
 - **Samsung HAL workaround** — 1 ms supersede pulse before `VibratorManager.cancel()`, since Samsung's BT-HID effect path doesn't reliably halt on bare cancel
@@ -567,6 +567,7 @@ Settings live in the stock `pc_g_setting<gameId>` SharedPreferences under `bh_vi
 - **XInput API path only.** Modern PC games using XInput (the standard) get full rumble. The handful of older or niche titles using DirectInput Force-Feedback bypass our hook entirely.
 - **Native-XInput controllers need Bluetooth, not USB.** DualSense and DS4 rumble fine over both. Xbox-style pads and 8BitDo controllers in XInput mode rumble over Bluetooth but NOT over USB — Android's USB-HID driver for XInput devices doesn't expose the rumble feature report path.
 - **Tested setups:** Samsung devices with DualSense (Sony HID), DualShock 4 (Sony HID), and 8BitDo Pro 2 (XInput mode) across single, dual, and triple-controller configurations.
+- **x86_64 / Box64 safe (v3.7.4).** Earlier builds (v3.7.0–v3.7.3) loaded `libevshim.so` into Wine via LD_PRELOAD; on Box64 this corrupted the dynarec and made x86_64 game launches die at startup (`c000007b` / `wine has died`). v3.7.4 removes the preloaded library entirely — x86_64 / Box64 titles now launch normally with rumble intact. arm64 / FEX containers were never affected.
 
 ---
 
@@ -818,6 +819,10 @@ Yes. BannerHub detects the authorization code directly in the redirect URL regar
 **Q: Settings → About → Check Update always says "Already the latest version" — is that broken?**
 
 No, that is intentional. BannerHub is pinned to the GameHub 5.3.5 / `versionCode 78` base so the Steam shopping card stays visible. The upstream GameHub upgrade endpoint now serves 6.0.x builds, and following that prompt would replace BannerHub with stock GameHub. The Check Update row was stubbed in v3.7.1 to read "Already the latest version" unconditionally and never call GameHub's upgrade endpoint. **v3.7.2** extends the stub to the launch-time auto-update dialog (`ApkUpdateUtils.checkUpdate`) which previously popped on every cold start — that surface is now silent as well. Track BannerHub releases via this GitHub repo or Obtainium instead.
+
+**Q: My x86_64 / Box64 games stopped launching on v3.7.0–v3.7.3 — is that fixed?**
+
+Yes, in **v3.7.4**. The v3.7.0 PC Vibration / Rumble feature loaded a helper library (`libevshim.so`) into Wine via LD_PRELOAD. On Box64, mapping that extra library corrupted the dynarec and made x86_64 game launches die at startup (`c000007b` / `wine has died`); arm64 / FEX containers were never affected. v3.7.4 removes the preloaded library entirely and patches `winebus.so` on disk instead, so sustained rumble still works with no library injected. Update to v3.7.4 and affected x86_64 / Box64 titles launch normally again.
 
 ---
 

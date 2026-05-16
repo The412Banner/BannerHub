@@ -7816,6 +7816,16 @@ The dialog UI is built programmatically (no XML layout) to avoid R.id cross-modu
 
 **PR:** [#80](https://github.com/The412Banner/BannerHub/pull/80) (TideGear:Fix-Vibration), merged into main 2026-05-09 as `fb50345`. Originally rebased from GameNative PR [#1214](https://github.com/utkarshdalal/GameNative/pull/1214) by the same author.
 
+> **⚠️ v3.7.4 REWORK (2026-05-16) — preload-free, supersedes the LD_PRELOAD shim described below.**
+> The original sustained-rumble mechanism (`libevshim.so` LD_PRELOAD, see "Sustained rumble — the LD_PRELOAD shim" and the `native/evshim/` files) mapped an extra library into the Wine process. On **Box64** that corrupted the dynarec and made **every x86_64 game launch** die at startup (`c000007b` / `wine has died`); arm64 / FEX containers were never affected.
+> **v3.7.4 fix (TideGear [PR #91](https://github.com/The412Banner/BannerHub/pull/91), "Make Vibration Fix Compatible With x86_64 Containers"; closed 2026-05-16, code adopted into `fix/vibration-preload-free` commit `3434821` → main `9d9a628`):**
+> - **`native/evshim/` deleted** (`evshim.c` + `CMakeLists.txt`); no `libevshim.so` is built or shipped; the `EnvironmentController` smali hook no longer prepends it to `LD_PRELOAD`.
+> - `BhVibrationController.ensureWinebusDurationPatchOnce(Context)` is invoked once per process (smali `invoke-static` at the former `EnvironmentController` LD_PRELOAD anchor). It scans the files tree and patches **every `winebus.so` on disk** so SDL2's ~1 s rumble auto-expiry never fires — no library mapped into Wine, no dynarec corruption.
+>   - **aarch64-unix:** `ldur w3,[x29,#-0x14]; blr x8` → `mov w3,#-1; blr x8`
+>   - **x86_64-unix (Box64):** wildcarded 11-byte call-site; the 3-byte duration load → `or ecx,-1` (`83 C9 FF`) → duration `0xFFFFFFFF`. `movzwl` pair discriminates vs the rumble-*stop* sites (left untouched). Miss-safety: dumps `winebus_dump_x86_64.so` to externalFilesDir for re-derivation on a future Proton.
+> - All other hooks (`onRumble`, `Physical.h/.g`, `GamepadManager.B0`, `GameDetailSettingMenu.W`), the settings dialog, and persistence are **unchanged** — same single feature, reworked. Same continuous-rumble behavior.
+> **Validation:** Dead Cells + ULTRAKILL (Box64 "Extreme") + DOOMBLADE (FEX) clean launches; Dirt 3 (x86_64/Box64) ~26 min session with user-confirmed sustained rumble + zero `evshim` tags + no x86_64 dump fallback; vibration also confirmed manually in-container via **`GameConTest.exe`** (XInput GameController Tester) driving low/high motors on demand. Shipped in **v3.7.4 stable** (2026-05-16).
+
 **Hook point:** `GamepadServerManager.onRumble(slot, low, high)` — GameHub's chokepoint that already normalises any HID controller (DualShock, DS4, Switch Pro, native XInput, etc.) into the XInput-shaped `(low, high)` amplitude pair before our intercept sees it. Routing therefore covers any controller GameHub maps onto an XInput slot, regardless of the controller's underlying protocol.
 
 **Pipeline:**

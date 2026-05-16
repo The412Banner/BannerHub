@@ -4,6 +4,27 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [v3.7.4] — STABLE: preload-free vibration / x86_64 + Box64 launch-death fix (2026-05-16)
+**Tag:** `v3.7.4` (clean stable tag → `build.yml` push trigger → all 9 variants + auto-published GitHub Release)  |  **Tag commit:** `9c3bc0d98` (== device-confirmed `v3.7.4-pre1`; main HEAD, identical 0-ahead/0-behind)
+
+#### What ships
+The preload-free vibration rework, promoted to stable. v3.7.0–v3.7.3 LD_PRELOAD'd `libevshim.so` into Wine for sustained rumble; on Box64 that corrupted the dynarec and killed **every x86_64 game launch** (`c000007b` / `wine has died`). v3.7.4 removes the preloaded library entirely and patches every `winebus.so` on disk so SDL2's ~1 s rumble auto-expiry never fires — same continuous-rumble behavior, no library mapped into Wine, no launch regression. arm64 / FEX containers were never affected.
+
+#### Validation
+Device-verified on the `v3.7.4-pre1` artifact before promotion:
+- **Launch regression cleared:** Dead Cells + ULTRAKILL on Box64 "Extreme", DOOMBLADE on FEX — clean launches, no `c000007b` / crash / dump.
+- **Dirt 3 (x86_64 / Box64) full session + rumble:** clean ~26 min run; user confirmed sustained continuous rumble (not the old ~1 s SDL cutoff). Zero `evshim` tags in the wine log (libevshim fully removed = expected); no `winebus_dump_x86_64.so` written → the x86_64 byte pattern matched this Proton build (the memory-flagged QA risk — PASSED).
+- **Manual in-container rumble check:** vibration also verified directly with **`GameConTest.exe`** run manually inside the container (Microsoft's XInput GameController Tester) — drove low/high motors on demand to confirm the on-disk `winebus.so` patch holds the motor through sustained input rather than relying only on in-game triggers.
+
+#### Credits
+- Original PC-accurate Vibration / Rumble: **[TideGear](https://github.com/TideGear)** — [PR #80](https://github.com/The412Banner/BannerHub/pull/80), from [GameNative PR #1214](https://github.com/utkarshdalal/GameNative/pull/1214).
+- v3.7.4 x86_64 / Box64 preload-free rework: **[TideGear](https://github.com/TideGear)** — [PR #91](https://github.com/The412Banner/BannerHub/pull/91) ("Make Vibration Fix Compatible With x86_64 Containers"); closed 2026-05-16 after its code was adopted directly into `fix/vibration-preload-free` (commit `3434821`, merged to main `9d9a628`) with the author's explicit permission.
+
+#### Stable checklist
+README (header + PC Vibration / Rumble section + scope notes + new FAQ entry), PROGRESS_LOG (this entry), BANNERHUB_MASTER_MAP vibration §, release notes, single `docs(v3.7.4)` commit, tag on it. Pre-release policy resumes after this.
+
+---
+
 ### [v3.7.4-pre1] — Vibration preload-free fix MERGED to main (2026-05-16)
 **Tag:** `v3.7.4-pre1` (clean pre-release → build-quick.yml, artifact-only per pre-release policy — NO GitHub Release)  |  **Merge commit:** `9d9a62821` (`--no-ff` merge of `fix/vibration-preload-free` HEAD `945d4bea2`; feature history `7199d1cb3`→`945d4bea2` preserved)  |  **Diff:** 6 files, +588 / −850 (incl. full deletion of `native/evshim/` — `evshim.c` + `CMakeLists.txt`)
 

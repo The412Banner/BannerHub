@@ -2,49 +2,57 @@
 > **Only install official stable releases** (like this one). Do NOT install pre-releases or raw CI artifacts — pre-release builds use a different package name (`com.tencent.ig`) and cannot be upgraded to stable without uninstalling first.
 
 > [!IMPORTANT]
-> **Notification permission required.** BannerHub will prompt for the **Post Notifications** permission when you start your first Epic, GOG, or Amazon download. You must allow it to receive download progress and completion notifications. Without it, you will not be notified when downloads finish or fail.
+> **Notification permission required.** BannerHub will prompt for the **Post Notifications** permission when you start your first Epic, GOG, or Amazon download. You must allow it to receive download progress and completion notifications.
 
 > [!IMPORTANT]
-> **Files access required for SD card storage.** To save games to your SD card, BannerHub must be granted the **Files and Media** permission. Go to **Android Settings → Apps → BannerHub → Permissions → Files and media** and set it to **Allow management of all files** (or equivalent on your device). Without this permission the SD card toggle will have no effect.
+> **Files access required for SD card storage.** To save games to your SD card, BannerHub must be granted the **Files and Media** permission (**Android Settings → Apps → BannerHub → Permissions → Files and media → Allow management of all files**). Without it the SD card toggle has no effect.
 
-## What's new in v3.7.3
+## What's new in v3.7.4
 
-Two independent reliability fixes, both device-confirmed.
+One focused fix: **PC Vibration / Rumble no longer breaks x86_64 / Box64 game launches.**
 
-### 1. GOG downloads — multi-CDN failover + resumable PARTIAL state
+### The problem (v3.7.0 – v3.7.3)
 
-GOG ships every depot through several CDN endpoints — typically `cdn.gog.com`, `gog-cdn-fastly.gog.com`, `gog-cdn-akamai.gog.com`, and a couple of region-specific mirrors. Up until v3.7.2 BannerHub picked one and abandoned the whole download if that CDN returned 403 / 404 / 5xx on a single file. v3.7.3 fixes this top-to-bottom.
+The PC Vibration / Rumble feature added in v3.7.0 loaded a small helper library, `libevshim.so`, into the Wine process via `LD_PRELOAD` to keep sustained rumble alive (SDL2 otherwise auto-stops the motor after ~1 second). That worked on arm64 / FEX containers — but on **Box64**, mapping that extra library into the game's address space corrupted the dynarec and made **every x86_64 game launch die at startup** with `c000007b` / `wine has died`. If you ran x86_64 titles under Box64 on v3.7.0–v3.7.3, this is the regression that was killing your games.
 
-- **Automatic failover.** Each file probes every CDN advertised in the depot manifest in order; the first one that succeeds wins. A single bad endpoint no longer kills the install.
-- **CDN picker on the install dialog.** A new "CDN" row sits alongside size and storage on the install-confirm dialog. Leave it on **Auto** (default) for round-robin failover, or pin a specific CDN if your network plays better with one — useful when an ISP throttles a particular hostname or when GOG's own routing sends you to a degraded edge.
-- **↻ Refresh button.** Tap the refresh icon on the picker to re-fetch the live CDN list from GOG without dismissing the dialog. Use this if you opened the dialog, walked away for a while, and CDNs have rotated.
-- **PARTIAL install state.** When a download is interrupted (cancel, kill, OOM, network drop), BannerHub now records `gog_state_<gameId>=PARTIAL` with the in-flight file index + byte offset. Re-tapping install picks up from the same point instead of starting over. All three GOG UIs (library list, library grid, game-detail dialog) now share one install-state model — the checkmark / Add Game / Resume affordances are consistent everywhere.
-- **Diagnostic toast.** When a file does fail across every CDN, the error toast now names the file, the last CDN tried, and the HTTP code. The same line is also appended to `bh_gog_debug.txt` (in your app's external files directory) so you can copy-paste an exact failure into a bug report.
+### The fix (v3.7.4) — preload-free
 
-**Device-confirmed during pre-release testing:** POSTAL 2 (multi-CDN fallback survived a single-CDN failure mid-install), Citadel Remonstered (468/468 files clean on Auto), CDN picker UI, ↻ Refresh button.
+v3.7.4 removes `libevshim.so` entirely. **No extra library is mapped into Wine anymore**, so the crash class is eliminated. Sustained rumble is preserved by patching every `winebus.so` in the container **on disk** so SDL2's ~1 s rumble auto-expiry never fires:
 
-### 2. AI Frame Generation — resume reliability + cleaner gear dialog
+- **aarch64-unix** and **x86_64-unix (Box64)** byte patterns are both handled, with the rumble-*stop* call sites left untouched so release-on-let-go still works.
+- Safety net: if the x86_64 pattern ever misses on a future Proton, the unmatched `winebus.so` is dumped to the app's external files directory for re-derivation rather than failing silently.
+- Everything else about the feature is unchanged — independent low/high motors, single-motor blend, instant release, multi-controller auto-wake, the per-game **PC Vibration Settings** dialog, and Export/Import config. Same continuous-rumble behavior, no library injected, no launch regression.
 
-Three issues from v3.7.0 / v3.7.1 / v3.7.2 are addressed in one bundle.
+### Validation
 
-- **Frame-gen no longer "lies" after resume.** Previously, the `gamescope.control` bytes were only written on first launch. Pressing Home or locking the screen and resuming the game left the sidebar switch saying **ON** while the AI overlay was silently dead — your FPS would drop back to native without the switch ever changing state. The launch hook now also runs on `WineActivity.onResume`, so the overlay survives every backgrounding cycle. If the sidebar switch says ON, AI frame generation is **actually on**.
-- **Gear icon hides when the switch is OFF.** The gear button next to the sidebar switch now defaults to hidden and only appears when AI Frame Generation is enabled. Matches the existing pattern used by RTS controls in the same sidebar.
-- **Dialog cleanup — game view stays visible.** The settings dialog no longer paints a full-screen black background over your game. It now uses Android's translucent dim with the game rendering live underneath at 60% dim, the same way native system dialogs look. The dialog has three controls — Preset slider, Custom flow scale slider, and a blue **Close** button — and tap-outside also dismisses. The multiplier picker is gone (it was always 2× on tested hardware anyway; the value is now hardcoded) and the redundant in-dialog Enable switch is gone (the sidebar switch is the single source of truth). Net result: faster to operate, easier on the eyes, no behavior loss.
+Device-verified before promotion:
+
+- **Launch regression cleared:** Dead Cells and ULTRAKILL launch cleanly on **Box64 "Extreme"**, DOOMBLADE on **FEX** — no `c000007b`, no crash, no dump.
+- **Dirt 3** (x86_64 / Box64): a clean **~26-minute** session with **sustained continuous rumble** confirmed in-game (no more ~1 s SDL cutoff). Wine log showed zero `evshim` tags (library fully removed, as expected) and no x86_64 dump fallback — the on-disk pattern matched this Proton build.
+- **Manual in-container check:** rumble was also tested directly by running **`GameConTest.exe`** (Microsoft's XInput GameController Tester) manually inside the container, driving the low and high motors on demand to confirm the on-disk `winebus.so` patch holds the motor through sustained input independent of any specific game.
 
 ## Upgrading
 
-- **v3.7.2 → v3.7.3:** install the matching variant directly over your existing install. No certificate change, no data loss. GOG library + install state are preserved (`bh_gog_prefs` keys are forward-compatible — old completed installs read as `INSTALLED`, no migration needed). FrameGen settings (`bh_framegen.xml`) carry over; the removed `multiplier` key is simply ignored.
-- **v3.7.1 or earlier → v3.7.3:** install normally. If the signing certificate differs, uninstall first.
+- **v3.7.x → v3.7.4:** install the matching variant directly over your existing install. No certificate change, no data loss. All vibration settings (`bh_vibration_*` in `pc_g_setting<gameId>`) carry over untouched.
+- **Earlier → v3.7.4:** install normally. If the signing certificate differs, uninstall first.
 - Variants with different package names cannot replace each other in-place.
 
 ## Credits
 
-- **GOG download reliability overhaul** ported from upstream [`utkarshdalal/GameNative`](https://github.com/utkarshdalal/GameNative): multi-CDN [PR #1220](https://github.com/utkarshdalal/GameNative/pull/1220) + [PR #1219](https://github.com/utkarshdalal/GameNative/pull/1219) by **Utkarsh Dalal** (with co-author **Jeremy Bernstein** on #1219), CDN picker [PR #1215](https://github.com/utkarshdalal/GameNative/pull/1215) by **Bart Zaalberg**, install-state PARTIAL [PR #1277](https://github.com/utkarshdalal/GameNative/pull/1277) by **Joshua Tam**.
-- **AI Frame Generation onResume + dialog cleanup** ported from [Bannerhub-Lite PR #5](https://github.com/The412Banner/Bannerhub-Lite/pull/5) by **[teldommm](https://github.com/teldommm)**.
-- All v3.7.0 features (AI Frame Generation engine itself by the **GameHub team**, PC-accurate Vibration / Rumble by [TideGear](https://github.com/TideGear) via [GameNative PR #1214](https://github.com/utkarshdalal/GameNative/pull/1214)) remain active.
+- **PC-accurate Vibration / Rumble** — original feature by **[TideGear](https://github.com/TideGear)** via [PR #80](https://github.com/The412Banner/BannerHub/pull/80), rebased from [GameNative PR #1214](https://github.com/utkarshdalal/GameNative/pull/1214) by the same author.
+- **v3.7.4 x86_64 / Box64 preload-free rework** — also by **[TideGear](https://github.com/TideGear)**, contributed as [PR #91 "Make Vibration Fix Compatible With x86_64 Containers"](https://github.com/The412Banner/BannerHub/pull/91). The PR was closed on 2026-05-16 after its code was adopted directly into BannerHub with TideGear's explicit permission.
+- AI Frame Generation engine by the **GameHub team**; the v3.7.3 GOG reliability overhaul ported from [`utkarshdalal/GameNative`](https://github.com/utkarshdalal/GameNative). All v3.7.x features remain active.
 
 **Please go support GameNative: https://github.com/utkarshdalal/GameNative**
 
+## Community Game Configs
+
+The in-app Community Game Configs browser currently serves **1,321 games** with **4,840 device-specific configs** contributed by the community.
+
+## Installation
+
+See https://github.com/The412Banner/BannerHub#installation for CPU/variant selection and step-by-step setup.
+
 ---
 
-For details on the v3.7.0 baseline (AI Frame Generation menu, PC Vibration / Rumble), see the [v3.7.0 release notes](https://github.com/The412Banner/BannerHub/releases/tag/v3.7.0). For the v3.7.1 / v3.7.2 upgrade-prompt stubs, see the [v3.7.1](https://github.com/The412Banner/BannerHub/releases/tag/v3.7.1) and [v3.7.2](https://github.com/The412Banner/BannerHub/releases/tag/v3.7.2) release notes.
+For the v3.7.0 baseline (AI Frame Generation menu, PC Vibration / Rumble) see the [v3.7.0 release notes](https://github.com/The412Banner/BannerHub/releases/tag/v3.7.0); for the GOG multi-CDN overhaul + FrameGen onResume fix see [v3.7.3](https://github.com/The412Banner/BannerHub/releases/tag/v3.7.3).
