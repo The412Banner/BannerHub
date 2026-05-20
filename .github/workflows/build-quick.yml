@@ -671,6 +671,42 @@ jobs:
               'GameConfigDownloadTask.executeInternal: early-return Unit when NetworkUtils.r() is false'
           )
 
+          # SetGameRecommConfigTask reads the GameEnvConfigEntity from SetupTaskContext;
+          # since GameConfigDownloadTask is now skipped offline, the entity is null and
+          # SetGameRecommConfigTask would throw IllegalStateException("Game environment
+          # config not found in context"). Skip this task offline too — the previously-
+          # applied recommended config persists in the on-disk container, so the prior
+          # online setup is what launches.
+          # v1 is the coroutine label int, just consumed by `if-eqz v1, :cond_4` (known
+          # to be 0 on this branch), and is not used again before being reassigned
+          # downstream — safe to reuse.
+          patch(
+              'apktool_out/smali_classes12/com/xj/winemu/setup/tasks/SetGameRecommConfigTask.smali',
+              '    :cond_4\n'
+              '    invoke-static {p2}, Lkotlin/ResultKt;->b(Ljava/lang/Object;)V\n'
+              '\n'
+              '    .line 96\n'
+              '    .line 97\n'
+              '    .line 98\n'
+              '    iget-object p2, p0, Lcom/xj/winemu/setup/tasks/SetGameRecommConfigTask;->e:Lcom/xj/winemu/setup/core/SetupTaskContext;\n',
+              '    :cond_4\n'
+              '    invoke-static {p2}, Lkotlin/ResultKt;->b(Ljava/lang/Object;)V\n'
+              '\n'
+              '    # BannerHub: skip recommended-config when offline so imported PC games launch with last-known setup\n'
+              '    invoke-static {}, Lcom/blankj/utilcode/util/NetworkUtils;->r()Z\n'
+              '    move-result v1\n'
+              '    if-nez v1, :bh_offline_continue\n'
+              '    sget-object v1, Lkotlin/Unit;->a:Lkotlin/Unit;\n'
+              '    return-object v1\n'
+              '    :bh_offline_continue\n'
+              '\n'
+              '    .line 96\n'
+              '    .line 97\n'
+              '    .line 98\n'
+              '    iget-object p2, p0, Lcom/xj/winemu/setup/tasks/SetGameRecommConfigTask;->e:Lcom/xj/winemu/setup/core/SetupTaskContext;\n',
+              'SetGameRecommConfigTask.executeInternal: early-return Unit when NetworkUtils.r() is false'
+          )
+
           print("Offline Launch patch applied.")
           PYEOF
 

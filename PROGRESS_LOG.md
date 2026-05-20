@@ -33,6 +33,21 @@ Patch is anchor-based python (matches the established BannerHub style — Stub U
 - Pre-release per [[feedback_bannerhub_prerelease]] — v3.7.5-pre1 artifact-only, no GH Release.
 - Device test plan: airplane-mode an imported PC game that previously launched online; expect Wine to boot and the game to start without the `Game configuration file download failed` toast. Sanity-check on a Steam game offline too (should remain working).
 
+### Iteration: pre1 device test surfaced a second offline failure → pre2 fix
+
+Device test of v3.7.5-pre1 (GTA V on airplane mode) cleared the `Game configuration file download failed` toast (initial patch worked), but the next setup task `SetGameRecommConfigTask` then failed with `Task 'Set Game Recommended Config' failed`. Root cause: `SetGameRecommConfigTask.executeInternal` reads the `GameEnvConfigEntity` from `SetupTaskContext.a()` and throws `IllegalStateException("Game environment config not found in context")` when null — but the entity is only ever populated by `GameConfigDownloadTask`, which we now skip offline. So the second task always fails offline.
+
+Same fix pattern, applied at the start of `SetGameRecommConfigTask.executeInternal`'s label-0 entry (`:cond_4` / `ResultKt.b(p2)` / `iget-object p2 ...->e:SetupTaskContext`): `NetworkUtils.r()` → if false, `return-object Lkotlin/Unit;->a` immediately. Register reuse: `v1` here (it's the coroutine label int, just consumed by the dispatch `if-eqz v1, :cond_4` so it's known to be 0 on this branch). The already-applied recommended config persists in the on-disk container from the prior online launch, so skipping is safe.
+
+Patch added to the same `Apply Offline Launch smali patch` step in both `build.yml` and `build-quick.yml`. Anchor uniqueness verified (only one `:cond_4` in the file).
+
+Downstream tasks in `SetupTaskFactory.g()` (PC-game setup list) after SetGameRecommConfigTask are: `ImageFsInstallTask`, `ContainerInstallTask`, `ComponentsInstallTask`, `DependencyInstallTask`. These are install-from-disk tasks — each should short-circuit when its target is already present (which it must be, since the game launched online before). If pre2 surfaces a third failure, we patch that task next; the pattern is the same.
+
+### Status (post-iter)
+
+- Branch HEAD will be updated post-commit.
+- Device test target: same as before. Will iterate if more tasks need the offline skip.
+
 ---
 
 ### [v3.7.4] — STABLE: preload-free vibration / x86_64 + Box64 launch-death fix (2026-05-16)
