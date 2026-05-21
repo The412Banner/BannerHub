@@ -14601,7 +14601,7 @@ The following URLs appear in license files, open-source attribution notices, and
 
 ---
 
-## §414 — Offline Launch Patch (v3.7.5)
+## §414 — Offline Launch Patch (v3.7.5, SHIPPED 2026-05-20)
 
 **Patched class:** `apktool_out_base/smali_classes8/com/xj/winemu/setup/tasks/GameConfigDownloadTask.smali` (also `apktool_out/...` in `build-quick.yml`).
 

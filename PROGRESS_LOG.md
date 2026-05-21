@@ -4,6 +4,29 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [v3.7.5] — STABLE: offline launch for imported PC games (2026-05-20)
+**Tag:** `v3.7.5` — clean stable tag → `build.yml` push trigger → all 9 variants + auto-published GitHub Release  |  **Tag commit:** `2301cb585` (merge of `fix/offline-launch-imported-games` into main, device-verified on GTA V)
+
+#### What ships
+With device in airplane mode (or any no-network state), launching any previously-online-launched imported PC game now succeeds — Wine boots from on-disk components/container and the game runs. Pre-3.7.5 the launch aborted at the first setup task with a `Game configuration file download failed` toast. The fix gates three of the five PC-emu setup tasks on `NetworkUtils.r()`: when offline, `GameConfigDownloadTask` early-returns Unit; `SetGameRecommConfigTask` and `DependencyInstallTask` are omitted from the launch task list by `SetupTaskFactory.g()`. The remaining three tasks (`ImageFsInstallTask`, `ContainerInstallTask`, `ComponentsInstallTask`) already short-circuit on disk-present, so the offline task list completes successfully from cache. Steam library games' offline behavior is unchanged (they already had a partial offline bypass in `SteamGameByPcEmuLaunchStrategy$execute$3.smali`); this fix complements it for the other four `InstalledGameSource` variants (`PcGameHubMgrImport`, `LocalImport`, `GameHubSvrDownload`, `UnKnow`).
+
+#### Validation
+- **Pre1 → pre4 iteration on device.** Each pre artifact surfaced exactly one new offline failure (`Game configuration file download failed` → `Set Game Recommended Config failed` → `Install Dependencies failed`); each was retired by the next pre. Pre4 launched cleanly.
+- **Online behavior verified byte-equivalent to stock 3.7.4 by patch review** — all three patches are pure additions wrapped in `if NetworkUtils.r() == online: original; else: skip`. The online branch executes the original instructions unchanged. Confirmed by local apply+diff that zero original lines are removed from either file.
+- **Self-healing:** when the user comes back online, the next launch hits the full pipeline and re-syncs any server-pushed recommendations or dep version bumps. The offline window doesn't accumulate drift.
+
+#### Known limitations
+1. **First-ever offline launch of a never-set-up game still fails** — DependencyInstallTask was the only network-dep task in the list, but `ComponentsInstallTask` / `ContainerInstallTask` will fail if their target isn't on disk yet. Only the "second-and-later offline launch" case is fixed.
+2. **Stale-config risk** if a per-game setting changes (Box64 variant, container, etc.) and the next launch is offline — the offline launch uses the previous on-disk setup. Workaround: relaunch once online after changing settings.
+3. **Server-pushed component recommendations skipped offline** — practical impact nil for steady-state games; new-release tuning defers to the next online launch.
+
+#### Implementation notes
+- 3 smali patches applied via python anchor matching in `.github/workflows/build.yml` (prepare job, `apktool_out_base/`) and `.github/workflows/build-quick.yml` (`apktool_out/`).
+- `SetGameRecommConfigTask.smali` lives in `smali_classes12/` which BannerHub's build deliberately removes and replaces with the prebuilt `classes12.dex` from the source APK (dex-index-limit workaround). Direct task-level patch failed CI as `FileNotFoundError`; pivoted to factory-level skip in `smali_classes2/`. Captured in [[feedback-bannerhub-smali-classes12-rebuilt]] as a permanent gotcha for future patches.
+- Detailed history below; master map §414.
+
+---
+
 ## 2026-05-20 — Offline launch for imported PC games (v3.7.5 target)
 
 User report against stable v3.7.4: with the device in airplane mode / no internet, launching any imported PC game fails with the toast `Game configuration file download failed: ...` (Compose Resources key `setup_exception_game_config_download_failed`). Steam library games launch fine offline because `SteamGameByPcEmuLaunchStrategy$execute$3.smali` already carries a no-network short-circuit around the login step (line ~692), but the other four `InstalledGameSource` variants (`PcGameHubMgrImport`, `LocalImport`, `GameHubSvrDownload`, `UnKnow`) have no equivalent.
