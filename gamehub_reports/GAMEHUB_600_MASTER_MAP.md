@@ -1,7 +1,7 @@
 # GameHub 6.0.4 — Master APK Map
 
 **Generated:** 2026-05-01 (against 6.0.0)
-**Last revised:** 2026-05-19 — firmware section synced to deployed Worker: 1.3.7 → 1.3.8 (`2d88572`, 2026-05-14) → 1.4.1 (`5dc29a9`, 2026-05-15); the retired "5.x stays on 1.3.3" split removed (5.x + 6.0 now in 7-site lockstep on 1.4.1). Prior revision 2026-05-13 — added § 26.23 (Renderer Rewrite — GLES2 → Vulkan, byte-level libxserver.so + libwinemu.so 6.0.2 vs 6.0.4 diff) and expanded the § 26.20 size table with a 6.0.2 column + the two render libs. Previous full refresh 2026-05-12: 9 parallel verification passes against `gh604.apk` (versionCode 114) re-derived every R8 class letter, re-counted every field/enum/permission, and folded 6.0.2 / 6.0.3 / 6.0.4 deltas into § 26. Previous baseline (6.0.0 / 6.0.1) retained at `GAMEHUB_600_MASTER_MAP.backup-2026-05-12.md`.
+**Last revised:** 2026-06-01 — added § 26.24 (In-Wine OpenGL path = Mesa Zink → Vulkan ONLY; imagefs ships only `zink_dri.so`, app forces `GALLIUM_DRIVER=zink` at `bg5.java:240`). Explicitly disambiguated from § 26.23 (compositor blit renderer). Prior revision 2026-05-19 — firmware section synced to deployed Worker: 1.3.7 → 1.3.8 (`2d88572`, 2026-05-14) → 1.4.1 (`5dc29a9`, 2026-05-15); the retired "5.x stays on 1.3.3" split removed (5.x + 6.0 now in 7-site lockstep on 1.4.1). Prior revision 2026-05-13 — added § 26.23 (Renderer Rewrite — GLES2 → Vulkan, byte-level libxserver.so + libwinemu.so 6.0.2 vs 6.0.4 diff) and expanded the § 26.20 size table with a 6.0.2 column + the two render libs. Previous full refresh 2026-05-12: 9 parallel verification passes against `gh604.apk` (versionCode 114) re-derived every R8 class letter, re-counted every field/enum/permission, and folded 6.0.2 / 6.0.3 / 6.0.4 deltas into § 26. Previous baseline (6.0.0 / 6.0.1) retained at `GAMEHUB_600_MASTER_MAP.backup-2026-05-12.md`.
 **Source APK:** `gh604.apk` (versionCode 114, versionName 6.0.4, r8-map-id `6a5cde6143fc8cf76f6f3a447d0fececd4794d83066e6ead7a9537e6527b057b`) — primary; `GameHub_6.0.1.apk` (versionCode 111, r8-map-id `1c1886510d561c4653513192b80f6aeca10d1a5fcff2e7c8e7498396fe52a4ea`) — diff baseline; `GameHub_beta_6.0.0_global.apk` (versionCode 110) — original survey baseline.
 **Tools:** apktool 2.12.1 + jadx
 **Coverage:** 32 iterative passes against 6.0.0 (2026-05-01/03) + 18 angle-pass scans against 6.0.1 for § 26 expansion (2026-05-07) + 9 parallel section refreshes against 6.0.4 (2026-05-12). 6.0.2 and 6.0.3 (versionCodes 112, 113) were NOT separately decompiled — intermediate point-release timing of individual 6.0.1→6.0.4 deltas is unknown. Pass detail at § 25.
@@ -91,6 +91,7 @@
     - 26.21 Manifest Correction (USB host)
     - 26.22 Additional Sidebar Features — incl. new 6.0.4 `winemu_sidebar_touch_input_right_stick_sensitivity`
     - 26.23 Renderer Rewrite — GLES2 → Vulkan (libxserver.so + libwinemu.so 6.0.2 vs 6.0.4, byte-level)
+    - 26.24 In-Wine OpenGL path — Mesa Zink → Vulkan ONLY (imagefs + bg5.java env, verified 2026-06-01)
 27. 6.0.1 → 6.0.4 Component-Install Focus (added 2026-05-12)
     - 27.1 APK Identity bump (versionCode 111 → 114, new r8-map-id)
     - 27.2 Component-install pipeline — R8 letter remap (`Lltn;` → `Lj7o;`, with new backend `Lmyo`)
@@ -3699,6 +3700,62 @@ Roughly 2.3% of the 6.0.2 string set was discarded and 3.4% was new in 6.0.4 —
 **Scope caveat:** the table above is byte-exact for 6.0.2→6.0.4. Broader app-level deltas (versionCode 111→114, minSdk 31→29, +2 BT perms, libsteamkit_core 10.0→10.9 MB, DEX 53,053→53,766, com.winemu.* reshuffle, AppNavKey 119→79, EnvLayerEntity 19→21, ComponentType 7→8, grown data classes, 2 new strings) are accurate only as **6.0.1 → 6.0.4** — 6.0.2/6.0.3 (versionCodes 112/113) were never separately decompiled, so no app-level item can be pinned specifically to "6.0.2 vs 6.0.4". See § 27 + the TL;DR. Mirrored in memory `reference_gamehub_602_vs_604.md`.
 
 ---
+### 26.24 — In-Wine OpenGL path: Mesa Zink → Vulkan ONLY (added 2026-06-01)
+
+**Critical layering note — do NOT conflate this with § 26.23.** § 26.23 is about the *compositor / blit* renderer in `libxserver.so` (how the in-imagefs X server presents the finished framebuffer to the Android `Surface` — that path went GLES2→Vulkan in 6.0.4). **This section is a different layer:** how a *Windows application's* own OpenGL calls reach the GPU. The two are independent — a DX/GL game's draw calls and the final desktop blit-to-Android are separate stages of the same frame.
+
+**Headline:** GameHub 6.0.4 has **no native and no GLES rendering path for Windows games' OpenGL**. In-Wine OpenGL is served **exclusively by Mesa Zink** (an OpenGL-over-Vulkan Gallium driver). Full chain:
+
+```
+Win game → opengl32.dll (Wine, in wineprefix) → Mesa libGL → Gallium → zink_dri.so → Vulkan → Turnip (libvulkan_freedreno) → Adreno
+```
+
+So OpenGL is just another client of Vulkan, exactly like DXVK (D3D9/10/11) and VKD3D (D3D12). `glGetString(GL_RENDERER)` returns **`MESA ZINK`**; `GL_VENDOR` = Mesa. There is no Adreno GL/GLES driver in the loop.
+
+#### 26.24.1 imagefs evidence (firmware 1.4.1 / `imagefs_141.zst`)
+
+The Linux rootfs ships exactly **one** Gallium DRI driver — Zink. Verified by `tar -tf`:
+
+```
+./usr/lib/dri/zink_dri.so          ← the ONLY real DRI driver
+./usr/lib/dri/libdril_dri.so       ← Mesa unified DRI loader stub (megadriver)
+./usr/lib/libgallium-25.1.4.so     ← Mesa 25.1.4
+./usr/lib/libGL.so.1.7.0 + libGLX_mesa.so + libGLdispatch + libOpenGL.so   ← Mesa libglvnd stack
+./usr/lib/libEGL.so.1 + libGLESv2.so + libGLESv1_CM.so                     ← Mesa GLES entrypoints (same Zink backend; NOT the Adreno GLES driver)
+```
+
+**No `swrast_dri.so`, no `llvmpipe`, no `virgl`/`virtio_gpu`, no native Adreno GL DRI.** Mesa's loader has literally one driver it can load — so even autodetect (DRM probe fails on Android) resolves to Zink. The `libGLESv2/v1_CM` libs exist but are Mesa's GLES API surface riding the same Zink→Vulkan backend; they are **not** a hardware GLES path and aren't what desktop GL games use.
+
+#### 26.24.2 App-side hard selection of Zink (`bg5.java:234-240`)
+
+Zink isn't left to autodetect — the per-game Wine launch env builder forces it. In `realbh` decompile `jx6/sources/defpackage/bg5.java` (the `EnvVars` populator, runs for every container launch):
+
+```java
+envVars.a("ZINK_DESCRIPTORS", "lazy");              // line 234
+BhGpuSpoofController.applyGpuSpoof(envVars);          // 235 (our injection)
+envVars.a("ZINK_DEBUG", "compact");                  // 236
+envVars.a("MESA_SHADER_CACHE_DISABLE", "false");     // 237
+envVars.a("MESA_SHADER_CACHE_MAX_SIZE", "512MB");    // 238
+envVars.a("mesa_glthread", "true");                  // 239
+envVars.a("GALLIUM_DRIVER", "zink");                 // 240 ← forces Zink
+```
+
+Same block also sets VKD3D (`VKD3D_FEATURE_LEVEL=12_0`, `VKD3D_SHADER_MODEL=6_6`), MangoHud, ReShade, CPU affinity, and `GAMESCOPE_SURFACE_USING_BGRA`. The DXVK config file (`dxvk.conf`) is written separately just above (line 225-228). `mesa_glthread=true` + a 512 MB on-disk shader cache are Zink-throughput tuning.
+
+#### 26.24.3 Consequences / performance
+
+- Measured via the AIO Graphics Test (`project_aio_graphics_test`) on Adreno 750: **OpenGL ~519 avg FPS** in a 15 s benchmark vs **DXVK D3D11 ~3192** / VKD3D D3D12 ~3032. The GL deficit is the path, not the GPU — Zink is a more general GL→VK translator than DXVK's D3D→VK, and the test cube was fixed-function GL 1.1 (worst case for Zink).
+- A Windows game that auto-selects "OpenGL" as its render API will run *worse* than the same game on D3D (DXVK), because the latter is the more mature VK translator. Where a game offers both, prefer the D3D backend.
+- This is the substrate behind the shelved per-container "Renderer" picker (`project_star_renderer_option`): the shipped Mesa is **Zink-only**; VirGL / LLVMpipe would each need a separate Mesa build added to `usr/lib/dri/`.
+
+#### 26.24.4 Cross-references
+
+- § 26.23 (libxserver compositor renderer — the *other* Vulkan layer; do not conflate). Note esp. § 26.23.8's "121 GLX `gl*` symbols" caveat — those are the X server's GLX-over-X dispatch (the protocol that carries in-Wine GL to/through the X server), **not** a GLES2 renderer and **not** Zink itself.
+- § 26.8 / § 9.x (libGameScopeVK / Turnip / `VK_NV_optical_flow`) — the Vulkan/Turnip layer that Zink, DXVK and VKD3D all ultimately feed.
+- Memory: `reference_gamehub_604_opengl_zink_path`, `project_star_renderer_option`, `project_aio_graphics_test`.
+- Verified 2026-06-01: `tar --use-compress-program=zstd -tf imagefs_141.zst | grep dri/` (one driver: zink) + `grep -n GALLIUM_DRIVER realbh/jx6/sources/defpackage/bg5.java`.
+
+---
 ## 27. 6.0.1 → 6.0.4 Deltas — Component-Install Focus (added 2026-05-12)
 
 Verified against `/data/data/com.termux/files/home/gamehub_604_decompile/` (apktool d of `gh604.apk`, versionCode 114 / versionName 6.0.4). **Headline:** component-install code paths are byte-for-byte identical to 6.0.1; the only changes are an R8 letter reshuffle and two new sidebar strings unrelated to install. The component pipeline does not appear to be a 6.0.2/6.0.3/6.0.4 development area.
@@ -3823,3 +3880,87 @@ Worker `getComponentList`/`getContainerList` do **not** sort — they serve the 
 ### 28.7 Working fix (shipped)
 
 `offlineComponentListPatch` (merged `gamehub-604-build` `dbd7554`, CI-validated run 26065842384 0 SEVERE): replace `gof.a` body → `OfflineComponentList.dispatch` (offline → `n55(List)` from `sp_winemu_unified_resources` `COMPONENT:` filtered by `ComponentType.type`; online/fail → reflective `gof.b`); `gof.c` index-0 conditional short-circuit → `getContainers()` (`CONTAINER:`); `OfflineComponentOrder` catalog-rank stable sort; fail-safe throughout. Device-confirmed (DXVK/GPU/VKD3D/FEX + Wine/Proton populate offline, correctly ordered; online byte-identical).
+
+---
+
+## 29. Game library Room DB — `db_game_library.db` schema (added 2026-05-20)
+
+Established by the bannerhub-revanced *Show Game ID menu row + View All Games dialog* feature (`feature/menu-gameid-display`, merged `gamehub-604-build` `090706e`, Lite back-merged `09fa1d8`, CI run 26183100272 ✅ 9 variants 0 SEVERE, device-confirmed). Documents the GameHub-side library catalog that 6.0.4 actually reads from — and that the External Launcher's `app_nav_game_id` integer matches.
+
+### 29.1 File location
+
+```
+/data/data/<variant_pkg>/databases/db_game_library.db
+                                   db_game_library.db-shm
+                                   db_game_library.db-wal
+                                   db_game_library.db.lck
+```
+
+Room-backed (WAL mode). The corresponding `_Impl` class **is not visible under any recognisable name** in the smali tree — `grep -l "_Impl\$createOpenDelegate" smali_classes*/` only surfaces `psplay/AppDatabase_Impl`, `movingrtc/SpeedTurnDatabase_Impl`, `movingrtc/RtcStateDatabase_Impl`. The GameLibrary Room class is R8-renamed and not detectable from smali class names alone. Search by **on-disk file**, not by class name.
+
+Per variant pkg:
+- `banner.hub` (full) — confirmed present and populated on 2026-05-20 (4 rows)
+- `gamehub.lite` (Lite-Normal-GHL) — confirmed present and populated
+- `com.antutu.benchmark.full` (alt-AnTuTu) — same Room code path; assume same DB name
+- `com.xiaoji.egggame.redmagic` (OEM build) — does **not** ship `db_game_library.db`; OEM variant uses a different storage stack (the redmagic install on the same device has `AndroidAria.db`, `ua.db`, `ua__main_.db`, `umeng_zero_cache.db`, `ux_db` — none are the library catalog). Don't assume vanilla GameHub OEM builds use this schema.
+
+### 29.2 Schema — table `t_game_library_base` (43 columns)
+
+`CREATE TABLE` (excerpted, full DDL captured live via python sqlite3 + `getlog --cat`):
+
+```
+_id                       INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+id                        TEXT    NOT NULL
+user_id                   TEXT    NOT NULL
+server_game_id            INTEGER NOT NULL
+steam_app_id              TEXT    NOT NULL DEFAULT ''
+extension_type            INTEGER NOT NULL
+extension_data            TEXT    NOT NULL DEFAULT ''
+launch_method_id          INTEGER NOT NULL
+game_name                 TEXT    NOT NULL DEFAULT ''
+cover_image / cover_ver_image / logo / icon_url / back_image / screenshot / video_url / game_video_list / square_image
+description / ai_desc / other_desc / remark / age_rating
+company / developer / publisher
+release_date / release_date_timestamp / size / from / source_type / source_id
+epic_app_name             TEXT    NOT NULL DEFAULT ''
+platforms                 TEXT    NOT NULL DEFAULT ''
+game_category / game_tag / game_lang / game_startup_params / game_source
+create_time / modify_time / last_launch_time   (INTEGER, nullable)
+```
+
+**Identity columns (the relevant ones for cross-feature work):**
+- `_id` — Room autoincrement, internal only.
+- `id` (TEXT) — the per-row GUID GameHub uses internally. Prefix-tagged by source: `local_<...>` (PC-import), `gog_<...>`, `epic_<...>` (the 32-char hex UUID = `epic_app_name`). **Not numeric-parseable** — DeepLinkActivity's `Liml;->t0(radix=10, String)` will throw if you hand it `id` directly.
+- `server_game_id` (INTEGER) — the catalog-server-assigned numeric id. **This is the only universally-numeric handle** for a row, and the one the deep-link dispatch parses. PC-imports get an actual server-assigned int (e.g. God of War = `49908`, PRAGMATA = `135805`); Steam-library rows have `server_game_id == steam_app_id` (Brawlhalla = `291550`); locally-added non-server games can have `server_game_id = -1` (Blur observed). Epic-library rows often have `server_game_id = 0` — a "no catalog id" sentinel — and are not addressable by `server_game_id`.
+- `steam_app_id` (TEXT) — populated when `source_type = 1`. Numerically equals `server_game_id` for these rows.
+- `epic_app_name` (TEXT) — populated when `source_type = 2`. The 32-char hex Epic UUID, also stored in `id` as `epic_<...>`.
+
+`source_type` enum (observed empirically):
+- `0` — PC-imported
+- `1` — Steam-library
+- `2` — Epic-library
+- (GOG-imported rows = `id` starts with `gog_`, `server_game_id = 0`)
+
+### 29.3 Sibling tables
+
+- **`t_game_launch_method`** — per-row launch methods. Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT, linked_game_id TEXT, start_type INTEGER, start_name TEXT, start_icon / start_e_icon / start_s_icon / new_icon / new_c_icon TEXT, is_auto_game INTEGER, last_use_time INTEGER, extension_data TEXT`. `linked_game_id` references `t_game_library_base.id` (not `_id` or `server_game_id`). `start_type` values seen so far: `1403` PC-import, `1407` Steam, `1408` Epic. `extension_data` is a JSON blob with `{gameId, name, startType, exePath, gameDir}` — what the in-app library-tile launch path consumes (NOT the DeepLink path).
+- **`t_game_install_state`** — per-row install/download status. `(_id, game_id, launch_method_id, status, reason, operation_id, updated_at)`.
+- **`t_game_cover_override`** — user-supplied cover-art overrides keyed by `(target_type, target_id)`.
+- **`room_master_table`** — Room's standard identity-hash bookkeeping. Schema-hash protection means our patches must not modify columns; only INSERT/SELECT against the existing shape.
+
+### 29.4 Read-only access from a patched process (works alongside live Room writer)
+
+`SQLiteDatabase.openDatabase(ctx.getApplicationContext().getDatabasePath("db_game_library.db").getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY | SQLiteDatabase.NO_LOCALIZED_COLLATORS)` opens cleanly even while GameHub's Room connection is holding a WAL writer — SQLite WAL permits multiple readers concurrently with the single writer, and read-only connections never compete for the journal lock. Verified on `banner.hub` 2026-05-20 with the `BhGameIdDisplayMenuRowClick.loadAllGames` path during normal in-app use (menus / launches happening concurrently in other processes).
+
+`NO_LOCALIZED_COLLATORS` matters: without it, the open call tries to bind the `LOCALIZED` collator early and can race the host's own collator registration, throwing on some Android versions. Reading shouldn't need collation at all — the patch sorts in-memory by `String.CASE_INSENSITIVE_ORDER` after the SELECT.
+
+### 29.5 Cross-feature consequences
+
+- **External Launcher (§ pre5 / `feature/external-launcher` `cec34f0`)** uses `server_game_id` as the deep-link integer. The Epic-library gap (DOOMBLADE — `server_game_id = 0`, only `epic_app_name` is unique) is a direct consequence of this schema: the deep-link dispatch's `Liml;->t0` Integer parse can't address a row whose only unique identifier is the hex UUID.
+- **GOG-imported rows** (`server_game_id = 0`, `id` prefixed `gog_`) are also non-addressable via the deep link for the same reason. Library-tile launches go through `t_game_launch_method.extension_data` and never touch DeepLinkActivity — see § (gog-explore-tab branch, not on this integration branch).
+- **Show Game ID — View All Games dialog** (`feature/menu-gameid-display` `090706e`) reads the table directly read-only and surfaces `server_game_id` as the "Local Game ID" (with `steam_app_id` / `epic_app_name` as informational tags when present). Tap → `ClipboardManager.setPrimaryClip` of the `server_game_id` value.
+- **Per-game settings store** (`bh_<feature>_prefs`, see § 26.x and earlier) is **MMKV-keyed by `server_game_id`** — same id this DB surfaces. The two stores are content-synchronised by the user choosing rows from this table, not by an internal join.
+
+### 29.6 Working fix (shipped)
+
+`gameIdDisplayMenuRowPatch` + `gameIdDisplayMenuLabelPatch` + `BhGameIdDisplayMenuRowClick` (merged `gamehub-604-build` `090706e`, Lite back-merged `09fa1d8`, CI run 26183100272 ✅ all 9 patch jobs green 0 SEVERE, Lite run 26184541960 ✅ all 9 Lite jobs green 0 SEVERE, no-artifact 604 verify run 26184783602 ✅ `./gradlew build --no-daemon` clean): adds a "Show Game ID" row to the three per-game popup menus (`Lx57;->a` / `Lted;->f` / `Lpzc;->j0`), reusing the shared `Lxd3;->l1` resolver hook from `vibrationMenuRowPatch` for the Compose label key. Tap row → AlertDialog (Close / Copy / View All Games). View All opens `db_game_library.db` read-only and renders `ArrayAdapter<GameEntry>` with display string `"<name>\nID: <server_game_id>  ·  Steam: <id>  ·  Epic: <name>"`; tap row → copy the `server_game_id` to clipboard. Absent file / missing table / SQLite error → toast, no crash. Device-confirmed by user ("works great").
