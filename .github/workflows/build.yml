@@ -411,6 +411,114 @@ jobs:
           print("Settings Import/Export + Vibration patches applied.")
           PYEOF
 
+      # PC Audio Settings: per-game PulseAudio recording-compatible mode.
+      # GameHub loads module-aaudio-sink with no pm= argument → LOW_LATENCY →
+      # the framework can grant the AAudio stream as exclusive MMAP, which
+      # bypasses the AudioFlinger mixer that MediaProjection's
+      # AudioPlaybackCapture taps → Android screen recordings have video but
+      # NO game audio whenever the in-game audio driver is PulseAudio (ALSA
+      # uses a legacy mixed AudioTrack and records fine). Appending "pm=0"
+      # keeps the stream on the mixer: the module computes
+      # setPerformanceMode(pm + 10), so 0 → PERFORMANCE_MODE_NONE (NOT 10 —
+      # the module adds the 10). Per-game value lives in pc_g_setting<gameId>
+      # under bh_audio_recording_mode so Export/Import Config carries it.
+      # MUST run after the Import/Export step above — Patch 1 anchors on the
+      # vibration block that step inserts.
+      - name: Apply PC Audio Settings smali patches
+        run: |
+          python3 << 'PYEOF'
+          import sys
+
+          def patch(path, old, new, label):
+              try:
+                  content = open(path, encoding='utf-8').read()
+              except UnicodeDecodeError:
+                  content = open(path, encoding='latin-1').read()
+              if old not in content:
+                  print(f"ERROR: anchor not found in {path} for: {label}")
+                  sys.exit(1)
+              open(path, 'w', encoding='utf-8').write(content.replace(old, new, 1))
+              print(f"OK: {label}")
+
+          # Patch 1: GameDetailSettingMenu.W() — insert "PC Audio Settings"
+          # Option right after "PC Vibration Settings" (same insert-not-append
+          # rationale: the popup widget has no scroll indicator, tail entries
+          # are invisible). Register discipline identical to the vibration
+          # block: v4 = this, v3 = GameDetailEntity (both still live — the
+          # vibration block's search loop only touches v10/v11/v12); build the
+          # Option with the wide v9..v17 range, then re-walk the list with low
+          # registers because 4-bit register encodings cap at v15. Falls back
+          # to append-at-end if the vibration row isn't found so the option is
+          # never lost.
+          patch(
+              'apktool_out_base/smali_classes10/com/xj/landscape/launcher/ui/gamedetail/GameDetailSettingMenu.smali',
+              '    :bh_vib_search_done\n'
+              '\n'
+              '    invoke-interface {v1, v10, v9}, Ljava/util/List;->add(ILjava/lang/Object;)V\n'
+              '\n'
+              '    return-object v1\n'
+              '.end method\n',
+              '    :bh_vib_search_done\n'
+              '\n'
+              '    invoke-interface {v1, v10, v9}, Ljava/util/List;->add(ILjava/lang/Object;)V\n'
+              '\n'
+              '    # BH: PC Audio Settings option — inserted right AFTER the\n'
+              '    # "PC Vibration Settings" entry\n'
+              '    new-instance v9, Lcom/xj/common/view/popup/Option;\n'
+              '    const-string v10, "PC Audio Settings"\n'
+              '    const/4 v11, 0x0\n'
+              '    const/4 v12, 0x0\n'
+              '    const/4 v13, 0x0\n'
+              '    const/4 v14, 0x0\n'
+              '    new-instance v15, Lcom/xj/landscape/launcher/ui/gamedetail/BhAudioLambda;\n'
+              '    invoke-direct {v15, v4, v3}, Lcom/xj/landscape/launcher/ui/gamedetail/BhAudioLambda;-><init>(Lcom/xj/landscape/launcher/ui/gamedetail/GameDetailSettingMenu;Lcom/xj/common/service/bean/GameDetailEntity;)V\n'
+              '    const/16 v16, 0x1e\n'
+              '    const/16 v17, 0x0\n'
+              '    invoke-direct/range {v9 .. v17}, Lcom/xj/common/view/popup/Option;-><init>(Ljava/lang/String;ZIIILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'
+              '\n'
+              '    const/4 v10, 0x0\n'
+              '    :bh_aud_search_loop\n'
+              '    invoke-interface {v1}, Ljava/util/List;->size()I\n'
+              '    move-result v11\n'
+              '    if-ge v10, v11, :bh_aud_search_done\n'
+              '    invoke-interface {v1, v10}, Ljava/util/List;->get(I)Ljava/lang/Object;\n'
+              '    move-result-object v11\n'
+              '    check-cast v11, Lcom/xj/common/view/popup/Option;\n'
+              '    iget-object v11, v11, Lcom/xj/common/view/popup/Option;->a:Ljava/lang/String;\n'
+              '    const-string v12, "PC Vibration Settings"\n'
+              '    invoke-virtual {v11, v12}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z\n'
+              '    move-result v11\n'
+              '    if-eqz v11, :bh_aud_search_next\n'
+              '    add-int/lit8 v10, v10, 0x1\n'
+              '    goto :bh_aud_search_done\n'
+              '    :bh_aud_search_next\n'
+              '    add-int/lit8 v10, v10, 0x1\n'
+              '    goto :bh_aud_search_loop\n'
+              '    :bh_aud_search_done\n'
+              '\n'
+              '    invoke-interface {v1, v10, v9}, Ljava/util/List;->add(ILjava/lang/Object;)V\n'
+              '\n'
+              '    return-object v1\n'
+              '.end method\n',
+              'GameDetailSettingMenu.W(): inject PC Audio Settings option after PC Vibration Settings'
+          )
+
+          # Patch 2: PulseAudioPlugin.b() — route the hardcoded default.pa
+          # sink line through BhAudioController.sinkLine(). Stock string
+          # unless the launching game opted in (gameId resolved from the live
+          # WineActivity's "gameId" Intent extra — same :wine process, proven
+          # technique from BhVibrationController). Any failure → stock line.
+          patch(
+              'apktool_out_base/smali_classes13/com/winemu/core/server/environment/plugins/PulseAudioPlugin.smali',
+              '    const-string v5, "load-module module-aaudio-sink"\n',
+              '    invoke-static {}, Lcom/xj/winemu/audio/BhAudioController;->sinkLine()Ljava/lang/String;\n'
+              '    move-result-object v5\n',
+              'PulseAudioPlugin.b(): route module-aaudio-sink line through BhAudioController.sinkLine()'
+          )
+
+          print("\nPC Audio Settings patches applied successfully.")
+          PYEOF
+
       # libevshim.so removed: the LD_PRELOAD'd keepalive shim's in-memory
       # winebus patcher corrupted box64's dynarec (every x86-64/box64 launch
       # CPU-spun ~60s then the wine process died — v3.7.0 regression).

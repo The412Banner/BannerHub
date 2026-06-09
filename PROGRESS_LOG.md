@@ -4,6 +4,30 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [v3.8.0-pre1] — Per-game PC Audio Settings: PulseAudio recording-compatible mode (2026-06-09)
+**Branch:** `feature/audio-recording-mode` (off `main` `6a312a0`). Pre-release artifact-only per policy — no GitHub Release.
+
+#### What it does
+New **PC Audio Settings** option in the per-game settings popup (inserted right after PC Vibration Settings), with one control: **PulseAudio mode = Low latency (default) | Recording-compatible**. Stock GameHub loads `module-aaudio-sink` with no `pm=` argument → the AAudio stream opens LOW_LATENCY and the framework can grant it as exclusive MMAP, which bypasses the AudioFlinger mixer that MediaProjection's AudioPlaybackCapture taps → Android screen recordings get video but **no game audio** whenever the in-game audio driver is PulseAudio (ALSA records fine). Recording-compatible appends ` pm=0` to the sink line — the module computes `setPerformanceMode(pm + 10)`, so 0 → PERFORMANCE_MODE_NONE → the stream stays on the mixer and is captured. Port of the same fix shipped in bannerhub-revanced v6 (2026-05-28), upgraded from a global toggle to per-game.
+
+#### Pieces
+- `extension/BhAudioController.java` (`com.xj.winemu.audio`) — `sinkLine()` called from the PulseAudioPlugin patch at container boot (`:wine` process): resolves the active gameId by walking `ActivityThread.mActivities` for the live WineActivity's `"gameId"` Intent extra (proven technique from BhVibrationController), then reads `bh_audio_recording_mode` **directly from the `pc_g_setting<gameId>.xml` file on disk** (a process-cached SharedPreferences would go stale if the `:wine` process outlives a launch). Any failure → stock line.
+- `extension/BhAudioSettingsActivity.java` — dialog-styled picker cloned from BhVibrationSettingsActivity (explicit colors — Theme.Translucent.NoTitleBar renders default widgets invisible). Saves immediately with `commit()`.
+- `patches/smali/.../gamedetail/BhAudioLambda.smali` — Function1 stub cloned from BhVibrationLambda; resolves gameId the BhExportLambda way (getId()>0 ? id : localGameId) so the pref lands in the file BhSettingsExporter exports/imports → **Export/Import Config carries the setting automatically**.
+- `patches/AndroidManifest.xml` — BhAudioSettingsActivity registered (translucent theme, sensorLandscape).
+- New workflow step **Apply PC Audio Settings smali patches** in both `build.yml` (prepare, `apktool_out_base/`) and `build-quick.yml` (`apktool_out/`), ordered after the Import/Export step (Patch 1 anchors on the vibration block that step inserts): (1) GameDetailSettingMenu.W() insert-after-vibration Option block (same register discipline: Option in v9..v17, list re-walk in v10/v11/v12); (2) `PulseAudioPlugin.b()` (`smali_classes13`, reassembled fine — only classes12 is prebuilt) `const-string v5, "load-module module-aaudio-sink"` → `invoke-static {} BhAudioController.sinkLine()` + `move-result-object v5`.
+
+#### Validation (local, pre-CI)
+- Patch-chain simulation: extracted both python heredocs from build-quick.yml, ran them in workflow order against fresh decompile copies — all 3 anchors resolve, audio Option block lands after the vibration block, plugin call site correct.
+- `javac -source 8 -target 8` against android-34 jar over the full `extension/` tree — compiles clean.
+- v6 precedent: identical pm=0 fix device-verified on banner.hub 2026-05-28 (toggle ON + PulseAudio → screen recording has sound).
+
+#### Device test checklist (pre1)
+1. Per-game popup shows **PC Audio Settings** right after PC Vibration Settings; dialog renders (no invisible widgets).
+2. Toggle Recording-compatible → relaunch game with PulseAudio driver → screen recording captures audio; `logcat -s BhAudio` shows `sinkLine: gameId=… recordingMode=true` and `default.pa` in the container has `module-aaudio-sink pm=0`.
+3. Default (untouched games): stock line, audio behavior unchanged.
+4. Export Config from a game with the toggle ON → import on another install → setting carried.
+
 ### [v3.7.5] — STABLE: offline launch for imported PC games (2026-05-20)
 **Tag:** `v3.7.5` at commit `caeaa9948` (docs prep on top of merge `2301cb585` = `fix/offline-launch-imported-games` --no-ff into main) → `build.yml` push trigger → all 9 variants + auto-published GitHub Release.
 
