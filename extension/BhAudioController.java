@@ -97,11 +97,19 @@ public final class BhAudioController {
 
     /**
      * Walks the live-activity table for the running WineActivity and pulls
-     * its "gameId" Intent extra (same technique as
-     * BhVibrationController.maybeResolveContainerFromActivityStack — proven
-     * on-device). WineActivity.onCreate runs well before the container
-     * environment (and thus PulseAudioPlugin) boots, so by the time
-     * sinkLine() is called the activity is in mActivities.
+     * the gameId out of it. WineActivity.onCreate runs well before the
+     * container environment (and thus PulseAudioPlugin) boots, so by the
+     * time sinkLine() is called the activity is in mActivities.
+     *
+     * On 5.3.5 the WineActivity launch intent carries NO "gameId" String
+     * extra (device-verified 2026-06-12 — pre1 always fell back to the
+     * stock line). The game data instead lands in a
+     * com.xj.winemu.api.bean.WineActivityData object held by the activity,
+     * whose String field "a" is the gameId (its getter e() is what stock
+     * code feeds to WineInGameSettings("gameId"-checked param) to open
+     * pc_emu_setting_kv_&lt;id&gt;). So: find the WineActivityData-typed
+     * field by TYPE, read its "a". The intent-extra read stays as a
+     * fallback only.
      */
     private static String resolveActiveGameId() {
         try {
@@ -120,10 +128,39 @@ public final class BhAudioController {
                 Object activity = fAct.get(recordObj);
                 if (!(activity instanceof Activity)) continue;
                 if (!activity.getClass().getName().endsWith(".WineActivity")) continue;
+                String gid = gameIdFromWineActivityData((Activity) activity);
+                if (gid != null && !gid.isEmpty()) return gid;
                 Intent it = ((Activity) activity).getIntent();
                 if (it == null) continue;
-                String gid = it.getStringExtra("gameId");
+                gid = it.getStringExtra("gameId");
                 if (gid != null && !gid.isEmpty()) return gid;
+            }
+        } catch (Throwable ignored) { }
+        return null;
+    }
+
+    /**
+     * Finds the WineActivityData the activity holds (matched by field TYPE,
+     * walking up the class hierarchy) and reads its gameId String field "a".
+     */
+    private static String gameIdFromWineActivityData(Activity activity) {
+        try {
+            for (Class<?> cls = activity.getClass(); cls != null && cls != Activity.class;
+                    cls = cls.getSuperclass()) {
+                for (Field f : cls.getDeclaredFields()) {
+                    if (!f.getType().getName().equals("com.xj.winemu.api.bean.WineActivityData")) {
+                        continue;
+                    }
+                    f.setAccessible(true);
+                    Object data = f.get(activity);
+                    if (data == null) continue;
+                    Field fGid = data.getClass().getDeclaredField("a");
+                    fGid.setAccessible(true);
+                    Object gid = fGid.get(data);
+                    if (gid instanceof String && !((String) gid).isEmpty()) {
+                        return (String) gid;
+                    }
+                }
             }
         } catch (Throwable ignored) { }
         return null;
