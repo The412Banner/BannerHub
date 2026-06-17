@@ -16,6 +16,7 @@ import android.widget.Chronometer;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -92,6 +93,8 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
     private LinearLayout panel;
     private boolean panelOpen;
     private boolean attached;
+    private int opacityPct;            // 20–100; applied to the whole overlay
+    private boolean opacityExpanded;   // opacity slider shown under a toggle
 
     // call state
     private BhVoiceController controller;
@@ -115,6 +118,7 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
         this.density = act.getResources().getDisplayMetrics().density;
         this.nickname = BhVoicePrefs.nickname(act);
         this.clientId = BhVoicePrefs.clientId(act);
+        this.opacityPct = clampOpacity(BhVoicePrefs.getOpacity(act));
     }
 
     // ── attach / detach ──────────────────────────────────────────────────────
@@ -141,14 +145,60 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         flp.gravity = Gravity.TOP | Gravity.END;
         flp.topMargin = BhVoicePrefs.getPillY(act, dp(180));
+        flp.rightMargin = BhVoicePrefs.getPillX(act, 0);
         container.setLayoutParams(flp);
         try {
             decor.addView(container);
             attached = true;
+            applyOpacity();
             Log.i(TAG, "voice pill attached to decor (y=" + flp.topMargin + ")");
         } catch (Throwable t) {
             Log.w(TAG, "voice pill addView(decor) failed", t);
         }
+    }
+
+    private static int clampOpacity(int p) { return p < 20 ? 20 : (p > 100 ? 100 : p); }
+
+    private void applyOpacity() {
+        // Full opacity while the panel is open (so controls stay usable); the
+        // chosen fade applies to the collapsed pill during gameplay.
+        if (container != null) container.setAlpha(panelOpen ? 1f : clampOpacity(opacityPct) / 100f);
+    }
+
+    /** Collapsible opacity control: a tappable toggle that reveals a slider. */
+    private void addOpacityRow(LinearLayout panel) {
+        final TextView toggle = new TextView(act);
+        toggle.setText("Opacity — " + opacityPct + "%   " + (opacityExpanded ? "▾" : "▸"));
+        toggle.setTextColor(COL_SUBTEXT);
+        toggle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(-1, -2);
+        tlp.topMargin = dp(10);
+        toggle.setLayoutParams(tlp);
+        toggle.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { opacityExpanded = !opacityExpanded; rerender(); }
+        });
+        panel.addView(toggle);
+
+        if (opacityExpanded) {
+            SeekBar sb = new SeekBar(act);
+            sb.setMax(100);
+            sb.setProgress(clampOpacity(opacityPct));
+            sb.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
+            sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                public void onProgressChanged(SeekBar s, int p, boolean fromUser) {
+                    opacityPct = clampOpacity(p);
+                    applyOpacity();
+                    toggle.setText("Opacity — " + opacityPct + "%   ▾");
+                }
+                public void onStartTrackingTouch(SeekBar s) {}
+                public void onStopTrackingTouch(SeekBar s) { BhVoicePrefs.setOpacity(act, opacityPct); }
+            });
+            panel.addView(sb);
+        }
+    }
+
+    private void rerender() {
+        if (inCall) renderConnected(); else renderIdle();
     }
 
     private void cleanup() {
@@ -254,6 +304,8 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
         statusLine.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         statusLine.setPadding(0, dp(8), 0, 0);
         panel.addView(statusLine);
+
+        addOpacityRow(panel);
     }
 
     /** In-room box. Shown immediately on Create/Join in a "waiting" state (no peer
@@ -306,6 +358,8 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
                 ? "Room code: " + roomCode
                 : "Waiting for someone to join…\nShare code “" + roomCode + "” (or tap Share).");
         panel.addView(statusLine);
+
+        addOpacityRow(panel);
     }
 
     private void renderRoster() {
@@ -432,9 +486,14 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
+    // Tapping the pill only shows/hides the panel — it does NOT touch the call.
+    // The WebRTC runs in the headless WebView (independent of this panel), so a
+    // collapsed pill stays in an active, connected call; only Leave / leaving the
+    // game ends it. The pill stays green-tinted while a call is live.
     private void togglePanel() {
         panelOpen = !panelOpen;
         panel.setVisibility(panelOpen ? View.VISIBLE : View.GONE);
+        applyOpacity();   // fade the collapsed pill; full while open
     }
 
     private void setStatus(String msg) {
@@ -457,11 +516,12 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
 
     private TextView headerText(String s) {
         TextView h = new TextView(act);
-        h.setText(s);
+        h.setText("⠿  " + s);   // grip hint: this header drags the whole box
         h.setTextColor(COL_TEXT);
         h.setTypeface(Typeface.DEFAULT_BOLD);
         h.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         h.setPadding(0, dp(2), 0, dp(8));
+        h.setOnTouchListener(new PanelDrag());   // drag the box around the screen
         return h;
     }
 
@@ -498,6 +558,43 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
     }
 
     // Drag the pill vertically along the right edge; a tap toggles the panel.
+    // Drag the whole box around the screen via the header (2D). Stays anchored to
+    // the top-right; topMargin = Y, rightMargin = distance from right edge.
+    private final class PanelDrag implements View.OnTouchListener {
+        private float startRawX, startRawY;
+        private int startTop, startRight;
+        private boolean dragged;
+
+        @Override public boolean onTouch(View v, MotionEvent e) {
+            FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) container.getLayoutParams();
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    startRawX = e.getRawX();
+                    startRawY = e.getRawY();
+                    startTop = flp.topMargin;
+                    startRight = flp.rightMargin;
+                    dragged = false;
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    int dx = (int) (e.getRawX() - startRawX);
+                    int dy = (int) (e.getRawY() - startRawY);
+                    if (Math.abs(dx) > dp(4) || Math.abs(dy) > dp(4)) dragged = true;
+                    flp.topMargin = Math.max(0, startTop + dy);
+                    flp.rightMargin = Math.max(0, startRight - dx); // drag right → toward edge
+                    container.setLayoutParams(flp);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    if (dragged) {
+                        BhVoicePrefs.setPillY(act, flp.topMargin);
+                        BhVoicePrefs.setPillX(act, flp.rightMargin);
+                    }
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
+
     private final class PillTouch implements View.OnTouchListener {
         private float startRawY;
         private int startMargin;

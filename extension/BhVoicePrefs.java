@@ -38,6 +38,8 @@ public final class BhVoicePrefs {
     private static final String KEY_CLIENT  = "voice_client_id";
     private static final String KEY_ENABLED = "voice_pill_enabled";
     private static final String KEY_PILL_Y  = "voice_pill_y";
+    private static final String KEY_PILL_X  = "voice_pill_x";
+    private static final String KEY_OPACITY = "voice_pill_opacity";
 
     /** bannerhub-api worker base — same worker that powers v6 voice. */
     public static final String WORKER = "https://bannerhub-api.the412banner.workers.dev";
@@ -138,14 +140,22 @@ public final class BhVoicePrefs {
         save(ctx, p);
     }
 
-    public static int getPillY(Context ctx, int def) {
-        try { return Integer.parseInt(load(ctx).getProperty(KEY_PILL_Y, String.valueOf(def))); }
+    public static int getPillY(Context ctx, int def) { return getInt(ctx, KEY_PILL_Y, def); }
+    public static void setPillY(Context ctx, int y) { setInt(ctx, KEY_PILL_Y, y); }
+    public static int getPillX(Context ctx, int def) { return getInt(ctx, KEY_PILL_X, def); }
+    public static void setPillX(Context ctx, int x) { setInt(ctx, KEY_PILL_X, x); }
+    /** Pill/box opacity 20–100 (%), default 92. */
+    public static int getOpacity(Context ctx) { return getInt(ctx, KEY_OPACITY, 92); }
+    public static void setOpacity(Context ctx, int pct) { setInt(ctx, KEY_OPACITY, pct); }
+
+    private static int getInt(Context ctx, String key, int def) {
+        try { return Integer.parseInt(load(ctx).getProperty(key, String.valueOf(def))); }
         catch (Throwable t) { return def; }
     }
 
-    public static void setPillY(Context ctx, int y) {
+    private static void setInt(Context ctx, String key, int v) {
         Properties p = load(ctx);
-        p.setProperty(KEY_PILL_Y, String.valueOf(y));
+        p.setProperty(key, String.valueOf(v));
         save(ctx, p);
     }
 
