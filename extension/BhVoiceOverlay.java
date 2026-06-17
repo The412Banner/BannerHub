@@ -96,7 +96,8 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
     // call state
     private BhVoiceController controller;
     private String roomCode;
-    private boolean inCall;
+    private boolean inCall;         // in a room (box shown), peer may not be connected yet
+    private boolean callConnected;  // at least one peer connected → live call + timer
     private boolean muted;
     private boolean timerStarted;
     private final List<String> roster = new ArrayList<>();
@@ -255,28 +256,33 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
         panel.addView(statusLine);
     }
 
-    /** Connected: roster + running timer + Mute / Share / Leave. */
+    /** In-room box. Shown immediately on Create/Join in a "waiting" state (no peer
+     *  yet — a 1-person room can't connect), then becomes a live call with a timer
+     *  once someone joins ({@code callConnected}). */
     private void renderConnected() {
         panel.removeAllViews();
         inCall = true;
         refreshPillTint();
 
         int n = roster.size();
-        panel.addView(headerText("🟢  In call" + (n > 0 ? "  ·  " + n : "")));
+        panel.addView(headerText(callConnected ? "🟢  In call" + (n > 0 ? "  ·  " + n : "")
+                                               : "🟡  In room"));
 
         usersList = new LinearLayout(act);
         usersList.setOrientation(LinearLayout.VERTICAL);
         panel.addView(usersList);
         renderRoster();
 
-        timer = new Chronometer(act);
-        timer.setTextColor(COL_GREEN);
-        timer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        timer.setTypeface(Typeface.MONOSPACE);
-        timer.setPadding(0, dp(4), 0, dp(8));
-        if (!timerStarted) { timerStarted = true; timer.setBase(SystemClock.elapsedRealtime()); }
-        timer.start();
-        panel.addView(timer);
+        if (callConnected) {
+            timer = new Chronometer(act);
+            timer.setTextColor(COL_GREEN);
+            timer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+            timer.setTypeface(Typeface.MONOSPACE);
+            timer.setPadding(0, dp(4), 0, dp(8));
+            if (!timerStarted) { timerStarted = true; timer.setBase(SystemClock.elapsedRealtime()); }
+            timer.start();
+            panel.addView(timer);
+        }
 
         buttons = new LinearLayout(act);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
@@ -284,7 +290,7 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
         buttons.addView(button(muted ? "Unmute" : "Mute", COL_PILL, new View.OnClickListener() {
             public void onClick(View v) { toggleMute(); }
         }));
-        buttons.addView(button("🔗", COL_PILL, new View.OnClickListener() {
+        buttons.addView(button("🔗 Share", COL_ACCENT, new View.OnClickListener() {
             public void onClick(View v) { shareLink(); }
         }));
         buttons.addView(button("Leave", COL_RED, new View.OnClickListener() {
@@ -296,7 +302,9 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
         statusLine.setTextColor(COL_SUBTEXT);
         statusLine.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         statusLine.setPadding(0, dp(6), 0, 0);
-        statusLine.setText("Room: " + roomCode);
+        statusLine.setText(callConnected
+                ? "Room code: " + roomCode
+                : "Waiting for someone to join…\nShare code “" + roomCode + "” (or tap Share).");
         panel.addView(statusLine);
     }
 
@@ -322,17 +330,19 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
         }
         roomCode = code;
         timerStarted = false;
+        callConnected = false;
         muted = false;
         roster.clear();
-        roster.add(nickname == null || nickname.isEmpty() ? "You" : nickname + " (you)");
-        setStatus("Connecting to room " + code + "…");
+        roster.add((nickname == null || nickname.isEmpty() ? "You" : nickname) + " (you)");
         controller = new BhVoiceController(act, code, clientId, nickname, this);
         controller.start();
+        renderConnected();   // show the in-room (waiting) box right away
     }
 
     private void endCall() {
         if (controller != null) { try { controller.hangup(); } catch (Throwable ignored) {} controller = null; }
         inCall = false;
+        callConnected = false;
         timerStarted = false;
         renderIdle();
         setStatus("Call ended.");
@@ -365,14 +375,16 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
     @Override public void onVoiceState(final String state, final String detail) {
         act.runOnUiThread(new Runnable() { public void run() {
             if ("in-call".equals(state)) {
-                if (!inCall) renderConnected();
+                // a peer connected → upgrade the waiting box to a live call
+                if (!callConnected) { callConnected = true; renderConnected(); }
             } else if ("connecting".equals(state) || "calling".equals(state)) {
-                setStatus("Connecting…");
+                // the waiting box is already shown by startCall; nothing to do
             } else if ("external".equals(state)) {
+                inCall = false; callConnected = false; controller = null;
+                renderIdle();
                 setStatus("Voice opened in your browser (update Android System WebView for in-app calls).");
-                inCall = false; renderIdle();
             } else if ("ended".equals(state) || "failed".equals(state)) {
-                inCall = false; controller = null; timerStarted = false;
+                inCall = false; callConnected = false; controller = null; timerStarted = false;
                 renderIdle();
                 setStatus(detail == null || detail.isEmpty() ? "Call ended." : "Call ended: " + detail);
             }
@@ -397,7 +409,9 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
                 // update header count + list without resetting the timer
                 renderRoster();
                 if (panel.getChildCount() > 0 && panel.getChildAt(0) instanceof TextView) {
-                    ((TextView) panel.getChildAt(0)).setText("🟢  In call  ·  " + roster.size());
+                    ((TextView) panel.getChildAt(0)).setText(callConnected
+                            ? "🟢  In call  ·  " + roster.size()
+                            : "🟡  In room");
                 }
             }
         }});
