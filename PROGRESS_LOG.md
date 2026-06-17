@@ -5209,3 +5209,21 @@ Pre-release per policy ([[feedback_bannerhub_prerelease]]). Quick CI dispatched 
 - Triggered `build-quick.yml` (workflow_dispatch) on the branch → **[run 25967333774](https://github.com/The412Banner/BannerHub/actions/runs/25967333774) ✅ success**, sha `7199d1cb3`. `Apply BhVibration smali patches` + all steps green. Artifact `BannerHub-pre-fix-vibration-preload-free` (Normal variant, pkg patched for pre/beta isolation) → `/storage/emulated/0/Download/bh-vib-pf/BannerHub-fix-vibration-preload-free-Normal.apk` (~138 MB).
 
 **Net:** `fix/vibration-preload-free` = full v3.7.3 + preload-free vibration fix (incl. TideGear PR #91 controller). Clean 3.7.4 base. Pre-release artifact-only per [[feedback_bannerhub_prerelease]] — no GH Release. Awaiting device test on an x86-64 Proton + Box64 ("Extreme") container (Dead Cells / ULTRAKILL): expect normal launch (no ~60s spin → wine death) AND working box64 rumble; arm64x/FEX unaffected. On pass → cut 3.7.4 stable per [[feedback_stable_release_checklist]]. See memory `project_bannerhub_evshim_box64_regression`.
+
+---
+
+### [feature] — In-game VOICE CHAT (no-Steam room model) + dashboard nickname gating (2026-06-17)
+**Branch:** `voice-chat` off `main` (`6a312a0`), pushed. **Pre-build:** [run 27713306717](https://github.com/The412Banner/BannerHub/actions/runs/27713306717) success (build-quick, Normal/`com.tencent.ig` isolated pre variant). **APK:** `/storage/emulated/0/Download/BannerHub-voice-chat-Normal.apk` md5 `c05ec52005c79f1d6d7526e2c05d1592` (~144 MB). **Awaiting 2-device test.**
+
+#### What ships
+Backports v6's in-game voice to the 5.3.5 base with NO Steam dependency. Steam *chat* can't backport (5.3.5 has no `libsteamkit_core` — it uses JavaSteam), but voice is engine-agnostic. Identity = a user-chosen **nickname** + a stable local **client UUID** (no Steam friends list, no ringing — a **room model**: Create/Join by code, Share link). Reuses the *exact same* bannerhub-api worker / WebRTC mesh / Cloudflare TURN as v6.
+
+**Two-gate activation (user spec):** dashboard side menu → new **"Voice Chat"** item under "Game Configs" → `BhVoiceChatSettingsActivity` = nickname field + **Check availability** (worker `/voice/nick/check`) → an **Activate** checkbox stays disabled until a name is confirmed free, then claims it (`/voice/nick/claim`) and turns the in-game pill on. Pill attaches in-game only when a nickname is claimed AND activated.
+
+#### Implementation
+- **extension/** (compiled to `classes18.dex`): `BhVoiceController.java` (v6 engine port: hidden-WebView WebRTC, SteamID -> nickname+UUID, WebView<120 -> browser fallback), `BhVoiceOverlay.java` (WindowManager `TYPE_APPLICATION_PANEL` draggable pill + Create/Join/Share + roster/timer/Mute/Leave), `BhVoicePrefs.java` (`bh_prefs` keys, `MODE_MULTI_PROCESS` cross-process reads), `BhVoiceChatSettingsActivity.java` (pkg `app.revanced.extension.gamehub`).
+- **patches/smali:** `WineActivity.smali` (`:wine` proc) onResume -> `BhVoiceOverlay.attach(p0)` (right after `BhHudInjector`, before p0 is reused), onDestroy -> `detach()`. `HomeLeftMenuDialog.smali` -> "Voice Chat" id `0xe(14)` added in list-build + packed-switch table + dispatch case. `AndroidManifest.xml` -> register activity + `RECORD_AUDIO` (INTERNET already present).
+- Worker side (additive, v6-safe, DEPLOYED) — see bannerhub-api PROGRESS_LOG 2026-06-17.
+
+#### Notes
+v6 voice verified unaffected (audit + live endpoint checks). 3.7.5 <-> v6 interop possible (mesh = peer-id+room, no friendship check). NEXT: 2-device test -> merge `voice-chat` -> main + cut a 3.7.x release. See memory `project_bannerhub_375_voice_chat`.
