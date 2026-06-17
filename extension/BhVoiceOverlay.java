@@ -61,7 +61,10 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
     /** Attach the pill to {@code act} if voice is enabled. Idempotent per activity. */
     public static void attach(Activity act) {
         try {
-            if (act == null || !BhVoicePrefs.pillEnabled(act)) return;
+            boolean en = act != null && BhVoicePrefs.pillEnabled(act);
+            Log.i(TAG, "voice attach() called; pillEnabled=" + en
+                    + " nick='" + (act != null ? BhVoicePrefs.nickname(act) : "") + "'");
+            if (!en) return;
             if (current != null && current.act == act && current.attached) return;
             detach();
             current = new BhVoiceOverlay(act);
@@ -135,10 +138,11 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
                         | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.END;
-        lp.y = BhVoicePrefs.prefs(act).getInt(BhVoicePrefs.KEY_PILL_Y, dp(180));
+        lp.y = BhVoicePrefs.getPillY(act, dp(180));
         try {
             wm.addView(container, lp);
             attached = true;
+            Log.i(TAG, "voice pill attached (y=" + lp.y + ")");
         } catch (Throwable t) {
             Log.w(TAG, "voice pill addView failed", t);
         }
@@ -479,7 +483,7 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
                     return true;
                 case MotionEvent.ACTION_UP:
                     if (dragged) {
-                        BhVoicePrefs.prefs(act).edit().putInt(BhVoicePrefs.KEY_PILL_Y, lp.y).apply();
+                        BhVoicePrefs.setPillY(act, lp.y);
                     } else {
                         togglePanel();
                     }

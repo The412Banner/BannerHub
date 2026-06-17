@@ -1,76 +1,117 @@
 package com.xj.winemu.sidebar;
 
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.util.Log;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.Properties;
 import java.util.UUID;
 
 /**
- * Shared preferences + identity for the BannerHub voice-chat feature.
+ * Cross-process state + identity for the BannerHub voice-chat feature.
  *
  * <p>The activation toggle and nickname are set from the dashboard "Voice Chat"
- * screen (which runs in the main launcher process) but read in-game by the pill
- * overlay (which runs in the {@code :wine} process). Plain {@code MODE_PRIVATE}
- * SharedPreferences are cached per-process, so we open {@code bh_prefs} with
- * {@code MODE_MULTI_PROCESS} on the read path to force a reload of values the
- * other process may have written. (The game's {@code :wine} process is launched
- * after the toggle is set, so it reads fresh anyway, but multi-process keeps it
- * robust if both processes are alive.)
+ * screen (main launcher process) but read in-game by the pill overlay (the
+ * {@code :wine} process). SharedPreferences is unreliable here: Android caches
+ * one instance per file name and ignores the mode on later opens, so once
+ * {@code BhHudInjector} opens {@code bh_prefs} with {@code MODE_PRIVATE} in the
+ * {@code :wine} process, a later {@code MODE_MULTI_PROCESS} open returns that
+ * cached instance and never reloads the other process's write.
  *
- * <p>Identity is a stable, locally-generated {@code voice_client_id} (a UUID),
- * NOT a SteamID — voice chat here does not depend on Steam at all. The client id
- * is what nickname ownership is keyed to server-side, so re-opening the screen
- * sees your own claimed name as available.
+ * <p>So we keep voice state in a plain {@link Properties} file under
+ * {@link Context#getFilesDir()} (one path shared by all processes of the app)
+ * and read it <b>fresh on every call</b> — no caching, always current across
+ * processes. Identity is a stable local {@code voice_client_id} (a UUID), NOT a
+ * SteamID; voice chat here does not depend on Steam at all.
  */
 public final class BhVoicePrefs {
 
     private BhVoicePrefs() {}
 
-    public static final String PREFS        = "bh_prefs";
-    public static final String KEY_NICK     = "voice_nickname";
-    public static final String KEY_CLIENT   = "voice_client_id";
-    public static final String KEY_ENABLED  = "voice_pill_enabled";
-    public static final String KEY_PILL_Y   = "voice_pill_y";
+    private static final String TAG = "BhVoice";
+    private static final String FILE = "bh_voice_state.properties";
+
+    private static final String KEY_NICK    = "voice_nickname";
+    private static final String KEY_CLIENT  = "voice_client_id";
+    private static final String KEY_ENABLED = "voice_pill_enabled";
+    private static final String KEY_PILL_Y  = "voice_pill_y";
 
     /** bannerhub-api worker base — same worker that powers v6 voice. */
     public static final String WORKER = "https://bannerhub-api.the412banner.workers.dev";
 
-    @SuppressWarnings("deprecation")
-    public static SharedPreferences prefs(Context ctx) {
-        // MODE_MULTI_PROCESS (4) — deprecated but reloads cross-process writes.
-        return ctx.getSharedPreferences(PREFS, Context.MODE_MULTI_PROCESS);
+    private static File stateFile(Context ctx) {
+        return new File(ctx.getFilesDir(), FILE);
+    }
+
+    private static synchronized Properties load(Context ctx) {
+        Properties p = new Properties();
+        File f = stateFile(ctx);
+        if (f.exists()) {
+            FileInputStream in = null;
+            try { in = new FileInputStream(f); p.load(in); }
+            catch (Throwable t) { Log.w(TAG, "voice state load failed", t); }
+            finally { if (in != null) try { in.close(); } catch (Throwable ignored) {} }
+        }
+        return p;
+    }
+
+    private static synchronized void save(Context ctx, Properties p) {
+        FileOutputStream out = null;
+        try { out = new FileOutputStream(stateFile(ctx)); p.store(out, "BannerHub voice state"); }
+        catch (Throwable t) { Log.w(TAG, "voice state save failed", t); }
+        finally { if (out != null) try { out.close(); } catch (Throwable ignored) {} }
     }
 
     /** Stable per-device client id; generated once and persisted. */
     public static String clientId(Context ctx) {
-        SharedPreferences p = prefs(ctx);
-        String id = p.getString(KEY_CLIENT, null);
-        if (id == null || id.isEmpty()) {
+        Properties p = load(ctx);
+        String id = p.getProperty(KEY_CLIENT, "");
+        if (id.isEmpty()) {
             id = "bh-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-            p.edit().putString(KEY_CLIENT, id).apply();
+            p.setProperty(KEY_CLIENT, id);
+            save(ctx, p);
         }
         return id;
     }
 
     public static String nickname(Context ctx) {
-        return prefs(ctx).getString(KEY_NICK, "");
+        return load(ctx).getProperty(KEY_NICK, "");
     }
 
     public static void setNickname(Context ctx, String name) {
-        prefs(ctx).edit().putString(KEY_NICK, name == null ? "" : name).apply();
+        Properties p = load(ctx);
+        p.setProperty(KEY_NICK, name == null ? "" : name);
+        save(ctx, p);
     }
 
     public static boolean activated(Context ctx) {
-        return prefs(ctx).getBoolean(KEY_ENABLED, false);
+        return "true".equals(load(ctx).getProperty(KEY_ENABLED, "false"));
     }
 
     public static void setActivated(Context ctx, boolean on) {
-        prefs(ctx).edit().putBoolean(KEY_ENABLED, on).apply();
+        Properties p = load(ctx);
+        p.setProperty(KEY_ENABLED, on ? "true" : "false");
+        save(ctx, p);
+    }
+
+    public static int getPillY(Context ctx, int def) {
+        try { return Integer.parseInt(load(ctx).getProperty(KEY_PILL_Y, String.valueOf(def))); }
+        catch (Throwable t) { return def; }
+    }
+
+    public static void setPillY(Context ctx, int y) {
+        Properties p = load(ctx);
+        p.setProperty(KEY_PILL_Y, String.valueOf(y));
+        save(ctx, p);
     }
 
     /** The pill shows in-game only when activated AND a nickname is claimed. */
     public static boolean pillEnabled(Context ctx) {
-        String n = nickname(ctx);
-        return activated(ctx) && n != null && !n.trim().isEmpty();
+        Properties p = load(ctx);
+        String n = p.getProperty(KEY_NICK, "");
+        boolean on = "true".equals(p.getProperty(KEY_ENABLED, "false"));
+        return on && n != null && !n.trim().isEmpty();
     }
 }
