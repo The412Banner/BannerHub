@@ -354,6 +354,7 @@ public class BhVoiceChatSettingsActivity extends Activity {
                 if ("ok".equals(r) || "yours".equals(r)) {
                     BhVoicePrefs.setNickname(BhVoiceChatSettingsActivity.this, name);
                     BhVoicePrefs.setActivated(BhVoiceChatSettingsActivity.this, true);
+                    requestMicIfNeeded();
                     setStatus("Done — voice pill is on. It appears on the side of the screen in games.", 0xFF6FCF6F);
                 } else {
                     activate.setChecked(false);
@@ -393,6 +394,7 @@ public class BhVoiceChatSettingsActivity extends Activity {
                     availableConfirmed = true;
                     refreshActivateState();
                     activate.setChecked(true); // programmatic; listener ignores (not pressed)
+                    requestMicIfNeeded();
                     setStatus("Reclaimed — it's yours and the voice pill is on.", 0xFF6FCF6F);
                 } else {
                     setStatus("invalid".equals(r) ? "Invalid nickname." : "Couldn't reclaim. Check your connection and try again.", 0xFFE08A8A);
@@ -431,6 +433,18 @@ public class BhVoiceChatSettingsActivity extends Activity {
                 }
             }});
         }}).start();
+    }
+
+    /** The in-game WebRTC WebView needs the app to hold RECORD_AUDIO at runtime;
+     *  request it here (a clean dialog in this normal activity) so it's already
+     *  granted before the user ever opens the in-game pill. */
+    private void requestMicIfNeeded() {
+        try {
+            if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{ android.Manifest.permission.RECORD_AUDIO }, 0xBA);
+            }
+        } catch (Throwable ignored) {}
     }
 
     private void setStatus(String msg, int color) {

@@ -316,6 +316,10 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
     // ── call control ───────────────────────────────────────────────────────
     private void startCall(String code) {
         if (inCall) return;
+        if (!ensureMic()) {
+            setStatus("Allow microphone access, then tap Create or Join again.");
+            return;
+        }
         roomCode = code;
         timerStarted = false;
         muted = false;
@@ -421,6 +425,20 @@ public final class BhVoiceOverlay implements BhVoiceController.Host {
 
     private void setStatus(String msg) {
         if (statusLine != null) statusLine.setText(msg);
+    }
+
+    /** The WebView's getUserMedia needs the APP to hold RECORD_AUDIO (a runtime
+     *  permission). If it isn't granted, request it (dialog shows over the game)
+     *  and return false so the user taps Create/Join again once granted. */
+    private boolean ensureMic() {
+        try {
+            if (act.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                    == android.content.pm.PackageManager.PERMISSION_GRANTED) return true;
+            act.requestPermissions(new String[]{ android.Manifest.permission.RECORD_AUDIO }, 0xBA);
+            return false;
+        } catch (Throwable t) {
+            return true; // best effort — let the call attempt proceed
+        }
     }
 
     private TextView headerText(String s) {
