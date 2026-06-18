@@ -5284,3 +5284,21 @@ User goal: let v6 users and 3.7.5 users share a voice session. **Verdict: it wor
 **pre2:** `BhAudioController.resolveActiveGameId()` now finds the live WineActivity, locates its `WineActivityData`-typed field by TYPE (hierarchy walk), reads String field `a`; old intent-extra read kept as fallback. All `extension/*.java` recompile clean vs android-34 jar locally. Tag `v3.8.0-pre2` (build-quick auto-fires on `v*-pre*` tag push).
 
 > **Note (2026-06-18):** these two audio commits (`v3.8.0-pre1`/`pre2`) were cherry-picked onto `voice-chat` so the eventual 3.8.0 stable carries both the in-game voice chat and the per-game PC Audio Settings.
+
+---
+
+## 2026-06-18 — 🏁 v3.8.0 stable CUT (in-game voice chat + per-game PC Audio Settings)
+
+The 3.7.x line's next stable is **3.8.0** (renamed per the cross-play notes already shipped in BannerHub v6 `1.3.1-608`). 3.8.0 = the in-game voice chat (device-confirmed, incl. cross-play with v6) **plus** the per-game PC Audio Settings folded in.
+
+**Folding the two feature lines together:**
+- PC Audio Settings lived on a separate `v3.8.0-pre2` branch (deleted; preserved as tags `v3.8.0-pre1`=`5b28c96`, `v3.8.0-pre2`=`dae0bc1`). Both it and `voice-chat` branched off `main` (`6a312a0`); neither was merged into the other, so the voice test builds were missing the audio feature. **Cherry-picked both audio commits onto `voice-chat`** (`61a63e2` feat: per-game PC Audio Settings / PulseAudio recording-compatible mode; `b169b5b` fix: gameId via WineActivityData field). Clean except a PROGRESS_LOG conflict (kept both). Verify build **27729608553** ✅ 0 SEVERE.
+- **Removed a duplicate `RECORD_AUDIO` uses-permission** in `patches/AndroidManifest.xml` — the base already declared it and the voice commit re-added it (count was 2 at `ebfd59f`, main=1; harmless, aapt dedupes, but tidied). Commit `c29aa7f`. Rebuild **27729915161** ✅ 0 SEVERE; Normal apk md5 `3b0b873f5e88a9d27819a17dcea97b4d`.
+
+**Cutting v3.8.0 (per the stable-release checklist):**
+- Fast-forwarded `main` → `voice-chat` (`6a312a0`→`c29aa7f`, clean FF — main was an ancestor; +16 commits = voice + audio).
+- **README** updated (`a00b249`): Latest-stable `v3.7.5`→`v3.8.0`, header description, TOC, two new feature sections (PC Audio Settings + In-Game Voice Chat). Pushed `main`.
+- **Tagged `v3.8.0`** (annotated, at `a00b249`) and pushed → triggered `build.yml` stable, run **27730230283** (builds 9 variants + auto-publishes the Release; `build.yml` fires only on `v*` tag push, release step body empty → edited after CI).
+- Full release notes drafted at `/tmp/v380_body.md` (install warning + mic/notification/files permission notes + voice-chat & PC-audio writeups + Obtainium + upgrade notes).
+
+**PENDING (CI in flight):** confirm build green + SEVERE-clean → `gh release edit v3.8.0 --notes-file … --latest` → deliver PuBG variant (`BannerHub-v3.8.0-PuBG.apk`) to Downloads → finalize `project_bannerhub.md` latest-stable + memory.
