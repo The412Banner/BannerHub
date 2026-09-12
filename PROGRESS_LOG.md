@@ -26,7 +26,7 @@ With API source = Official, a fresh install downloads firmware 1.4.9 from XiaoJi
 - `extension/BhFrameGenWriter.java`: new `ensureGameScopeVkLib()`, called first in `ensureIcdJsonForCurrentPackage()` (WineActivity onCreate/onResume hooks). It restores the lib from the asset only when it's missing, then the existing JSON rewrite points the ICD at it.
 
 #### Verification
-Manual on-device restore of the same file on firmware 1.4.9 (2026-09-11): games launch and the old AI frame-gen works. The automatic restore from this build is pending a device test.
+Manual on-device restore of the same file on firmware 1.4.9 (2026-09-11): games launch and the old AI frame-gen works. **Automatic restore DEVICE-PROVEN (2026-09-11):** Genshin build from run 34664487056 (`2c337e1`), fresh install, API source Official → firmware 1.4.9. At launch the app wrote `usr/lib/libGameScopeVK.so` itself (md5 `9447d8df…`, app-owned, correct SELinux categories, no `.bhtmp` left). The ICD JSON was rewritten to the package path, and games plus AI frame-gen work (user-confirmed). Merged to `main` together with the Component Manager fix and PR #108.
 
 ---
 
