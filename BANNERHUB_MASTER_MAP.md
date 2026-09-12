@@ -2461,7 +2461,7 @@ Connection: keep-alive
 - `bh_storage_path` (String) — custom storage root path
 
 **Companions:**
-- `BhStorageHelper` — handles toggle apply (writes `bh_storage_pref`) + SD detection (`GHL/` folder convention).
+- `BhStorageHelper` — handles toggle apply (writes `bh_storage_pref`) + SD detection. Since PR #108 (@tirsomb, 2026-09-11) it skips primary storage and accepts a removable volume whose `bannerhub/` folder is writable (creating it if absent). The old `GHL/` marker is no longer required. The legacy smali `GameHubPrefs.autoDetectSDCardStorage()` still checks `GHL/`, but the 0x18 toggle never reaches it (`SettingSwitchHolder` routes it to `BhStorageToggleListener`).
 - `BhStorageMigration` — one-shot dialog on store-activity launch after upgrade from <= v3.5.0.
 
 **Routing logic:**

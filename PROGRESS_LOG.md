@@ -4,6 +4,17 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — SD card toggle works without a GHL folder — PR #108 by @tirsomb (2026-09-11)
+**Branch:** folded into `fix/gamescopevk-firmware-restore` (merge of `343b4d2`, author tirsomb). Artifact-only per pre-release policy.
+
+#### Bug
+Turning on **Save Store Games to External Storage (SD Card)** showed "No SD card found" unless the card already had a writable `GHL/` folder (GameHub's old marker). Reported and fixed on an LG V60 by [@tirsomb](https://github.com/tirsomb) — [PR #108](https://github.com/The412Banner/BannerHub/pull/108).
+
+#### Fix
+`extension/BhStorageHelper.java` `autoDetectSDCardRoot()`: skip primary shared storage; accept a removable volume whose `bannerhub/` folder is writable, creating it if absent (`bannerhub/` is where GOG/Epic/Amazon installs land, see `BhStoragePath.getStoreBase`). The live toggle path is `SettingSwitchHolder` 0x18 intercept → `BhStorageToggleListener` → `applyToggle`. Behaviour change: internal shared storage with a `GHL/` folder is no longer accepted as the "SD card"; paths already saved are untouched.
+
+---
+
 ### [fix] — Games work on firmware 1.4.8+: restore libGameScopeVK.so before launch (2026-09-11)
 **Branch:** `fix/gamescopevk-firmware-restore` (stacked on `fix/component-manager-registry-purge` `2a91eaf`; both merge to `main` together). Artifact-only per pre-release policy — no GitHub Release.
 
