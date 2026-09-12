@@ -929,6 +929,13 @@ jobs:
           fi
           sed -i "s/android:label=\"GameHub Revanced\"/android:label=\"$LABEL\"/" apktool_out/AndroidManifest.xml
 
+      - name: Bundle libGameScopeVK.so fallback
+        run: |
+          # Firmware 1.4.8+ deletes usr/lib/libGameScopeVK.so; BhFrameGenWriter restores it
+          # from this asset before each launch (see extension/BhFrameGenWriter.java).
+          mkdir -p apktool_out/assets/bannerhub
+          cp bundled/libGameScopeVK.so apktool_out/assets/bannerhub/libGameScopeVK.so
+
       - name: Rebuild APK
         run: |
           java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk

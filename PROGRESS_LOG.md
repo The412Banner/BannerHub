@@ -4,6 +4,21 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — Games work on firmware 1.4.8+: restore libGameScopeVK.so before launch (2026-09-11)
+**Branch:** `fix/gamescopevk-firmware-restore` (stacked on `fix/component-manager-registry-purge` `2a91eaf`; both merge to `main` together). Artifact-only per pre-release policy — no GitHub Release.
+
+#### Bug
+With API source = Official, a fresh install downloads firmware 1.4.9 from XiaoJi. Firmware 1.4.8+ deletes `usr/lib/libGameScopeVK.so` but the steamuser Vulkan ICD JSON still points at it, so games get no Vulkan driver and exit within 4–12 s. GL games abort in firmware Mesa (`xmlconfig.c:1321` driconf assert). The old AI frame-gen engine lives in that lib, so it disappeared too.
+
+#### Fix
+- `bundled/libGameScopeVK.so`: the 1.3.7–1.4.2 lib (md5 `9447d8df…`), packed into `assets/bannerhub/` by `build.yml` and `build-quick.yml`.
+- `extension/BhFrameGenWriter.java`: new `ensureGameScopeVkLib()`, called first in `ensureIcdJsonForCurrentPackage()` (WineActivity onCreate/onResume hooks). It restores the lib from the asset only when it's missing, then the existing JSON rewrite points the ICD at it.
+
+#### Verification
+Manual on-device restore of the same file on firmware 1.4.9 (2026-09-11): games launch and the old AI frame-gen works. The automatic restore from this build is pending a device test.
+
+---
+
 ### [fix] — Component Manager: removed components no longer resurrect after restart (2026-08-22)
 **Branch:** `fix/component-manager-registry-purge` (off `main` `443b7c1`). Artifact-only per pre-release policy — no GitHub Release.
 
