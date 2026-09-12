@@ -47,10 +47,10 @@ public final class BhStorageHelper {
     }
 
     /**
-     * Same algorithm GameHub uses: walk getExternalFilesDirs(), strip /Android/data,
-     * accept the mount whose root contains a writable GHL/ folder. Keeping the GHL
-     * convention preserves compatibility with users who already had Steam on SD via
-     * GameHub — they don't need to set up a different folder for BannerHub.
+     * Walk all app-specific external directories, skip primary shared storage, and
+     * derive the removable-volume root by stripping the /Android/data suffix.
+     * Accept the card when its bannerhub directory is writable, creating that
+     * directory when necessary so detection does not depend on a GHL marker.
      */
     private static String autoDetectSDCardRoot(Context ctx) {
         try {
@@ -62,8 +62,17 @@ public final class BhStorageHelper {
                 int idx = abs.indexOf("/Android/data");
                 if (idx < 0) continue;
                 String root = abs.substring(0, idx);
-                File ghl = new File(root, "GHL");
-                if (ghl.exists() && ghl.isDirectory() && ghl.canWrite()) {
+                File rootDir = new File(root);
+                File primaryDir = ctx.getExternalFilesDir(null);
+                if (!rootDir.exists() || !rootDir.isDirectory()) continue;
+                if (primaryDir != null
+                        && abs.equals(primaryDir.getAbsolutePath())) continue;
+
+                File bannerHubDir = new File(rootDir, "bannerhub");
+                if ((bannerHubDir.exists()
+                        && bannerHubDir.isDirectory()
+                        && bannerHubDir.canWrite())
+                        || (!bannerHubDir.exists() && bannerHubDir.mkdirs())) {
                     return root;
                 }
             }
