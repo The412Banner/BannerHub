@@ -4,6 +4,7 @@ import android.content.Context;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
@@ -115,6 +116,7 @@ public class BhFrameGenWriter {
      *  doesn't exist on real installs (BannerHub forks use varying package IDs).
      *  Idempotent: only writes if contents differ. */
     public static void ensureIcdJsonForCurrentPackage(Context ctx) {
+        ensureGameScopeVkLib(ctx);
         try {
             String libPath = resolveIcdLibraryPath(ctx);
             File so = new File(libPath);
@@ -144,6 +146,32 @@ public class BhFrameGenWriter {
             try (FileOutputStream fos = new FileOutputStream(icd)) {
                 fos.write(desired.getBytes(StandardCharsets.UTF_8));
             }
+        } catch (Exception ignored) {}
+    }
+
+    /** Bundled copy of the firmware 1.3.7–1.4.2 libGameScopeVK.so (md5 9447d8df…). */
+    static final String BUNDLED_VK_ASSET = "bannerhub/libGameScopeVK.so";
+
+    /** Firmware 1.4.8+ deletes usr/lib/libGameScopeVK.so but still ships the steamuser
+     *  Vulkan ICD JSON pointing at it, so every game starts with no Vulkan driver (and
+     *  the AI frame-gen engine that lives in that lib is gone). Put our bundled copy back
+     *  whenever it is missing. Never replaces a lib the firmware itself provides. */
+    public static void ensureGameScopeVkLib(Context ctx) {
+        try {
+            File so = new File(resolveIcdLibraryPath(ctx));
+            if (so.isFile() && so.length() > 0) return;
+            File libDir = so.getParentFile();
+            if (libDir == null || !libDir.isDirectory()) return;   // firmware not installed yet
+            File tmp = new File(libDir, so.getName() + ".bhtmp");
+            try (InputStream in = ctx.getAssets().open(BUNDLED_VK_ASSET);
+                 FileOutputStream out = new FileOutputStream(tmp)) {
+                byte[] buf = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            }
+            tmp.setReadable(true, false);
+            tmp.setExecutable(true, false);
+            if (!tmp.renameTo(so)) tmp.delete();
         } catch (Exception ignored) {}
     }
 

@@ -2461,7 +2461,7 @@ Connection: keep-alive
 - `bh_storage_path` (String) — custom storage root path
 
 **Companions:**
-- `BhStorageHelper` — handles toggle apply (writes `bh_storage_pref`) + SD detection (`GHL/` folder convention).
+- `BhStorageHelper` — handles toggle apply (writes `bh_storage_pref`) + SD detection. Since PR #108 (@tirsomb, 2026-09-11) it skips primary storage and accepts a removable volume whose `bannerhub/` folder is writable (creating it if absent). The old `GHL/` marker is no longer required. The legacy smali `GameHubPrefs.autoDetectSDCardStorage()` still checks `GHL/`, but the 0x18 toggle never reaches it (`SettingSwitchHolder` routes it to `BhStorageToggleListener`).
 - `BhStorageMigration` — one-shot dialog on store-activity launch after upgrade from <= v3.5.0.
 
 **Routing logic:**
@@ -7809,6 +7809,10 @@ The dialog UI is built programmatically (no XML layout) to avoid R.id cross-modu
 > 1. **Resume re-apply.** Added a second `BhFrameGenWriter.applyFromPrefs(Context)` invocation at `patches/smali_classes15/com/xj/winemu/WineActivity.smali` `onResume()V` (anchor near line 8679, right after `invoke-super`). Previously the launch hook only fired in `onCreate`, so after Home + resume the sidebar switch still said "ON" while the AI overlay was silently dead — fixed.
 > 2. **Gear-visibility tied to switch.** `patches/res/layout/winemu_sidebar_controls_fragment.xml` now defaults `btn_frame_gen_settings` to `android:visibility="gone"`; `BhFrameGenWiring.bind()` toggles it on the loaded `settings.enabled` state and on every switch click. Matches the RTS-button pattern in the same sidebar.
 > 3. **Dialog cleanup.** `BhFrameGenDialog.java` window background switched from `#cc000000` solid to `Color.TRANSPARENT` + `FLAG_DIM_BEHIND` + `dimAmount = 0.6f` (game stays visible behind a 60% dim). Removed in-dialog Enable Switch (sidebar switch = single source of truth) + multiplier RadioGroup (multiplier now hardcoded to `2` in `BhFrameGenWriter.write()` byte 9). Sections renumbered: 1 = Preset slider, 2 = flowScale slider. Blue **Close** button KEPT — explicit deviation from upstream PR, user requested multiple dismissal paths (tap-outside + visible button). `BhFrameGenSettings.multiplier` field + load/save lines removed; `clampInt` helper retained as no-op for future writer extensions. SharedPreferences keys are now `enabled`, `preset`, `flowScale`, `model` (no longer includes `multiplier`).
+
+> **BannerHub fix (branch `fix/gamescopevk-firmware-restore`, 2026-09-11): libGameScopeVK.so restore for firmware 1.4.8+.** Firmware 1.4.8/1.4.9 (served by the official API) deletes `usr/lib/libGameScopeVK.so` but keeps `usr/home/steamuser/.config/vulkan/icd.d/GameScopeVK_icd.json` pointing at it. 5.3.5 sets no `VK_ICD_FILENAMES`, so the loader's default `~/.config/vulkan/icd.d` search finds only that dangling ICD → no Vulkan driver. Every game exits within seconds; GL titles abort in the firmware Mesa (`xmlconfig.c:1321 driQueryOptionb` assert) because Zink has no Vulkan. `ensureIcdJsonForCurrentPackage()` used to bail when the lib was missing.
+> - `bundled/libGameScopeVK.so` = the firmware 1.3.7–1.4.2 lib (md5 `9447d8dff507228bc9183c8146a4482f`, 2,219,144 B). Both workflows copy it to `assets/bannerhub/libGameScopeVK.so` before `apktool b`. Its NEEDED libs (libX11/-xcb, libxcb/-dri3/-present) are byte-identical in 1.4.2 and 1.4.9; `libvulkan.so` resolves to Android's `/system/lib64` in both.
+> - `BhFrameGenWriter.ensureGameScopeVkLib()` runs at the top of `ensureIcdJsonForCurrentPackage()` (so from the `WineActivity` onCreate/onResume hooks, before wine starts). If the lib is missing/empty it writes the asset to `.bhtmp`, sets it +r+x and renames it into place. It never replaces a lib the firmware provides. The existing JSON rewrite then points the ICD at it. Device-proven by hand first (manual restore on 1.4.9 → games + old AI frame-gen work).
 
 ---
 

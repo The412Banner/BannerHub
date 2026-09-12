@@ -4,6 +4,45 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — SD card toggle works without a GHL folder — PR #108 by @tirsomb (2026-09-11)
+**Branch:** folded into `fix/gamescopevk-firmware-restore` (merge of `343b4d2`, author tirsomb). Artifact-only per pre-release policy.
+
+#### Bug
+Turning on **Save Store Games to External Storage (SD Card)** showed "No SD card found" unless the card already had a writable `GHL/` folder (GameHub's old marker). Reported and fixed on an LG V60 by [@tirsomb](https://github.com/tirsomb) — [PR #108](https://github.com/The412Banner/BannerHub/pull/108).
+
+#### Fix
+`extension/BhStorageHelper.java` `autoDetectSDCardRoot()`: skip primary shared storage; accept a removable volume whose `bannerhub/` folder is writable, creating it if absent (`bannerhub/` is where GOG/Epic/Amazon installs land, see `BhStoragePath.getStoreBase`). The live toggle path is `SettingSwitchHolder` 0x18 intercept → `BhStorageToggleListener` → `applyToggle`. Behaviour change: internal shared storage with a `GHL/` folder is no longer accepted as the "SD card"; paths already saved are untouched.
+
+---
+
+### [fix] — Games work on firmware 1.4.8+: restore libGameScopeVK.so before launch (2026-09-11)
+**Branch:** `fix/gamescopevk-firmware-restore` (stacked on `fix/component-manager-registry-purge` `2a91eaf`; both merge to `main` together). Artifact-only per pre-release policy — no GitHub Release.
+
+#### Bug
+With API source = Official, a fresh install downloads firmware 1.4.9 from XiaoJi. Firmware 1.4.8+ deletes `usr/lib/libGameScopeVK.so` but the steamuser Vulkan ICD JSON still points at it, so games get no Vulkan driver and exit within 4–12 s. GL games abort in firmware Mesa (`xmlconfig.c:1321` driconf assert). The old AI frame-gen engine lives in that lib, so it disappeared too.
+
+#### Fix
+- `bundled/libGameScopeVK.so`: the 1.3.7–1.4.2 lib (md5 `9447d8df…`), packed into `assets/bannerhub/` by `build.yml` and `build-quick.yml`.
+- `extension/BhFrameGenWriter.java`: new `ensureGameScopeVkLib()`, called first in `ensureIcdJsonForCurrentPackage()` (WineActivity onCreate/onResume hooks). It restores the lib from the asset only when it's missing, then the existing JSON rewrite points the ICD at it.
+
+#### Verification
+Manual on-device restore of the same file on firmware 1.4.9 (2026-09-11): games launch and the old AI frame-gen works. The automatic restore from this build is pending a device test.
+
+---
+
+### [fix] — Component Manager: removed components no longer resurrect after restart (2026-08-22)
+**Branch:** `fix/component-manager-registry-purge` (off `main` `443b7c1`). Artifact-only per pre-release policy — no GitHub Release.
+
+#### Bug
+Removing a component in the Component Manager (single-remove or Remove All) cleared the runtime registry (`EmuComponents.a` HashMap) and the `banners_sources` source-tracking prefs, and deleted the on-disk folder — but never touched the **persistent** component registry `sp_winemu_all_components12` (the SharedPreferences file `EmuComponents.D()` writes to, keyed by `ComponentRepo.getName()` = the component folder name). On the next launch `EmuComponents.s()` reloaded every persisted entry back into the HashMap, so a removed component reappeared. The original design note assumed a missing folder made the persisted entry "inert" (GameHub file-existence validation); in practice the entry is resurrected.
+
+#### Fix
+`patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali` — both removal methods now also `SharedPreferences.Editor.remove(dirName)` on `sp_winemu_all_components12`:
+- `removeComponent()` (`.locals 10`): purge block inserted after `:skip_emu`, before `deleteDir` (v1 = dirName; v2/v3 free after the HashMap unregister).
+- `removeAllComponents()` (`.locals 12`): registry SP opened once before the loop, held in v0 (the now-dead `EmuComponents` instance ref); each removed `.bh_injected` component's dirName (v6) purged inside the loop after `deleteDir` (v7 scratch). Remove-All stays scoped to `.bh_injected` components, so XiaoJi base-component entries are untouched.
+
+Both additions reuse the exact `getSharedPreferences → edit → remove → apply` opcode pattern already used by the adjacent `banners_sources` cleanup. Registers verified in-bounds; `.locals` unchanged. Not yet CI-assembled or device-proven.
+
 ### [v3.8.0-pre1] — Per-game PC Audio Settings: PulseAudio recording-compatible mode (2026-06-09)
 **Branch:** `feature/audio-recording-mode` (off `main` `6a312a0`). Pre-release artifact-only per policy — no GitHub Release.
 

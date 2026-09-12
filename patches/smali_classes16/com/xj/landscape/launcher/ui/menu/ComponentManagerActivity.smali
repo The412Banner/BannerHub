@@ -952,6 +952,18 @@
     if-eqz v3, :skip_emu
     invoke-virtual {v3, v1}, Ljava/util/HashMap;->remove(Ljava/lang/Object;)Ljava/lang/Object;
     :skip_emu
+    # BH-FIX: purge the persistent component registry entry (sp_winemu_all_components12,
+    # keyed by dirName) so EmuComponents.s() doesn't resurrect the removed component on
+    # the next app launch. v1 = dirName; v2/v3 are free after the HashMap unregister above.
+    const-string v2, "sp_winemu_all_components12"
+    const/4 v3, 0x0
+    invoke-virtual {p0, v2, v3}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v2
+    invoke-interface {v2}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v2
+    invoke-interface {v2, v1}, Landroid/content/SharedPreferences$Editor;->remove(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+    move-result-object v2
+    invoke-interface {v2}, Landroid/content/SharedPreferences$Editor;->apply()V
     invoke-static {v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->deleteDir(Ljava/io/File;)V
 
     # Clear banners_sources SP entries for this component
@@ -1153,6 +1165,12 @@
     const/4 v9, 0x0
     invoke-virtual {p0, v8, v9}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
     move-result-object v8    # v8 = SP
+    # BH-FIX: open the persistent component registry once; held in v0 (dead EmuComponents
+    # ref) across the loop so each removed component is also purged from it.
+    const-string v0, "sp_winemu_all_components12"
+    const/4 v6, 0x0
+    invoke-virtual {p0, v0, v6}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v0    # v0 = registry SP
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->components:[Ljava/io/File;
     array-length v3, v2
     const/4 v4, 0x0
@@ -1171,6 +1189,13 @@
     invoke-virtual {v1, v6}, Ljava/util/HashMap;->remove(Ljava/lang/Object;)Ljava/lang/Object;
     :skip_unreg
     invoke-static {v5}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->deleteDir(Ljava/io/File;)V
+    # BH-FIX: purge this component's persistent registry entry (v0 = registry SP,
+    # v6 = dirName) so it isn't resurrected by EmuComponents.s() on next launch. v7 free here.
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v7
+    invoke-interface {v7, v6}, Landroid/content/SharedPreferences$Editor;->remove(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+    move-result-object v7
+    invoke-interface {v7}, Landroid/content/SharedPreferences$Editor;->apply()V
     # Clear SP entries — look up url via "url_for:"+dirName reverse key
     new-instance v9, Ljava/lang/StringBuilder;
     invoke-direct {v9}, Ljava/lang/StringBuilder;-><init>()V
