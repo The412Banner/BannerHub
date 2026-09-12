@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/The412Banner/BannerHub/releases/latest"><strong>📥 Latest stable: v3.8.0</strong></a>
+  <a href="https://github.com/The412Banner/BannerHub/releases/latest"><strong>📥 Latest stable: v3.8.1</strong></a>
 </p>
 
 **GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, background download service with in-app cross-store download manager, SD card / external storage routing for store game downloads, Winlator HUD overlay (Normal + Extra Detailed + Konkr style with CPU/GPU/RAM/SWAP/temp/per-core metrics), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, community game configs browser, per-game config export/import with Frontend Export, Japanese locale, in-game voice chat (room-based, no Steam required, cross-compatible with BannerHub v6), per-game PC audio settings (recording-compatible mode), and more. Built entirely with apktool smali patching — no source code, no external library injection.
@@ -258,6 +258,8 @@ Accessible via the left side menu → **Components**.
 
 The Component Manager gives you full control over the WCP/ZIP components that GameHub uses to run Windows games — the DXVK, VKD3D, Box64, FEXCore, and GPU Driver entries that appear in per-game settings.
 
+*Fixed in v3.8.1:* removing a component (single remove or **Remove All**) now also clears it from GameHub's saved component registry, so removed components no longer come back after the app restarts.
+
 #### Card UI
 
 Each installed component is displayed as a compact card with:
@@ -344,6 +346,8 @@ A **"Save Store Games to External Storage (SD Card)"** toggle in the BannerHub s
 
 - **Toggle OFF (default):** games install to internal app storage at `Android/data/<package>/files/{store}/{game}/`
 - **Toggle ON:** games install to your SD card at `{SD card}/bannerhub/{store}/{game}/` — visible as a `bannerhub/` folder at the root of the SD card with subfolders per store (`gog_games/`, `epic_games/`, `Amazon/`)
+
+**No setup needed on the card (v3.8.1+).** Earlier versions only recognised an SD card that already had a `GHL` folder at its root and otherwise said *"No SD card found"*. The toggle now accepts any writable SD card and creates the `bannerhub/` folder itself. Fix by [@tirsomb](https://github.com/tirsomb) — [PR #108](https://github.com/The412Banner/BannerHub/pull/108).
 
 **Turning the toggle on or off shows a confirmation dialog** explaining what will change before anything is applied. Pressing Cancel reverts the switch without making any change.
 
@@ -465,6 +469,8 @@ A new sidebar entry that drives GameHub 6.0.1's built-in `libGameScopeVK` AI fra
 > 📖 **For the full technical breakdown** — data classes, the 10-byte `gamescope.control` mmap protocol, libGameScopeVK Vulkan ICD, the `VK_NV_optical_flow` Adreno path, per-GPU capability gating, and the action/state classes — see [`gamehub_reports/GAMEHUB_600_MASTER_MAP.md` § 26.8 (AI Frame Generation — Technical Deep Dive)](gamehub_reports/GAMEHUB_600_MASTER_MAP.md#268--ai-frame-generation--technical-deep-dive).
 >
 > 🧩 **BannerHub-side deep dive** — for a combined report covering the BannerHub `feature/framegen-menu` implementation, the runtime ICD-path fix, the launcher-regenerator gotcha, the 18:23 A/B failure post-mortem, verified 20:30 FPS results, and a layman's-terms breakdown of how all this works, see [`AI_FRAME_GENERATION_REPORT.md`](AI_FRAME_GENERATION_REPORT.md).
+
+> 🛠️ **v3.8.1 — works on GameHub firmware 1.4.8 / 1.4.9.** Newer firmware removes `libGameScopeVK.so`, the library this engine lives in — and the one BannerHub's Vulkan setup points games at. On that firmware games closed seconds after launching. BannerHub now carries its own copy and puts it back automatically before each game launch whenever it's missing, so games start and AI Frame Generation keeps working. A library the firmware provides itself is never replaced.
 
 #### How it works (in plain English)
 
@@ -843,6 +849,10 @@ All new BannerHub code lives in `smali_classes16/`. Existing GameHub smali files
 
 ## FAQ
 
+**Q: After a firmware update, games close a few seconds after launching (or AI Frame Generation is gone). What happened?**
+
+GameHub firmware 1.4.8 and newer removes the graphics library (`libGameScopeVK.so`) that BannerHub points games at. Update to **v3.8.1 or newer**: BannerHub restores that library automatically before each launch. You don't need to reinstall or change any settings — just update and launch a game.
+
 **Q: Does BannerHub require root?**
 
 Most features work without root. The only features that require root are the two Performance sidebar toggles (Sustained Performance Mode and Max Adreno Clocks) — both are greyed out and non-interactive on non-rooted devices. All other features — the GOG, Amazon, and Epic Games tabs, Component Manager, component downloader, Winlator HUD, RTS controls, VRAM unlock, core affinity, offline modes, and settings — work on any non-rooted Android device.
@@ -928,6 +938,7 @@ Detailed technical breakdowns of each store integration and feature set — API 
 - **Epic Online Services (EOS) Phase 1** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The EOS launch-arguments injection (`-EpicPortal`, `-epicusername`, `-epicuserid`, `-epicsandboxid`, `-epiclocale`, `-epicdeploymentid` and the `-AUTH_LOGIN` / `-AUTH_PASSWORD` / `-AUTH_TYPE` exchange-code triple) plus the deployment-ID sidecar fetch in BannerHub v3.6.1 are a Java port of their work. Specifically, [PR #1286 / commit `cbea7f7`](https://github.com/utkarshdalal/GameNative/commit/cbea7f70be46e6f4a99a7e92db13c9b96add9c1c) ("Feat/eos overlay utkarsh"). Without GameNative's research and reverse-engineering of Epic's launcher protocols this feature wouldn't exist in BannerHub. **Phase 2** — the in-game EOS overlay UI (Epic friends popup / notifications / achievement toasts) — is still pending and will land in a future BannerHub release. **Please support GameNative: https://github.com/utkarshdalal/GameNative**
 - **Japanese translations** — [reindex-ot](https://github.com/reindex-ot) via Crowdin
 - **RTS Touch Controls** — [@Nightwalker743](https://github.com/Nightwalker743)
+- **SD card detection without the GHL marker** — [@tirsomb](https://github.com/tirsomb) via [PR #108](https://github.com/The412Banner/BannerHub/pull/108)
 - **GameHub ReVanced patches** — [@playday3008](https://github.com/playday3008/gamehub-patches)
 - **Winlator HUD** — [StevenMXZ](https://github.com/StevenMXZ). The Extra Detail HUD is a continuation and extension of the original Winlator HUD. Additional metrics were inspired by the built-in performance HUD of my personal device.
 - **Component sources** — [Arihany WCPHub](https://github.com/Arihany/WinlatorWCPHub), [The412Banner Nightlies](https://github.com/The412Banner/Nightlies), Kimchi, StevenMXZ, MaxesTechReview, Whitebelyash

@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [v3.8.1] — STABLE: games work on firmware 1.4.8+, SD toggle without GHL, Component Manager removals stick (2026-09-11)
+**Tag:** `v3.8.1` (annotated) on `main`. `build.yml` tag push → prepare + 9 variants + release job; body from `release_notes_v3.8.1.md`, marked Latest.
+
+Folds in the three fixes below (merged to `main` at `521bf46`):
+1. **libGameScopeVK.so restore** — firmware 1.4.8/1.4.9 deletes the lib; BannerHub restores its bundled copy before each launch. Device-proven on a fresh install with firmware 1.4.9 (games + AI frame-gen).
+2. **PR #108 by @tirsomb** — SD card toggle no longer requires a `GHL/` folder.
+3. **Component Manager** — removed components no longer resurrect after restart.
+
+Stable checklist: README (v3.8.1 header, feature-section notes, new FAQ entry, credit), release notes, PROGRESS_LOG, BANNERHUB_MASTER_MAP (both code fixes). Pre-release policy resumes after this stable.
+
+---
+
 ### [fix] — SD card toggle works without a GHL folder — PR #108 by @tirsomb (2026-09-11)
 **Branch:** folded into `fix/gamescopevk-firmware-restore` (merge of `343b4d2`, author tirsomb). Artifact-only per pre-release policy.
 
