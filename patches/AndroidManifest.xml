@@ -135,10 +135,6 @@
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.test.AudioViewEditorTestActivity" android:screenOrientation="sensorLandscape"/>
         <service android:name="com.xj.landscape.launcher.devicemanagement.DeviceManagementService" android:foregroundServiceType="specialUse"/>
         <activity android:enabled="true" android:exported="false" android:launchMode="singleTask" android:name="com.xj.landscape.launcher.devicemanagement.PermissionsActivity" android:noHistory="true" android:screenOrientation="sensorLandscape" android:theme="@style/TransparentActivityTheme">
-            <intent-filter>
-                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
-            </intent-filter>
-            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" android:resource="@xml/device_filter"/>
         </activity>
         <activity android:name="com.xj.landscape.launcher.ui.social.UserInfoActivity" android:screenOrientation="sensorLandscape" android:theme="@style/ActivityTranslucent"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.landscape.launcher.ui.guide.GuideNotConnectGamePadActivity" android:screenOrientation="sensorLandscape"/>
